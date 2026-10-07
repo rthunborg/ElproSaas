@@ -1,0 +1,31 @@
+{
+  "status": "PASS",
+  "checks": {
+    "all_four_dimension_contracts": true,
+    "authoritative85accounted": true,
+    "79reviewed6excluded": true,
+    "four_contexts_read_only_unscored": true,
+    "85source_hashes_unchanged": true,
+    "four_context_hashes_unchanged": true,
+    "dedup_raw67_to48": true,
+    "pinned_counts7HIGH41MEDIUM": true,
+    "score_ledger_clamp0": true,
+    "recommendation_consistent": true,
+    "no_product_executions": true,
+    "template_sections_complete": true
+  },
+  "score": 0,
+  "recommendation": "Request Changes",
+  "findings": {
+    "HIGH": 7,
+    "MEDIUM": 41
+  },
+  "dimension_scores": {
+    "determinism": 70,
+    "isolation": 10,
+    "maintainability": 0,
+    "performance": 65
+  },
+  "new_product_executions": 0,
+  "report_sha256": "57fe19f2d7ae9785bd7455c40fb6e45bb29d6fd94108fedbc02e14914bbcbf3e"
+}

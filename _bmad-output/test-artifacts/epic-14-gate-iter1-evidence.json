@@ -445,7 +445,7 @@
     },
     {
       "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-affected-output.txt",
-      "sha256": "0b8bfe51c1a47a7376f0163915f0f26590c0e6c7549302a8709c930bf21e7a98"
+      "sha256": "adef1b328936af134478c1bdadb8d8927b6f40b8410a55497a5b08e9db4de0dd"
     },
     {
       "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-affected.json",
@@ -477,7 +477,7 @@
     },
     {
       "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-focused-output.txt",
-      "sha256": "218d0e68ded222430eca98e04a03d1ca3a60302db365a16b995b4ddfce6fae5d"
+      "sha256": "389e9e8fcc35ed2c8782d9f691ece8bef4eb59f95e62082cf4b8863792bc95b5"
     },
     {
       "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-focused.json",
@@ -489,7 +489,7 @@
     },
     {
       "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-full-output.txt",
-      "sha256": "a82d25503d44a1b62d56016bf39b64563a67a070ecc31ca825f0c4294d4a983e"
+      "sha256": "44db245c773b0f89261c646ca29cf6eae8acdd432f44343d3e7af6cb26576e06"
     },
     {
       "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-full.json",
@@ -535,5 +535,58 @@
   "newBrowserExecutions": 0,
   "newUnitExecutions": 0,
   "releaseAuthority": false,
-  "gateReevaluationOwner": "root after checkpoint"
+  "gateReevaluationOwner": "root after checkpoint",
+  "stdoutCosmeticCorrections": {
+    "correctedAt": "2026-10-07T15:27:45.449Z",
+    "reason": "Authorized staged diff-check repair after the original execution manifest was captured",
+    "currentByteHashes": "artifacts[].sha256 now identifies the three current repository stdout files",
+    "capturedRawHashes": "Prior captured-byte hashes and unchanged original raw bytes remain available below",
+    "corrections": [
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-affected-output.txt",
+        "priorSha256": "0b8bfe51c1a47a7376f0163915f0f26590c0e6c7549302a8709c930bf21e7a98",
+        "currentSha256": "adef1b328936af134478c1bdadb8d8927b6f40b8410a55497a5b08e9db4de0dd",
+        "rawOriginalPath": "C:/Users/Rasmus/AppData/Local/Temp/epic-14-gate-iter1-affected-output-original.txt",
+        "rawOriginalSha256": "0b8bfe51c1a47a7376f0163915f0f26590c0e6c7549302a8709c930bf21e7a98",
+        "priorBytes": 102,
+        "currentBytes": 101,
+        "removedBytes": 1,
+        "mutation": "Removed one duplicate terminal LF byte only",
+        "contentBeforeTerminalNewlinesUnchanged": true,
+        "nativeExitCodesUnchanged": true,
+        "testCountsUnchanged": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-focused-output.txt",
+        "priorSha256": "218d0e68ded222430eca98e04a03d1ca3a60302db365a16b995b4ddfce6fae5d",
+        "currentSha256": "389e9e8fcc35ed2c8782d9f691ece8bef4eb59f95e62082cf4b8863792bc95b5",
+        "rawOriginalPath": "C:/Users/Rasmus/AppData/Local/Temp/epic-14-gate-iter1-focused-output-original.txt",
+        "rawOriginalSha256": "218d0e68ded222430eca98e04a03d1ca3a60302db365a16b995b4ddfce6fae5d",
+        "priorBytes": 101,
+        "currentBytes": 100,
+        "removedBytes": 1,
+        "mutation": "Removed one duplicate terminal LF byte only",
+        "contentBeforeTerminalNewlinesUnchanged": true,
+        "nativeExitCodesUnchanged": true,
+        "testCountsUnchanged": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-full-output.txt",
+        "priorSha256": "a82d25503d44a1b62d56016bf39b64563a67a070ecc31ca825f0c4294d4a983e",
+        "currentSha256": "44db245c773b0f89261c646ca29cf6eae8acdd432f44343d3e7af6cb26576e06",
+        "rawOriginalPath": "C:/Users/Rasmus/AppData/Local/Temp/epic-14-gate-iter1-full-output-original.txt",
+        "rawOriginalSha256": "a82d25503d44a1b62d56016bf39b64563a67a070ecc31ca825f0c4294d4a983e",
+        "priorBytes": 98,
+        "currentBytes": 97,
+        "removedBytes": 1,
+        "mutation": "Removed one duplicate terminal LF byte only",
+        "contentBeforeTerminalNewlinesUnchanged": true,
+        "nativeExitCodesUnchanged": true,
+        "testCountsUnchanged": true
+      }
+    ],
+    "productGatesRerun": 0,
+    "structuredExecutionAndResultJsonUnchanged": true,
+    "sourceAndSnapshotAssertionsUnchanged": true
+  }
 }

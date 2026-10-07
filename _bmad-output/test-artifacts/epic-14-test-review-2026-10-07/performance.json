@@ -1,0 +1,1725 @@
+{
+  "dimension": "performance",
+  "success": true,
+  "score": 65,
+  "max_score": 100,
+  "grade": "D",
+  "violations": [
+    {
+      "row": "H5",
+      "severity": "HIGH",
+      "file": "C:/DEV/ElproSaas/tests/e2e/global-setup.ts",
+      "line": 1,
+      "category": "oversize-test-file",
+      "description": "The complete reviewed code/test file has 1102 logical lines, exceeding the fixed 1000-line threshold.",
+      "evidence": "Full-file line count 1102; this is not a claim about individual test length or measured runtime.",
+      "recommendation": "Split by subject or fixture responsibility while preserving every registered test, exact assertion and setup/cleanup invariant.",
+      "suggestion": "Use cohesive modules below the rubric threshold; preserve runner registration and current assertions.",
+      "codefix": "// Keep shared fixtures in their existing support module; register focused suites separately.\nimport { registerSubjectChecks } from \"./subject-checks\";\nregisterSubjectChecks();",
+      "production_defect_claim": false
+    },
+    {
+      "row": "H5",
+      "severity": "HIGH",
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/quote-pdf-validity.int.test.ts",
+      "line": 1,
+      "category": "oversize-test-file",
+      "description": "The complete reviewed code/test file has 1590 logical lines, exceeding the fixed 1000-line threshold.",
+      "evidence": "Full-file line count 1590; this is not a claim about individual test length or measured runtime.",
+      "recommendation": "Split by subject or fixture responsibility while preserving every registered test, exact assertion and setup/cleanup invariant.",
+      "suggestion": "Use cohesive modules below the rubric threshold; preserve runner registration and current assertions.",
+      "codefix": "// Keep shared fixtures in their existing support module; register focused suites separately.\nimport { registerSubjectChecks } from \"./subject-checks\";\nregisterSubjectChecks();",
+      "production_defect_claim": false
+    },
+    {
+      "row": "H5",
+      "severity": "HIGH",
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/tenant-table-inventory.ts",
+      "line": 1,
+      "category": "oversize-test-file",
+      "description": "The complete reviewed code/test file has 2074 logical lines, exceeding the fixed 1000-line threshold.",
+      "evidence": "Full-file line count 2074; this is not a claim about individual test length or measured runtime.",
+      "recommendation": "Split by subject or fixture responsibility while preserving every registered test, exact assertion and setup/cleanup invariant.",
+      "suggestion": "Use cohesive modules below the rubric threshold; preserve runner registration and current assertions.",
+      "codefix": "// Keep shared fixtures in their existing support module; register focused suites separately.\nimport { registerSubjectChecks } from \"./subject-checks\";\nregisterSubjectChecks();",
+      "production_defect_claim": false
+    },
+    {
+      "row": "M1",
+      "severity": "MEDIUM",
+      "file": "C:/DEV/ElproSaas/tests/e2e/resources-person-profile.e2e.spec.ts",
+      "line": 35,
+      "related_lines": [
+        92,
+        104,
+        134
+      ],
+      "category": "network-first-violated",
+      "description": "The resource browser suite navigates to data-dependent user-detail content without installing an intercept or explicit readiness signal before those navigations. Its CDP fixture supplies a context/page but no such registration. Native awaited navigation and later locator assertions do not match the registry\u2019s before-navigation predicate.",
+      "evidence": "await page.goto(`/admin/users/${fixture.adminUserManagement.resourceProfileMembershipId}`); followed by resource-role/schedule field interaction; resource-cdp-attachment fixture only attaches/provides/closes the owned context/page.",
+      "recommendation": "Register observation of the real navigation/read response before each data-dependent navigation, then await it before interacting. Keep real server data and durable persistence checks.",
+      "suggestion": "Use a prearmed real-response promise rather than a generic post-navigation wait; do not stub away persistence.",
+      "codefix": "const target = `/admin/users/${fixture.adminUserManagement.resourceProfileMembershipId}`;\nconst ready = page.waitForResponse((response) =>\n  response.request().isNavigationRequest() &&\n  new URL(response.url()).pathname === target && response.status() === 200);\nawait page.goto(target);\nawait ready;",
+      "production_defect_claim": false,
+      "runtime_race_demonstrated": false
+    }
+  ],
+  "violation_summary": {
+    "CRITICAL": 0,
+    "HIGH": 3,
+    "MEDIUM": 1,
+    "LOW": 0
+  },
+  "passed_checks": 156,
+  "failed_checks": 4,
+  "total_checks": 160,
+  "reviewed_counts": {
+    "authoritative_files": 85,
+    "examined_files": 85,
+    "scorable_files": 79,
+    "unscorable_files": 6,
+    "test_body_files": 60,
+    "mechanical_routing_test_files": 2,
+    "helper_fixture_files": 17,
+    "context_files_read": 4,
+    "tests_executed_by_this_worker": 0
+  },
+  "applicability": [
+    {
+      "file": "C:/DEV/ElproSaas/.agents/skills/auto-bmad/scripts/tests/test_routing_migration.py",
+      "classification": "mechanical-routing-tests",
+      "examined": true,
+      "scorable": true,
+      "sha256": "afbc8ae36d6bef5cc07adb70e45c84d0fd882066dd4a73f82eac08536c806f99",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "Full Python AST parsed; no async functions/await or promise-like test effects; TestCase runner owns synchronous bodies. No product execution credit."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/.claude/skills/auto-bmad/scripts/tests/test_routing_migration.py",
+      "classification": "mechanical-routing-tests",
+      "examined": true,
+      "scorable": true,
+      "sha256": "afbc8ae36d6bef5cc07adb70e45c84d0fd882066dd4a73f82eac08536c806f99",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "Full Python AST parsed; no async functions/await or promise-like test effects; TestCase runner owns synchronous bodies. No product execution credit."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/.env.test.example",
+      "classification": "configuration",
+      "examined": true,
+      "scorable": false,
+      "sha256": "f17fd0b049424d0371df1be7f6d58c09a73497c1c7d22b40b65e84538bff1fd9",
+      "applicable_rows": [],
+      "closed_gates": [],
+      "violation_rows": [],
+      "notes": "Format not scorable by the ledger; consumed as configuration/golden support, no passing score awarded."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/compose.test.yaml",
+      "classification": "configuration",
+      "examined": true,
+      "scorable": false,
+      "sha256": "b8d4840b80c228a87d40637f740197c5490c36f65858940cf985ba36e8ff41a0",
+      "applicable_rows": [],
+      "closed_gates": [],
+      "violation_rows": [],
+      "notes": "Format not scorable by the ledger; consumed as configuration/golden support, no passing score awarded."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/e2e/booking-editor.e2e.spec.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "a2036d1034634071f8376995061e60b3add06dd52a2f0165cf54321f47089128",
+      "applicable_rows": [
+        "H5",
+        "M6",
+        "M1"
+      ],
+      "closed_gates": [],
+      "violation_rows": [],
+      "notes": "M1 passes: async bookingEditor fixture awaits bindBookingEditorHarness, whose page.route(\"**/*\", routeHandler) registration at support line181 precedes test navigation/actions. Route fetch/fulfill preserves real responses."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/e2e/global-setup.ts",
+      "classification": "helper/fixture",
+      "examined": true,
+      "scorable": true,
+      "sha256": "7b98ea7c85296ba3396e7d47eabd1e835817c611efca0fe708584aec748304f0",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [
+        "H5"
+      ],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/e2e/resources-person-profile.e2e.spec.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "a0a08fa49b15aaead06cdd5275a6982240c8fc02c3d17da8f9a6d47d1f8b4a69",
+      "applicable_rows": [
+        "H5",
+        "M6",
+        "M1"
+      ],
+      "closed_gates": [],
+      "violation_rows": [
+        "M1"
+      ],
+      "notes": "M1 fires once for missing before-navigation readiness pattern; related navigations share the same missing registration. No runtime race inferred."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/e2e/support/booking-editor-atdd.ts",
+      "classification": "helper/fixture",
+      "examined": true,
+      "scorable": true,
+      "sha256": "56b688acb0e4f752ba2ca2181183420e32fdaa006b3d1b90a80240f0215e308c",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/e2e/support/resource-cdp-attachment.ts",
+      "classification": "helper/fixture",
+      "examined": true,
+      "scorable": true,
+      "sha256": "3073711d4488f93123044446790a508758e5235609f35f0b3f10e638326187d9",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/factories/tenants/core.ts",
+      "classification": "helper/fixture",
+      "examined": true,
+      "scorable": true,
+      "sha256": "e877c463e15173bc6b5a8ed0018de919289217c5e9b4379a6eb5aa8fc9457265",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/capacity.json",
+      "classification": "golden-fixture",
+      "examined": true,
+      "scorable": false,
+      "sha256": "e74ff7204079701b88d95cc6352b6af8019f1c6bb6cbf9760c39b9fd316f6e6a",
+      "applicable_rows": [],
+      "closed_gates": [],
+      "violation_rows": [],
+      "notes": "Format not scorable by the ledger; consumed as configuration/golden support, no passing score awarded."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/conflicts.json",
+      "classification": "golden-fixture",
+      "examined": true,
+      "scorable": false,
+      "sha256": "9c31764bcf199246b2785b456bd795a3d5dcc513c1aaa52e1368f592c4b39b44",
+      "applicable_rows": [],
+      "closed_gates": [],
+      "violation_rows": [],
+      "notes": "Format not scorable by the ledger; consumed as configuration/golden support, no passing score awarded."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/dst.json",
+      "classification": "golden-fixture",
+      "examined": true,
+      "scorable": false,
+      "sha256": "c1d2388cab20e6da742d62bf7c67b159121b338fe23687bf6f48f88b98fa4e8d",
+      "applicable_rows": [],
+      "closed_gates": [],
+      "violation_rows": [],
+      "notes": "Format not scorable by the ledger; consumed as configuration/golden support, no passing score awarded."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/regressions.json",
+      "classification": "golden-fixture",
+      "examined": true,
+      "scorable": false,
+      "sha256": "d23bd448b32858d8798135a498006b86ecc93fd55976d9ecd20fea7b2cee85a2",
+      "applicable_rows": [],
+      "closed_gates": [],
+      "violation_rows": [],
+      "notes": "Format not scorable by the ledger; consumed as configuration/golden support, no passing score awarded."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/audit-anon-isolation.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "f04a6be815fe251a2f8e7be489b33f57fa03f928af586ccac2baa99e0a62578f",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "f998e6a977600cbfe60bdfde24fcfdf3bc0dc802af88ffd95f34324408a6b3e2",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-editor-review-fixes.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "e6ab178f5c79c4f684e8d5fccce069db669d62733f7d5438c722a3c079c30beb",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-editor-round2.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "800cd980ba04db0b2acb9bca862bb38dd6b05c58691215139a7f20516dde038f",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-editor.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "6f5997d0e830a3c1bf89afa70265efe259bc97b039e4dc4c9aa8e6684f2b84d5",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "332a32a25674e1e3e9a4bdbaef580ee90209fd7ee5aedda84c1cfb4d4019377a",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/bookings.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "cd9d40701a176b71948cd7a4db0cec3bb3974c878b079d8d728eee15e9f8a785",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/quote-pdf-validity.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "237d1bc5b42e0861002bb38ef278075601f04ac25ac9cd5d3459a2a12f7c2c08",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [
+        "H5"
+      ],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/resources-boundaries.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "2f653b1dd3c63a5776556307cd7d8764b6ed70df10000e13b9b69a8810e340b9",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/resources.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "09139989c787832029aa739a8b9d5786bc8708c1a1736ddad03c2fffbc2b0bdf",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/update-job.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "5ece36ccff52073c9d8cdbecd39c280d1edbe186bb87703c95c10e196b1f4328",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/components/booking-editor.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "9320f5ace1446ba2c5da02621b5022c2995c09115cacc32596612b2a3bc4a062",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "b241d49eae5bda0fd6120668265aaf2f1a294d6ea761fdeb2559acdc01b37218",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/features/booking-read-actions.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "635a842dd310eeb98be024e52e1088be02908d24fe0cbdc931805a7a75d6772e",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/jobs/job-runs.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "5d387ead588913269702e3f48e8c9618067bd1e9bec8a1224ee737c351a23ac3",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/admin-user-management.rls.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "9fd6b91e737ce5a0fe4a946752578ef94980210a5af452ac8f9ae0280eb61cc5",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/approved-public-acl-repair.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "1e2d539b377ac8894ddfa3451d0a4cf9abb5717dce7a35c5385cb7170d057204",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/bookings.rls.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "ce48a522751eafa6c1f880ebaed16ae60ebd54f53a40b1c8220d38a57b5c77a4",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/calc-tables-migration-reset.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "6bde96f98eb3ef614eaccc6251873edf4655a23fa70b0dbec2d085871c61bb34",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/crm-tables-migration-reset.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "d46217d09b5b7accfb40ac3bfd1b4f5788d6591276f1c3895a3e2abd24cd6a0a",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/cross-tenant-isolation.rls.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "a11ec3e21c5f02869a651ed4a7a638b8f154431ce4fdb96d6efe1c164c14ba55",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/file-tables-migration-reset.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "5ccac43218fe6570c1b7e1c3d8e77e64586ea748758ebff3f45e1835cbe77093",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/membership-self-grant.rls.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "fc90521be58abf4ec83097704c5a176dae2e27bd5239d381315719ba29d54e80",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/migration-reset.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "94a8b50078b5b55e976f9a3ccd46bfc1d98faae79bbd93b0e007be73bb9fbd44",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/onboarding-checklist.rls.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "3e2f1e3d5a21c43d5663e73cffe00d9bd0f9a71fccdc88871355efd677bd3505",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/pricing-tables-migration-reset.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "655aae873f6aa3cbd4b9fe8966918b3ea79b36824c28fa2d86fc1801702900db",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/quote-follow-ups-migration-reset.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "b4bd272cb64fd5b8e9384f8c271fecb0c075287978dfce158e2ea69212c09c80",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/quote-pipeline-read-model.rls.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "adc7b49b9cca0c5c147a96eb2f0a5fc111d4d448fe8d12940cce644bb171857f",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/quote-review-authorization-migration-reset.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "9f06dd4b86659b4ca521535c5a99607ba3b3ee70d9f2f3d442316ff29ba90dce",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/resources.rls.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "5bb2c1e40bd8e9a2d8a802f432ab6afb69a061f6b67247270acb61f2f22390a6",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/role-harness.atdd.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "77b845a0ac9ac8748e90c539d0a6e7fc0786ff6ef67afcff1360e7de9dfce024",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/settings-rls.int.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "f3ee2ce17ebbeb46e66b79884451135f0635a8a50379c34f62d58b892de33a66",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/tenant-table-inventory.ts",
+      "classification": "helper/fixture",
+      "examined": true,
+      "scorable": true,
+      "sha256": "23fb6f90b93a97776de0447acfa43fff8544648a16bb44b3457eb391c28737c1",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [
+        "H5"
+      ],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/authz/role-harness.ts",
+      "classification": "helper/fixture",
+      "examined": true,
+      "scorable": true,
+      "sha256": "853aec7b2e5f01211c46726b6f1bd776357de718f092e9f8bc8b1ffb84e9a96b",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/booking-conflict-attestation.ts",
+      "classification": "helper/fixture",
+      "examined": true,
+      "scorable": true,
+      "sha256": "614aa5b29780e004d627dab902ed55d6c2d76715de1b1317420dcab77f6a4060",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/booking-conflicts-atdd.ts",
+      "classification": "helper/fixture",
+      "examined": true,
+      "scorable": true,
+      "sha256": "490feed1bdc90c6c21de7eb0954c0a373117aa30123aecb5c45e248dab380b4f",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/booking-editor-atdd.ts",
+      "classification": "helper/fixture",
+      "examined": true,
+      "scorable": true,
+      "sha256": "f956002d233af096bbcbb297b75c99025b063d22e667c9e91fa553523e39ff2c",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/booking-editor-contract.ts",
+      "classification": "helper/fixture",
+      "examined": true,
+      "scorable": true,
+      "sha256": "4f7c7615b3f2cb255fd2425f6c8427be2f1821b5bc7bfcca517ca88ec018349b",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/booking-editor-production.ts",
+      "classification": "helper/fixture",
+      "examined": true,
+      "scorable": true,
+      "sha256": "bfd51d321114f0d22c3de3c3ef6a7a244889dc385e1f6e3990c033d7a95fd1db",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/bookings-atdd.ts",
+      "classification": "helper/fixture",
+      "examined": true,
+      "scorable": true,
+      "sha256": "20de5c5f3cca6e42c93c20e4908b6b554eb3235e408d8c4c4ea35da20092286a",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/global-setup.ts",
+      "classification": "helper/fixture",
+      "examined": true,
+      "scorable": true,
+      "sha256": "24332a20bedc11a3c4aff0e06afe1e74e2cc4c5a182675f90e3bc396f1bc3e71",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/quote-send-diagnostics.ts",
+      "classification": "helper/fixture",
+      "examined": true,
+      "scorable": true,
+      "sha256": "b1905dcca863e2c40ce1e9bb11f21cfea3d2e003231048dce94a21b8ba0dd3a5",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/scheduling-atdd.ts",
+      "classification": "helper/fixture",
+      "examined": true,
+      "scorable": true,
+      "sha256": "128ed74ad466c55f0c4439cd6696b7fbbfc128e4ee04f5d342c5f8bcf15d8f91",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/stack-gate.ts",
+      "classification": "helper/fixture",
+      "examined": true,
+      "scorable": true,
+      "sha256": "6b65bcb73816e4528a9be7549c4e2c2411d90a20ea62b0ee736920f76ce06603",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/test-env.ts",
+      "classification": "helper/fixture",
+      "examined": true,
+      "scorable": true,
+      "sha256": "e4441549b684ab5c6c13198091dff0eb3b91604a682111ae12ba8d6335adac60",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/admin-users/read-pagination.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "1baa2394c82b3626234c7eba2a30c22a48169c48b7408feef35daaf1304fbcff",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/e2e/resource-cdp-attachment.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "baa6b335ddb5b3edf14200e016b83cc66ea9fe4d569264f3c7725cb90086d570",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/booking-attempt-transport.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "c8fc55495e5e1451c4a00a44469103bdc80e906b82dd285fcf4f6808bb563448",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/booking-editor-input.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "9bbb9d7ad515ff6dea2d4db384cbf50932221af9dd50e294ef47b05c4fee364d",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/capacity-inputs.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "235005930e50e71749b0fbc20cccb4d48a96bf2a05988052d839bc5ffcb24652",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/resource-form-inputs.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "75b90f69f3a6516680c2ff6a27a62c092bb0bd68101aa0ab6ff504d982f4d064",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/schedule-form-merge.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "d7edbb09918657d4a09e9f44366266aed9dd7e904132fb475d02b37bf65892d5",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/schedule-read.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "8e6dd0099a127c4fbdac3472bc233a78570b62a57477013be5289ae9869c17f4",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/work-hours.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "e7089b74afddc1e40d79631bee94e8ccc46af88f84ccb8018440b81e5e815442",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/scheduling/capacity.golden.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "23daeed0ba3341ec1c63409ae04c69de63dd708347bdd553357d339a0ec978e2",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/scheduling/conflicts.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "af5dc41ec8b900c690334a7575f5c70ccc8898bc5bb4c406006e766eacb9243a",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/scheduling/dst.golden.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "040ebd89c45d87ab58b071a69e2bc8c55db8fd602c330f8369e63108d58f4e97",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/quote-send-diagnostics.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "ff9675b8cbff64e0c4e3d588d07065400afb1646fbd218b946d091f9aedd7357",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/scope/booking-editor-scope.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "b54041b7dd9d6abac8828843bf1b0971e2f272e5ef272a419ea813ebd5b139a3",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/scope/manifest-derivations.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "782184a1f448a0e4472805961daefcf4dce5e818a39a2597147a0b15ba2ef09a",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/scope/manifest-shape.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "48b432f27a38c17fff4061eff42d6978453185ad60d149cba7db969ef81a1cf9",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/scope/resources-activation.atdd.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "95a134a7424010ae8efd521168afc6f8b4013def8d9c1cdce0eb01a4daa3bdd1",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/security-headers.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "63f23f136f9bac35333737aae99e697f13b544ac387bf793a315de2b18827ba6",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/server/authz/permission-matrix.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "3a885ffe05d748efa032aed16150100211fb7430781572538e54a3402ed4433c",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/server/authz/role-catalogue.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "7994ffd4eaee7edc1e5c0266d8beeeb0d9cd1becd52ba08c55177801c4955dd0",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/server/authz/role-harness.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "c5176b9d40a182aa36aaf29dfadd1bd871d0a86daff5bb2c03586518c16dd7e1",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/server/bookings/conflict-attestation.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "e3faab7e857d5f620031cbc3fab02c384b43ff1d329d71a786eb15347fb8e982",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/server/commands/bookings-validation.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "5a2fe7f57af470129f9f41f532484148ce0381e0e3e04ebfe1172e7cff213318",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/server/resources/e2e-save-failure.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "a1b4955c5e39173596fc613cf911c43b34e2f840d2bbba5f9f56636d3f5ec456",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/support/global-setup.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "c7f8c49d16af79d8cb633b14b3add88e80ef8dc71af4e6111a63185696d0a38a",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/support/test-env.test.ts",
+      "classification": "test-body",
+      "examined": true,
+      "scorable": true,
+      "sha256": "baf2c182dcca0a2dd27289985c4996c86d81f83ed4713e912ef19d88a5142b8b",
+      "applicable_rows": [
+        "H5",
+        "M6"
+      ],
+      "closed_gates": [
+        {
+          "row": "M1",
+          "reason": "No browser navigation followed by data-dependent content."
+        }
+      ],
+      "violation_rows": [],
+      "notes": "All complete source read and parsed; PromiseLike candidate ownership inspected. No unawaited effect established."
+    }
+  ],
+  "excluded_manifest": [
+    {
+      "file": "C:/DEV/ElproSaas/.env.test.example",
+      "reason": "format not scorable by the ledger"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/compose.test.yaml",
+      "reason": "format not scorable by the ledger"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/capacity.json",
+      "reason": "format not scorable by the ledger"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/conflicts.json",
+      "reason": "format not scorable by the ledger"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/dst.json",
+      "reason": "format not scorable by the ledger"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/regressions.json",
+      "reason": "format not scorable by the ledger"
+    }
+  ],
+  "context_files": [
+    "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-1-scheduling-activation-person-profiles-and-work-hours.md",
+    "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-2-bookings-and-assignees-schema-and-transactional-commands.md",
+    "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-3-deterministic-conflict-engine-detection-core.md",
+    "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md"
+  ],
+  "knowledge_fragments": [
+    "C:/DEV/ElproSaas/.agents/skills/bmad-testarch-test-review/steps-c/step-03e-subagent-performance.md",
+    "C:/DEV/ElproSaas/.agents/skills/bmad-testarch-test-review/steps-c/criteria-registry.md"
+  ],
+  "review_method": "All85 complete source reads,77 TypeScript ASTs/typechecked PromiseLike call graph candidates and2 Python ASTs; four contexts fully byte-read. Manual candidate adjudication: retained futures await/settle in finally, lazy SDK builders preserve then semantics, runner registrations and expression-arrow implicit returns are owned. Static-only metadata is not product runtime execution.",
+  "static_analysis": {
+    "promise_like_call_sites": 3230,
+    "manual_candidate_sites": 29,
+    "M6_findings": 0,
+    "candidate_reasons_not_scored": [
+      "Stored lock-race futures awaited at the observed barrier and settled in finally.",
+      "routeWork future awaited in routeHandler and removed in finally.",
+      "Memoized Promise.resolve readiness values returned through the setup gate.",
+      "Lazy RPC builders do not begin effects until consumed; the unit intentionally asserts unchanged lazy identity.",
+      "Runner-owned test registration and expression-bodied callback returns are not floating test effects."
+    ]
+  },
+  "execution": {
+    "mode": "sequential capability fallback",
+    "fresh_child_dispatch_refusals": 4,
+    "independent_child": false,
+    "parent_confirmed_fallback": true,
+    "new_product_executions": 0,
+    "risk_scope": "ordinary navigation/await/file-size predicates only; no authorization/RLS/transactional boundary judgment"
+  },
+  "recommendations": [
+    "Add before-navigation real-response observation to resource browser navigations.",
+    "Split the three oversized code/test artifacts by responsibility without losing assertions."
+  ],
+  "unsupported_claims": [
+    "No new product test, browser, DB, stress or burn-in run.",
+    "No per-request HTTP latency or NFR performance certification.",
+    "Recorded browser18/19 plus target1/1 are separate same-build executions;40.545s is runner elapsed.",
+    "Native awaited navigation currently passes recorded runs; no actual resource-navigation race is reproduced.",
+    "Fresh independent performance child remained unavailable; this dimension used the explicitly confirmed workflow fallback, not a fourth-child claim."
+  ],
+  "summary": "Performance65/D informational;3HIGH H5 and1MEDIUM M1. No M6 unawaited effect was established;85 examined,79scorable/6excluded;runtime0."
+}

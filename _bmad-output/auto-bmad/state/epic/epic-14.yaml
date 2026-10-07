@@ -9,24 +9,24 @@ spec_folder: null
 story_id: null
 branch: codex/epic14-resume
 status: in-progress
-updated_at: "2026-10-07T15:22:10Z"
+updated_at: "2026-10-07T16:13:16Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
-active_seconds: 74783
-timing_anchor: 1791386530
+active_seconds: 77845
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: tea_epic
-selected_role: tea-delegate
-selected_profile: standard
+selected_phase: retrospective
+selected_role: retrospective-delegate
+selected_profile: default
 selected_model: gpt-6.1-sol
-selected_effort: high
+selected_effort: low
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: Fresh deterministic Epic14 re-gate after iter1 actual resource authorization/RLS/schema assertions passed
+escalation_reason: "Headless documentary synthesis from established evidence; no new sensitive implementation or security review."
 routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
@@ -48,12 +48,15 @@ routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"Epic14 gate audits actual authorization/RLS, signed preview authority and atomic booking conflict acceptance\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_epic\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"Mechanical Epic14 trace remediation iter1 actual resource authorization/RLS and schema-integrity negatives\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_epic\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"Fresh deterministic Epic14 re-gate after iter1 actual resource authorization/RLS/schema assertions passed\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_epic\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Epic14 advisory audits cover actual tenant/RLS, signed review authority and atomic audited command test quality\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_epic_audit\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Ledger includes actual auth/RLS, money/tax and transactional obligations; conservative read-only reconciliation requires High.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"deferred_reconcile\",\"profile\":\"standard\",\"role\":\"deferred-reconciler\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"low\",\"escalation_reason\":\"Headless documentary synthesis from established evidence; no new sensitive implementation or security review.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"retrospective\",\"profile\":\"default\",\"role\":\"retrospective-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
 epic_story_count: 4
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5]
+completed_phases: [0, 1, 2, 5, 81, 82]
 spec_path: null
 spec_approved: false
 build:
@@ -73,21 +76,21 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170, a957911, 4c8d0b6, 0eaa367, de5cfbe4, 1fce0b49, 8db3b22, 7c434b04, cd0b677, 4d2f29a5, 4947dbb4, e1f2c7d6, 079e1053, afb4ef9d, dc2c0c89, 1f7bfcd8, c76f81d5, d0e9cc3e, ad4642a1, 0c4ab83f, 0d1ff3a3]
+commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170, a957911, 4c8d0b6, 0eaa367, de5cfbe4, 1fce0b49, 8db3b22, 7c434b04, cd0b677, 4d2f29a5, 4947dbb4, e1f2c7d6, 079e1053, afb4ef9d, dc2c0c89, 1f7bfcd8, c76f81d5, d0e9cc3e, ad4642a1, 0c4ab83f, 0d1ff3a3, e92e0ec1]
 phase8_steps:
-  trace_gate: null
-  nfr: null
-  test_review: null
-  reconcile: null
-  archive: null
-  retro: null
-gate_decision: FAIL
+  trace_gate: done
+  nfr: done
+  test_review: done
+  reconcile: done
+  archive: done
+  retro: done
+gate_decision: PASS
 gate_iterations: 1
-deferred_work_archived: 0
+deferred_work_archived: 6
 retro:
-  doc: null
-  verdict: null
-  open_action_items: 0
+  doc: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/epic-14-retro-2026-10-07.md"
+  verdict: rejected
+  open_action_items: 6
 bmad_status_flipped_at: null
 pr_url: null
 ci_run_url: null
@@ -111,7 +114,7 @@ overrides:
   owner_authorized_guard_repair_and_failure_diagnosis: true
   local_guard_diagnostic_status: story_acceptance_completed
   isolated_service_and_schema_readiness_verified: true
-  root_guard_stop_requested: false
+  root_guard_stop_requested: true
   owner_confirmed_guard_fix_deployed: true
   root_guard_resource_id: 24c8e6c8-37f9-4e87-8add-3e9a7818053c
   owner_confirmed_all_prs_merged: true
@@ -318,10 +321,10 @@ overrides:
   story14_4_completed_independent_review_rounds: 2
   story14_4_followup_still_recommended: true
   epic_trace_formal_total: 36
-  epic_trace_formal_full: 34
-  epic_trace_uncovered: [14.1-AC2, 14.1-AC5, 14.1-RLS-001, 14.1-RLS-002, 14.1-RLS-003, 14.1-DB-001, 14.1-DB-002]
+  epic_trace_formal_full: 36
+  epic_trace_uncovered: []
   epic_trace_gate_path: "_bmad-output/test-artifacts/traceability/epic-14/gate-decision.json"
-  epic_trace_formal_partial: 2
+  epic_trace_formal_partial: 0
   epic_gate_iter1_focused_passed: 5
   github_connector_auth_valid: true
   epic_gate_iter1_affected_passed: 47
@@ -331,6 +334,37 @@ overrides:
   github_cli_auth_invalid: true
   epic_gate_iter1_artifact_scan_findings: 0
   github_finalization_provider: connected GitHub app with normal Git remote transport
+  epic_trace_mapped_files: 38
+  epic_trace_supplementary_uncovered: [14.NFR-PERF-001, 14.NFR-A11Y-001, 14.EXP-001]
+  epic_trace_mapped_identities: 297
+  epic_trace_formal_p0_full: 13
+  epic_trace_supplementary_total: 77
+  epic_trace_supplementary_full: 74
+  epic_trace_formal_p1_full: 23
+  epic_nfr_children: 0
+  epic_nfr_fail_count: 0
+  epic_nfr_criteria_met: 11
+  epic_nfr_risk: MEDIUM
+  epic_nfr_verdict: CONCERNS
+  epic_nfr_criteria_total: 29
+  epic_nfr_fallback: documented sequential single-High-primary fallback after actual thread-cap refusal
+  epic_test_review_report: "_bmad-output/test-artifacts/epic-14-test-review-2026-10-07/test-review.md"
+  epic_test_review_findings: 48
+  epic_test_review_files: 85
+  epic_test_review_advisory: true
+  epic_test_review_score: 0
+  epic_test_review_medium: 41
+  epic_test_review_high: 7
+  epic_test_review_validation: PASS
+  epic_test_review_execution: "three independent High children; sequential performance fallback"
+  epic_test_review_recommendation: Request Changes
+  deferred_reconcile_newly_resolved: 6
+  deferred_reconcile_examined: 155
+  deferred_reconcile_retained: 176
+  deferred_reconcile_new_ids: [51, 96, 99, 117, 144, 169]
+  deferred_remaining: 176
+  deferred_archive_judgment: "Only six new explicit fully-resolved bullets moved; all 27 heuristic-only hints retained after self-vouch review."
+  deferred_archive_heuristic_false_positives_retained: 27
 constraints:
   - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."

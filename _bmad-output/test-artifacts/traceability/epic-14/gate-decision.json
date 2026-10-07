@@ -1,6 +1,6 @@
 {
   "schema_version": "0.1.0",
-  "evaluated_at": "2026-10-07T15:05:23.841200+00:00",
+  "evaluated_at": "2026-10-07T15:34:24.710409+00:00",
   "repo": "ElproSaas",
   "target": {
     "type": "epic",
@@ -9,12 +9,12 @@
   },
   "collection_status": "COLLECTED",
   "gate_basis": "priority_thresholds",
-  "gate_status": "FAIL",
-  "rationale": "P0 coverage is 92% (required:100%). One critical acceptance criterion,14.1-AC5, is PARTIAL. The concrete foreign-parent checked-resource path14.1-RLS-001(P0) is unexercised; caller/RPC negatives also remain partial. No waiver is applied.",
-  "p0_status": "NOT_MET",
+  "gate_status": "PASS",
+  "rationale": "P0 coverage is 100% (13/13 FULL), P1 coverage is 100% (23/23 FULL; target 90%), and overall formal coverage is 100% (36/36 FULL; minimum 80%). The five resource boundary gaps are closed by actual recorded REQUIRED integration assertions. Supplementary P0/P1 coverage is also 100% (8/8 and 66/66); three P2/P3 evidence obligations remain NONE. No waiver, review clearance, CI waiver or release authority is granted.",
+  "p0_status": "MET",
   "p1_status": "MET",
   "overall_status": "MET",
-  "critical_open": 1,
+  "critical_open": 0,
   "links": {
     "trace_report_path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/traceability/epic-14-traceability-report.md",
     "trace_report_url": "",
@@ -23,20 +23,20 @@
   },
   "coverage": {
     "inventory": {
-      "covered": 34,
+      "covered": 36,
       "total": 36,
-      "pct": 94
+      "pct": 100
     },
     "priority_breakdown": {
       "P0": {
         "total": 13,
-        "covered": 12,
-        "pct": 92
+        "covered": 13,
+        "pct": 100
       },
       "P1": {
         "total": 23,
-        "covered": 22,
-        "pct": 96
+        "covered": 23,
+        "pct": 100
       },
       "P2": {
         "total": 0,
@@ -55,7 +55,7 @@
         "criteria_covered": 10
       },
       "api": {
-        "tests": 224,
+        "tests": 229,
         "criteria_covered": 26
       },
       "component": {
@@ -76,17 +76,197 @@
       }
     }
   },
-  "uncovered_requirements": [
-    "14.1-AC2",
-    "14.1-AC5"
-  ],
-  "partial_design_obligations": [
-    "14.1-RLS-001",
-    "14.1-DB-001",
-    "14.1-DB-002",
-    "14.1-RLS-002",
-    "14.1-RLS-003"
+  "uncovered_requirements": [],
+  "partial_design_obligations": [],
+  "uncovered_design_obligations": [
+    "14.NFR-PERF-001",
+    "14.NFR-A11Y-001",
+    "14.EXP-001"
   ],
   "new_product_executions": 0,
-  "release_authority": false
+  "release_authority": false,
+  "review_clearance": false,
+  "gate_iteration": 1,
+  "gate_progression": [
+    {
+      "iteration": 0,
+      "gate_status": "FAIL",
+      "preserved_commit": "e92e0ec126ea541e109e8abe0ac02ba57085e68e",
+      "formal": {
+        "FULL": 34,
+        "PARTIAL": 2,
+        "NONE": 0,
+        "P0": "12/13",
+        "P1": "22/23"
+      },
+      "supplementary": {
+        "FULL": 69,
+        "PARTIAL": 5,
+        "NONE": 3,
+        "P0": "7/8",
+        "P1": "62/66"
+      },
+      "remediation_ids": [
+        "14.1-RLS-001",
+        "14.1-RLS-002",
+        "14.1-RLS-003",
+        "14.1-DB-001",
+        "14.1-DB-002"
+      ]
+    },
+    {
+      "iteration": 1,
+      "phase": "PHASE_1_COMPLETE",
+      "formal": {
+        "FULL": 36,
+        "PARTIAL": 0,
+        "NONE": 0,
+        "P0": "13/13",
+        "P1": "23/23"
+      },
+      "supplementary": {
+        "FULL": 74,
+        "PARTIAL": 0,
+        "NONE": 3,
+        "P0": "8/8",
+        "P1": "66/66"
+      },
+      "evidence": "epic-14-gate-iter1-evidence.json",
+      "product_fix_claim": false,
+      "gate_status": "PASS"
+    }
+  ],
+  "recorded_iteration_execution": {
+    "focused": {
+      "mode": "focused",
+      "nativeExitCode": 0,
+      "signal": null,
+      "startedAt": "2026-10-07T15:14:44.977Z",
+      "finishedAt": "2026-10-07T15:14:48.786Z",
+      "required": true,
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "totalFiles": 1,
+      "totalSuites": 2,
+      "cases": [
+        {
+          "title": "[P0] 14.1-RLS-001 own-tenant authorized caller cannot use real foreign membership or profile",
+          "status": "passed",
+          "durationMs": 523.581
+        },
+        {
+          "title": "[P1] 14.1-RLS-002 lower roles cannot call any resource writer; projektledare persists audited mutations",
+          "status": "passed",
+          "durationMs": 659.6029000000001
+        },
+        {
+          "title": "[P1] 14.1-RLS-003 no-member invited and disabled callers see no resources and cannot mutate",
+          "status": "passed",
+          "durationMs": 840.3274000000001
+        },
+        {
+          "title": "[P1] 14.1-DB-001 second raw profile insert rejects unique membership with exact no-op state",
+          "status": "passed",
+          "durationMs": 421.9933000000001
+        },
+        {
+          "title": "[P1] 14.1-DB-002 actual profile writers reject foreign and nonexistent default work roles without writes or audit",
+          "status": "passed",
+          "durationMs": 486.0291000000002
+        }
+      ]
+    },
+    "affected": {
+      "mode": "affected",
+      "nativeExitCode": 0,
+      "signal": null,
+      "startedAt": "2026-10-07T15:15:11.583Z",
+      "finishedAt": "2026-10-07T15:15:39.530Z",
+      "required": true,
+      "total": 47,
+      "passed": 47,
+      "failed": 0,
+      "skipped": 0,
+      "totalFiles": 7,
+      "totalSuites": 16,
+      "cases": [
+        {
+          "title": "[P0] 14.1-RLS-001 own-tenant authorized caller cannot use real foreign membership or profile",
+          "status": "passed",
+          "durationMs": 718.1541
+        },
+        {
+          "title": "[P1] 14.1-RLS-002 lower roles cannot call any resource writer; projektledare persists audited mutations",
+          "status": "passed",
+          "durationMs": 715.6265000000001
+        },
+        {
+          "title": "[P1] 14.1-RLS-003 no-member invited and disabled callers see no resources and cannot mutate",
+          "status": "passed",
+          "durationMs": 847.9164000000001
+        },
+        {
+          "title": "[P1] 14.1-DB-001 second raw profile insert rejects unique membership with exact no-op state",
+          "status": "passed",
+          "durationMs": 437.4521
+        },
+        {
+          "title": "[P1] 14.1-DB-002 actual profile writers reject foreign and nonexistent default work roles without writes or audit",
+          "status": "passed",
+          "durationMs": 466.462
+        }
+      ]
+    },
+    "full": {
+      "mode": "full",
+      "nativeExitCode": 0,
+      "signal": null,
+      "startedAt": "2026-10-07T15:15:45.271Z",
+      "finishedAt": "2026-10-07T15:18:25.867Z",
+      "required": true,
+      "total": 1466,
+      "passed": 1465,
+      "failed": 0,
+      "skipped": 1,
+      "totalFiles": 135,
+      "totalSuites": 447,
+      "cases": [
+        {
+          "title": "[P0] 14.1-RLS-001 own-tenant authorized caller cannot use real foreign membership or profile",
+          "status": "passed",
+          "durationMs": 1932.1064
+        },
+        {
+          "title": "[P1] 14.1-RLS-002 lower roles cannot call any resource writer; projektledare persists audited mutations",
+          "status": "passed",
+          "durationMs": 2691.2046000000005
+        },
+        {
+          "title": "[P1] 14.1-RLS-003 no-member invited and disabled callers see no resources and cannot mutate",
+          "status": "passed",
+          "durationMs": 1836.1129999999994
+        },
+        {
+          "title": "[P1] 14.1-DB-001 second raw profile insert rejects unique membership with exact no-op state",
+          "status": "passed",
+          "durationMs": 860.8689000000004
+        },
+        {
+          "title": "[P1] 14.1-DB-002 actual profile writers reject foreign and nonexistent default work roles without writes or audit",
+          "status": "passed",
+          "durationMs": 824.8162999999995
+        }
+      ]
+    }
+  },
+  "phase1_matrix_sha256": "7d2a751cbb67fc698606db089e2c21b7376c8013b28697d7862aecaa7490c84e",
+  "provenance_limits": [
+    "Empty-database migration chain + seed + REQUIRED Epic CI remains mandatory before merge; not executed by this trace.",
+    "Recovery Storage physical-loader skip and Windows xattr skip excluded from acceptance credit.",
+    "Browser18/19 diagnostic plus separate1/1 targeted same-build pass; no19-pass single-run or HTTP-duration claim.",
+    "Performance/contrast/exploratory unrecorded; calendar click/drag receiving owner15.1 mandatory and uncredited.",
+    "Story14.1/14.2/14.4 follow-up recommendations and draft-PR caveats persist."
+  ]
 }

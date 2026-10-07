@@ -1,0 +1,1093 @@
+{
+  "workflow": "testarch-test-review",
+  "status": "complete",
+  "head": "e92e0ec126ea541e109e8abe0ac02ba57085e68e",
+  "authoritative_files": 85,
+  "examined_files": 85,
+  "reviewed_scorable_files": 79,
+  "test_body_files": 60,
+  "mechanical_routing_test_files": 2,
+  "helper_fixture_files": 17,
+  "unscorable_files": 6,
+  "context_files_read": 4,
+  "context_basis": "pr_diff",
+  "context_waivers_applied": 0,
+  "overall_score": 0,
+  "overall_grade": "F",
+  "recommendation": "Request Changes",
+  "dimension_scores": {
+    "determinism": 70,
+    "isolation": 10,
+    "maintainability": 0,
+    "performance": 65
+  },
+  "dimension_grades": {
+    "determinism": "C",
+    "isolation": "F",
+    "maintainability": "F",
+    "performance": "D"
+  },
+  "violations_summary": {
+    "CRITICAL": 0,
+    "HIGH": 7,
+    "MEDIUM": 41,
+    "LOW": 0
+  },
+  "row_counts": {
+    "H3": 1,
+    "H2": 2,
+    "M4": 16,
+    "H4": 1,
+    "H5": 3,
+    "M7": 6,
+    "M2": 18,
+    "M1": 1
+  },
+  "raw_findings": 67,
+  "deduped_findings": 48,
+  "deductions": 117,
+  "bonuses": {
+    "excellentBdd": 0,
+    "comprehensiveFixtures": 0,
+    "dataFactories": 0,
+    "networkFirst": 0,
+    "perfectIsolation": 0,
+    "allTestIds": 0
+  },
+  "all_violations": [
+    {
+      "row": "H3",
+      "severity": "HIGH",
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 290,
+      "category": "conditional-assertion",
+      "description": "The same work_role_upsert fixture accepts either committed or stale based on finalizeResult.kind. The observed result selects the oracle, so a regression that changes whether this specific writer invalidates detection facts can remain green.",
+      "evidence": "if (writer === \"work_role_upsert\" && finalizeResult.kind === \"committed\") { ... return; } ... expect(finalizeResult).toEqual({ kind: \"stale\" });",
+      "recommendation": "Split display-name-only and consumed-fact changes into named cases with fixed expected outcomes. Independently assert whether a fresh digest is equal or different and retain exact durable booking/assignee/conflict/outcome/audit checks.",
+      "suggestion": "Use a fixed expected result for each controlled writer mutation; do not derive expected behavior from finalizeResult.kind.",
+      "codefix": "// Named display-name-only fixture, after independently proving unchanged digest:\nexpect(current.factDigest).toBe(snapshot.factDigest);\nexpect(finalizeResult).toEqual({ kind: \"committed\", bookingId: snapshot.bookingId });\n// Separate consumed-fact mutation fixture:\nexpect(current.factDigest).not.toBe(snapshot.factDigest);\nexpect(finalizeResult).toEqual({ kind: \"stale\" });",
+      "production_defect_claim": false,
+      "dimension": "determinism"
+    },
+    {
+      "row": "H2",
+      "severity": "HIGH",
+      "file": "C:/DEV/ElproSaas/tests/support/booking-conflict-attestation.ts",
+      "line": 186,
+      "category": "wall-clock-fixture",
+      "description": "The invitation fixture supplies an expiry derived from the live Node clock, while the actual invitation RPC validates a PostgreSQL clock boundary. This is a security lifetime, not an opaque timestamp or diagnostic. Its one-hour margin reduces ordinary timing exposure but does not remove the uncontrolled cross-clock dependency.",
+      "evidence": "p_token_hash: tokenHash, p_expiry: new Date(Date.now() + 3600_000).toISOString()",
+      "recommendation": "Derive the initial valid invitation expiry from the authoritative database clock through the existing read-only admin fixture query, or use an existing injected clock. Keep the later explicit expiry/revocation barriers and real RPC validation; do not globally fake or manipulate the database clock.",
+      "suggestion": "Use the clock that the verifier actually consumes to construct the initial valid expiry.",
+      "codefix": "const { adminQuery } = await import(\"../factories/admin-sql\");\nconst [window] = await adminQuery<{ expires_at: string }>(\n  `select to_char((clock_timestamp()+interval '1 hour') at time zone 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') as expires_at`\n);\n// In the existing invitation RPC argument object:\np_expiry: window.expires_at",
+      "production_defect_claim": false,
+      "dimension": "determinism"
+    },
+    {
+      "row": "H2",
+      "severity": "HIGH",
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 565,
+      "related_lines": [
+        596
+      ],
+      "category": "wall-clock-fixture",
+      "description": "Both invitation-expiry races arm a two-second live database expiry before creating the pending RPC and observing its lock wait, then require the RPC query_start to precede expiry. A slow scheduling/connection interval can consume that fixture validity window before the intended race begins. Later observed-expiry polling correctly replaces a hard wait but cannot recover this pre-barrier deadline.",
+      "evidence": "update public.tenant_memberships set invitation_expires_at=clock_timestamp()+interval '2 seconds' where id=$1; ... accept = writer.invoke(); await h.waitForBlocked(owner.pid, 1); ... expect(started.live_at_start).toBe(true);",
+      "recommendation": "Move expiry arming behind an independently witnessed attempt/lock barrier when the intended post-wait current-time invariant can be preserved, or use an existing explicit clock seam. Keep a positive still-valid start witness, an explicit expired witness, and unchanged durable-state assertions. Do not loosen assertions or change the production security verifier.",
+      "suggestion": "Establish the concurrency barrier before consuming the short expiry window.",
+      "codefix": "// Suggested structure, using the existing operation-row barrier where possible:\n// 1. Prepare a valid invitation and acquire its controlled lock.\n// 2. Start the real acceptance RPC and await the observed blocked session.\n// 3. Establish/record the authoritative deadline and valid-start witness.\n// 4. Await the database expired predicate, release the lock, and assert rejection.\n// Preserve the gate-row variant separately if moving the deadline would alter its invariant.",
+      "production_defect_claim": false,
+      "dimension": "determinism"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/e2e/resources-person-profile.e2e.spec.ts",
+      "line": 32,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 4 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          32,
+          89,
+          100,
+          119
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"[P0] admin persists a same-tenant role and schedule inputs in the existing user-detail route, then reloads server state\", async ({ resourcePage: page }) => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});",
+      "dimension": "isolation"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/admin-users/read-pagination.test.ts",
+      "line": 54,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 4 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          54,
+          74,
+          99,
+          117
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"[P0][11.4] Admin role counts scope roots and child roles to the resolved current tenant\", async () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});",
+      "dimension": "isolation"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/booking-attempt-transport.test.ts",
+      "line": 7,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 3 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          7,
+          15,
+          20
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"Round2 authorization denial retains only a previously unresolved booking attempt\",()=>{",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});",
+      "dimension": "isolation"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/booking-editor-input.test.ts",
+      "line": 13,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 13 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          13,
+          22,
+          30,
+          38,
+          44,
+          52,
+          58,
+          65,
+          75,
+          83,
+          90,
+          97,
+          104
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"Round1 each untouched endpoint retains fractional precision and the later Stockholm fold instant\", () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});",
+      "dimension": "isolation"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/capacity-inputs.test.ts",
+      "line": 7,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 5 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          7,
+          23,
+          38,
+          46,
+          53
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"[P0] retains data-driven absences, blocked-time exceptions, and Stockholm calendar reductions for later capacity calculation\", async () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});",
+      "dimension": "isolation"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/resource-form-inputs.test.ts",
+      "line": 6,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 3 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          6,
+          12,
+          18
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"[P0] accepts read-model serialized full-day exception history for a subsequent form save\", () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});",
+      "dimension": "isolation"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/schedule-form-merge.test.ts",
+      "line": 5,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 5 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          5,
+          20,
+          24,
+          40,
+          46
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"[P0] preserves non-rendered same-day shifts and breaks when editing the compact schedule form\", () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});",
+      "dimension": "isolation"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/work-hours.test.ts",
+      "line": 7,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 4 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          7,
+          38,
+          57,
+          73
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"[P0] preserves different daily availability for four-full-day and five-short-day 80-percent templates\", async () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});",
+      "dimension": "isolation"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/scheduling/capacity.golden.test.ts",
+      "line": 7,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 3 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          7,
+          35,
+          76
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"[P0] 14.3-UNIT-004 every positive overrun warns regardless of injected threshold\", async () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});",
+      "dimension": "isolation"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/scheduling/conflicts.test.ts",
+      "line": 9,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 9 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          9,
+          17,
+          22,
+          36,
+          48,
+          59,
+          70,
+          82,
+          105
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"[P0] 14.3-UNIT-001 shared assignee emits exact stable pair/person/window\", async () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});",
+      "dimension": "isolation"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/scope/manifest-derivations.test.ts",
+      "line": 107,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 6 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          107,
+          118,
+          131,
+          140,
+          154,
+          171
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"10.1-UNIT-DERIVE-01 (AC3): FORBIDDEN_DEFERRED_CATEGORIES derives from `pending` modules == the pinned 7 tokens\", async () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});",
+      "dimension": "isolation"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/scope/manifest-shape.test.ts",
+      "line": 126,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 8 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          126,
+          143,
+          154,
+          162,
+          176,
+          184,
+          197,
+          206
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"10.1-UNIT-SHAPE-01 (AC2): SCOPE_MANIFEST exists and every module carries the \u00c2\u00a75.2 field shape\", async () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});",
+      "dimension": "isolation"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/server/authz/permission-matrix.test.ts",
+      "line": 9,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 6 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          9,
+          16,
+          23,
+          32,
+          52,
+          57
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"[P0] 11.1-UNIT-001 legacy tenant_admin remains a role when membership_roles has no rows\", () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});",
+      "dimension": "isolation"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/server/bookings/conflict-attestation.test.ts",
+      "line": 12,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 3 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          12,
+          23,
+          27
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"booking proof length prefixes UTF-8 and exact output bytes with domain separation\", () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});",
+      "dimension": "isolation"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/server/commands/bookings-validation.test.ts",
+      "line": 9,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 8 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          9,
+          14,
+          31,
+          37,
+          41,
+          45,
+          50,
+          63
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"booking validates standalone defaults and update target\",()=>{",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});",
+      "dimension": "isolation"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/support/test-env.test.ts",
+      "line": 24,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 5 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          24,
+          50,
+          77,
+          92,
+          106
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"records only allowlisted details for an Auth HTTP failure\", async () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});",
+      "dimension": "isolation"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/quote-pipeline-read-model.rls.test.ts",
+      "line": 165,
+      "row": "H4",
+      "severity": "HIGH",
+      "gate": "Absolute",
+      "category": "unreset-shared-state",
+      "description": "The pipeline suite shares one tenant fixture and accumulates lifecycle events across test bodies without per-test reset; order changes the zero-count result, and the seller test relies on an earlier body to seed its sent event.",
+      "evidence": {
+        "setup": "fixture created once in beforeAll84-106",
+        "cleanup": "afterAll108-110 only, no beforeEach/afterEach",
+        "writer": "test151 seeds tenant A sent quote/event at159-165",
+        "reader": "test125 reads tenant A143 and asserts sentCount0 at144",
+        "counterexample": "Run test151 before test125: the fresh fixture now contains one tenant A sent event, so the expected zero becomes one.",
+        "standalone": "test239 calls seller pipeline242-246 and asserts sentCount>0 at250 before seeding any sent event in that body262-286.",
+        "basis": "Static successful-path data-flow proof; no shuffle/standalone execution claimed"
+      },
+      "suggestion": "Move tenant/client fixture creation and cleanup to beforeEach/afterEach; seed the seller-visible sent event before its first pipeline read. Keep every aggregate expectation local to its body.",
+      "code_snippet": "await adminInsertQuoteEvent({ tenant_id: tid, quote_id: aQuote, quote_version_id: aVersion, event_type: 'sent', occurred_at: SEED_INSTANT });",
+      "code_fix": "beforeEach(async () => {\n  // Create fixture, clients, and role memberships currently allocated in beforeAll.\n});\nafterEach(async () => {\n  if (fixture) await cleanupFixture(fixture);\n});\n// In the seller test, create its own sent quote/event before reading sellerResult.",
+      "dimension": "isolation"
+    },
+    {
+      "id": "maintainability-1",
+      "file": "C:/DEV/ElproSaas/tests/e2e/global-setup.ts",
+      "line": 1,
+      "row": "H5",
+      "severity": "HIGH",
+      "category": "oversize-test-file",
+      "description": "Reviewed file is 1102 lines, exceeding the registry's sole 1000-line threshold.",
+      "evidence": "Metadata and full-source read: 1102 lines.",
+      "suggestion": "Extract feature-specific fixture seeders, leaving the global setup to compose and persist fixture metadata.",
+      "code_snippet": "Metadata and full-source read: 1102 lines.",
+      "code_fix": "// Keep each resulting source file <= 1000 lines; preserve every registered case and inventory entry.",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-2",
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/quote-pdf-validity.int.test.ts",
+      "line": 1,
+      "row": "H5",
+      "severity": "HIGH",
+      "category": "oversize-test-file",
+      "description": "Reviewed file is 1590 lines, exceeding the registry's sole 1000-line threshold.",
+      "evidence": "Metadata and full-source read: 1590 lines.",
+      "suggestion": "Split reserved identity/attestation, invalidation, Storage immutability and send checks into focused suites, sharing only the setup fixture.",
+      "code_snippet": "Metadata and full-source read: 1590 lines.",
+      "code_fix": "// Keep each resulting source file <= 1000 lines; preserve every registered case and inventory entry.",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-3",
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/tenant-table-inventory.ts",
+      "line": 1,
+      "row": "H5",
+      "severity": "HIGH",
+      "category": "oversize-test-file",
+      "description": "Reviewed file is 2074 lines, exceeding the registry's sole 1000-line threshold.",
+      "evidence": "Metadata and full-source read: 2074 lines.",
+      "suggestion": "Move module-specific payload builders and mutation patches to separate inventory modules; retain one manifest-derived registry and its fail-loud coherence checks.",
+      "code_snippet": "Metadata and full-source read: 2074 lines.",
+      "code_fix": "// Keep each resulting source file <= 1000 lines; preserve every registered case and inventory entry.",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-20",
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 812,
+      "row": "M7",
+      "severity": "MEDIUM",
+      "category": "excessive-nesting",
+      "description": "Test control blocks nest more than three levels below the test callback/method; the callback root is excluded. Chain: fixture callback \u00e2\u2020\u2019 proxy get method \u00e2\u2020\u2019 rpc callback \u00e2\u2020\u2019 finalize condition \u00e2\u2020\u2019 expiry condition \u00e2\u2020\u2019 adminSession callback \u00e2\u2020\u2019 try \u00e2\u2020\u2019 poll loop.",
+      "evidence": "for (let attempt = 0; attempt < 100 && !expired; attempt++) {",
+      "suggestion": "Extract a withExpiredFinalizeBarrier(...) helper accepting the authenticated RPC closure, issued snapshot and expiry; leave command UUID, stale result and unchanged snapshot assertions in the case.",
+      "code_snippet": "for (let attempt = 0; attempt < 100 && !expired; attempt++) {",
+      "code_fix": "// Extract the named barrier/expectation helper described above; keep scenario-specific assertions in the outer body.",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-21",
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "line": 115,
+      "row": "M7",
+      "severity": "MEDIUM",
+      "category": "excessive-nesting",
+      "description": "Test control blocks nest more than three levels below the test callback/method; the callback root is excluded. Chain: fixture callback \u00e2\u2020\u2019 try/finally \u00e2\u2020\u2019 status condition \u00e2\u2020\u2019 role restoration loop.",
+      "evidence": "for (const row of secondaryRoles) {",
+      "suggestion": "Extract restoreMembershipAuthority(membership, secondaryRoles) and invoke it from finally, retaining unconditional restoration and denied replay assertions.",
+      "code_snippet": "for (const row of secondaryRoles) {",
+      "code_fix": "// Extract the named barrier/expectation helper described above; keep scenario-specific assertions in the outer body.",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-22",
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/bookings.int.test.ts",
+      "line": 71,
+      "row": "M7",
+      "severity": "MEDIUM",
+      "category": "excessive-nesting",
+      "description": "Test control blocks nest more than three levels below the test callback/method; the callback root is excluded. Chain: fixture callback \u00e2\u2020\u2019 contender loop \u00e2\u2020\u2019 adminSession callback \u00e2\u2020\u2019 try \u00e2\u2020\u2019 lock-observation loop.",
+      "evidence": "for (let attempt = 0; attempt < 100 && blocked < inputs.length; attempt++) {",
+      "suggestion": "Extract a withHeldBookingLock(...) barrier that owns begin/commit/rollback and blocked-session observation; keep winner/outcome/audit assertions visible.",
+      "code_snippet": "for (let attempt = 0; attempt < 100 && blocked < inputs.length; attempt++) {",
+      "code_fix": "// Extract the named barrier/expectation helper described above; keep scenario-specific assertions in the outer body.",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-23",
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/bookings.rls.test.ts",
+      "line": 222,
+      "row": "M7",
+      "severity": "MEDIUM",
+      "category": "excessive-nesting",
+      "description": "Test control blocks nest more than three levels below the test callback/method; the callback root is excluded. Chain: fixture callback \u00e2\u2020\u2019 primitive loop \u00e2\u2020\u2019 role loop/adminSession callback \u00e2\u2020\u2019 try/finally.",
+      "evidence": "try { await query(`set local role ${role}`); await expect(query(`select ${primitive.invocation}`)).rejects.toMatchObject({ code: \"42501\" }); }",
+      "suggestion": "Extract a role-scoped invocation adapter with transaction cleanup; return the invocation promise so each outer case retains explicit 42501 expectations.",
+      "code_snippet": "try { await query(`set local role ${role}`); await expect(query(`select ${primitive.invocation}`)).rejects.toMatchObject({ code: \"42501\" }); }",
+      "code_fix": "// Extract the named barrier/expectation helper described above; keep scenario-specific assertions in the outer body.",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-24",
+      "file": "C:/DEV/ElproSaas/.agents/skills/auto-bmad/scripts/tests/test_routing_migration.py",
+      "line": 46,
+      "row": "M7",
+      "severity": "MEDIUM",
+      "category": "excessive-nesting",
+      "description": "Test control blocks nest more than three levels below the test callback/method; the callback root is excluded. Chain: mock.patch context \u00e2\u2020\u2019 route loop \u00e2\u2020\u2019 subTest context \u00e2\u2020\u2019 tool branch \u00e2\u2020\u2019 optional argument branch.",
+      "evidence": "def test_cli_resolve_all_configured_phases_tools_and_errors(self):",
+      "suggestion": "Move expected CLI argument construction into a pure runner-keyed expectation builder; retain subTest labels and independent expected argv/result assertions.",
+      "code_snippet": "def test_cli_resolve_all_configured_phases_tools_and_errors(self):",
+      "code_fix": "// Extract the named barrier/expectation helper described above; keep scenario-specific assertions in the outer body.",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-25",
+      "file": "C:/DEV/ElproSaas/.claude/skills/auto-bmad/scripts/tests/test_routing_migration.py",
+      "line": 46,
+      "row": "M7",
+      "severity": "MEDIUM",
+      "category": "excessive-nesting",
+      "description": "Test control blocks nest more than three levels below the test callback/method; the callback root is excluded. Chain: mock.patch context \u00e2\u2020\u2019 route loop \u00e2\u2020\u2019 subTest context \u00e2\u2020\u2019 tool branch \u00e2\u2020\u2019 optional argument branch.",
+      "evidence": "def test_cli_resolve_all_configured_phases_tools_and_errors(self):",
+      "suggestion": "Mirror the same expectation-builder refactor as the .agents installation, retaining exact mirror checks.",
+      "code_snippet": "def test_cli_resolve_all_configured_phases_tools_and_errors(self):",
+      "code_fix": "// Extract the named barrier/expectation helper described above; keep scenario-specific assertions in the outer body.",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-26",
+      "file": "C:/DEV/ElproSaas/tests/factories/tenants/core.ts",
+      "line": 236,
+      "row": "M2",
+      "severity": "MEDIUM",
+      "category": "repeated-literal-payload",
+      "description": "Membership seed construction repeats across two-tenant and role-aware setup while seedMembership already builds that shape.",
+      "evidence": "Shape {role,status,tenant_id,user_id} at source lines 236, 242, 288, 289, 290, 291, 293, 294. { tenant_id: tenantA.id, user_id: adminA.id, role: \"tenant_admin\", status: \"active\", }",
+      "suggestion": "Use seedMembership({tenant,user,role,status}) for ordinary rows; keep the invited_email union special case explicit.",
+      "code_snippet": "Shape {role,status,tenant_id,user_id} at source lines 236, 242, 288, 289, 290, 291, 293, 294. { tenant_id: tenantA.id, user_id: adminA.id, role: \"tenant_admin\", status: \"active\", }",
+      "code_fix": "await seedMembership({ tenant: tenantA, user: adminA, role: \"tenant_admin\", status: \"active\" });",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-27",
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/resources.int.test.ts",
+      "line": 40,
+      "row": "M2",
+      "severity": "MEDIUM",
+      "category": "repeated-literal-payload",
+      "description": "The full resource form RPC payload is reconstructed four times.",
+      "evidence": "Shape {p_actor_user_id,p_calendar_day,p_correlation_id,p_employment_percentage,p_exceptions,p_membership_id,p_schedule,p_tenant_id,p_work_role_id} at source lines 40, 63, 71, 108. { p_tenant_id: fixture.tenantA.id, p_actor_user_id: fixture.adminA.id, p_correlation_id: crypto.randomUUID(), p_membership_id: membership.id, p_work_role_id: nu",
+      "suggestion": "Add a test-owned resourceFormArgs(identity, overrides) builder; preserve empty arrays, explicit clears, anonymous identity and direct checked RPC calls.",
+      "code_snippet": "Shape {p_actor_user_id,p_calendar_day,p_correlation_id,p_employment_percentage,p_exceptions,p_membership_id,p_schedule,p_tenant_id,p_work_role_id} at source lines 40, 63, 71, 108. { p_tenant_id: fixture.tenantA.id, p_actor_user_id: fixture.adminA.id, p_correlation_id: crypto.randomUUID(), p_membership_id: membership.id, p_work_role_id: nu",
+      "code_fix": "const args = resourceFormArgs(identity, { p_schedule: [], p_exceptions: [], p_calendar_day: { date, variant: \"clear\" } });",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-28",
+      "file": "C:/DEV/ElproSaas/tests/integration/components/booking-editor.test.ts",
+      "line": 28,
+      "row": "M2",
+      "severity": "MEDIUM",
+      "category": "repeated-literal-payload",
+      "description": "The complete editor options read model is rebuilt five times.",
+      "evidence": "Shape {canManage,contacts,customers,error,facilities,jobs,people,workRoles} at source lines 20, 28, 34, 41, 53. {canManage:true,error:null,people:[],workRoles:[],jobs:[],customers:[],facilities:[],contacts:[]}",
+      "suggestion": "Use editorOptions(overrides) for fresh option lists, keeping each archived/missing authority scenario override explicit.",
+      "code_snippet": "Shape {canManage,contacts,customers,error,facilities,jobs,people,workRoles} at source lines 20, 28, 34, 41, 53. {canManage:true,error:null,people:[],workRoles:[],jobs:[],customers:[],facilities:[],contacts:[]}",
+      "code_fix": "options: editorOptions({ canManage: true, people: [], workRoles: [] })",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-29",
+      "file": "C:/DEV/ElproSaas/tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts",
+      "line": 64,
+      "row": "M2",
+      "severity": "MEDIUM",
+      "category": "repeated-literal-payload",
+      "description": "Recipient command payloads repeat nine inline constructions independently of CRM seed factories.",
+      "evidence": "Shape {quote_version_id,recipient_source_id,recipient_source_type} at source lines 64, 146, 159, 172, 186, 232, 279, 288, 295. { quote_version_id: quoteVersionId.toUpperCase(), recipient_source_type: \"customer\", recipient_source_id: customerId.toUpperCase(), }",
+      "suggestion": "Create recipientInput(quoteVersionId, sourceType, sourceId); pass it through the existing real command envelope, preserving the chosen user and uppercase/foreign variations.",
+      "code_snippet": "Shape {quote_version_id,recipient_source_id,recipient_source_type} at source lines 64, 146, 159, 172, 186, 232, 279, 288, 295. { quote_version_id: quoteVersionId.toUpperCase(), recipient_source_type: \"customer\", recipient_source_id: customerId.toUpperCase(), }",
+      "code_fix": "input: recipientInput(quoteVersionId, \"contact\", contactId)",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-30",
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/settings-rls.int.test.ts",
+      "line": 269,
+      "row": "M2",
+      "severity": "MEDIUM",
+      "category": "repeated-literal-payload",
+      "description": "Complete company settings DML payloads repeat three times.",
+      "evidence": "Shape {company_name,default_vat_display,tenant_id,vat_rate_bp} at source lines 269, 276, 357. { tenant_id: fixture.tenantA.id, company_name: \"own-tenant-direct-write\", default_vat_display: \"company_togglable\", vat_rate_bp: 2500, }",
+      "suggestion": "Introduce a pure companySettingsPayload(tenantId, overrides) builder; retain the raw authenticated/anonymous .insert caller so privilege testing remains unchanged.",
+      "code_snippet": "Shape {company_name,default_vat_display,tenant_id,vat_rate_bp} at source lines 269, 276, 357. { tenant_id: fixture.tenantA.id, company_name: \"own-tenant-direct-write\", default_vat_display: \"company_togglable\", vat_rate_bp: 2500, }",
+      "code_fix": "a.from(\"company_settings\").insert(companySettingsPayload(fixture.tenantA.id, { company_name: \"own-tenant-direct-write\" }))",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-31",
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/tenant-table-inventory.ts",
+      "line": 502,
+      "row": "M2",
+      "severity": "MEDIUM",
+      "category": "repeated-literal-payload",
+      "description": "The complete review-authorization row repeats in three inventory branches.",
+      "evidence": "Shape {actor_user_id,correlation_id,expires_at,id,issued_at,purpose,quote_id,source_revision,target_quote_version_id,tenant_id} at source lines 502, 776, 1442. { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, actor_user_id: fixture.adminA.id, purpose: \"final_send\", quote_id: requireCrmId(ctx.tenantBQuoteId, \"t",
+      "suggestion": "Use a pure reviewAuthorizationRow(identities, overrides) constructor; retain each foreign/anonymous operation and the manifest-owned inventory mapping.",
+      "code_snippet": "Shape {actor_user_id,correlation_id,expires_at,id,issued_at,purpose,quote_id,source_revision,target_quote_version_id,tenant_id} at source lines 502, 776, 1442. { id: crypto.randomUUID(), tenant_id: fixture.tenantB.id, actor_user_id: fixture.adminA.id, purpose: \"final_send\", quote_id: requireCrmId(ctx.tenantBQuoteId, \"t",
+      "code_fix": "return reviewAuthorizationRow({ tenantId, actorId, quoteId, versionId });",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-32",
+      "file": "C:/DEV/ElproSaas/tests/support/booking-conflicts-atdd.ts",
+      "line": 80,
+      "row": "M2",
+      "severity": "MEDIUM",
+      "category": "repeated-literal-payload",
+      "description": "The full weekly shift shape is reconstructed in initial fixture setup and two writer variants.",
+      "evidence": "Shape {breaks,end,start,weekday} at source lines 80, 139, 142. { weekday, start: \"08:00\", end: \"16:00\", breaks: [] }",
+      "suggestion": "Create a pure shift(weekday,start,end,breaks) constructor and use it for the fixture map and checked schedule/form writers.",
+      "code_snippet": "Shape {breaks,end,start,weekday} at source lines 80, 139, 142. { weekday, start: \"08:00\", end: \"16:00\", breaks: [] }",
+      "code_fix": "p_schedule: [shift(1, \"09:00\", \"12:00\")]",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-33",
+      "file": "C:/DEV/ElproSaas/tests/unit/admin-users/read-pagination.test.ts",
+      "line": 57,
+      "row": "M2",
+      "severity": "MEDIUM",
+      "category": "repeated-literal-payload",
+      "description": "Full read-side membership rows repeat five constructions.",
+      "evidence": "Shape {created_at,id,invited_email,role,status,tenant_id} at source lines 57, 58, 75, 100, 118. { id: \"a-member\", tenant_id: \"tenant-a\", invited_email: \"a@example.test\", status: \"active\", role: \"saljare\", created_at: \"2026-01-02T00:00:00Z\" }",
+      "suggestion": "Use membershipRow(overrides) for fresh fake read rows, keeping pagination cardinalities and foreign tenant values explicit.",
+      "code_snippet": "Shape {created_at,id,invited_email,role,status,tenant_id} at source lines 57, 58, 75, 100, 118. { id: \"a-member\", tenant_id: \"tenant-a\", invited_email: \"a@example.test\", status: \"active\", role: \"saljare\", created_at: \"2026-01-02T00:00:00Z\" }",
+      "code_fix": "memberships: [membershipRow({ id: \"a-member\", tenant_id: \"tenant-a\" }), membershipRow({ id: \"b-member\", tenant_id: \"tenant-b\" })]",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-34",
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/booking-editor-input.test.ts",
+      "line": 15,
+      "row": "M2",
+      "severity": "MEDIUM",
+      "category": "repeated-literal-payload",
+      "description": "The full endpoint-edit request repeats seven times.",
+      "evidence": "Shape {allDay,endChanged,endsAtLocal,original,startChanged,startsAtLocal} at source lines 15, 18, 77, 84, 91, 98, 105. {original,startChanged:false,endChanged:true,allDay:false, startsAtLocal:\"2026-10-25T02:30\",endsAtLocal:\"2026-10-25T05:00\"}",
+      "suggestion": "Add timesRequest(overrides) beside these cases, returning a fresh request based on booking(); keep every fold/gap/microsecond override literal.",
+      "code_snippet": "Shape {allDay,endChanged,endsAtLocal,original,startChanged,startsAtLocal} at source lines 15, 18, 77, 84, 91, 98, 105. {original,startChanged:false,endChanged:true,allDay:false, startsAtLocal:\"2026-10-25T02:30\",endsAtLocal:\"2026-10-25T05:00\"}",
+      "code_fix": "prepareBookingTimes(timesRequest({ original, startChanged: false, endChanged: true, endsAtLocal: \"2026-10-25T05:00\" }))",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-35",
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/capacity-inputs.test.ts",
+      "line": 15,
+      "row": "M2",
+      "severity": "MEDIUM",
+      "category": "repeated-literal-payload",
+      "description": "Timed exception input records repeat three times.",
+      "evidence": "Shape {date,end,kind,start} at source lines 15, 28, 50. { kind: \"blocked_time\", date: \"2026-10-16\", start: \"09:00\", end: \"12:00\" }",
+      "suggestion": "Use timedException(overrides) for actual inputs, preserving invalid and PostgreSQL precision values at call sites.",
+      "code_snippet": "Shape {date,end,kind,start} at source lines 15, 28, 50. { kind: \"blocked_time\", date: \"2026-10-16\", start: \"09:00\", end: \"12:00\" }",
+      "code_fix": "exceptions: [timedException({ start: \"13:00\", end: \"09:00\" })]",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-36",
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/resource-form-inputs.test.ts",
+      "line": 7,
+      "row": "M2",
+      "severity": "MEDIUM",
+      "category": "repeated-literal-payload",
+      "description": "Three complete timed-exception input records are rebuilt; expected output literals are excluded.",
+      "evidence": "Shape {date,end,kind,start} at source lines 7, 19, 20. { kind: \"blocked_time\", date: \"2026-10-16\", start: null, end: null }",
+      "suggestion": "Use timedException(overrides) for persisted/rendered inputs; retain the independent expected normalized output.",
+      "code_snippet": "Shape {date,end,kind,start} at source lines 7, 19, 20. { kind: \"blocked_time\", date: \"2026-10-16\", start: null, end: null }",
+      "code_fix": "const existing = [timedException({ start: \"09:00:30.123456\", end: \"12:00:30.123456\" })];",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-37",
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/schedule-form-merge.test.ts",
+      "line": 7,
+      "row": "M2",
+      "severity": "MEDIUM",
+      "category": "repeated-literal-payload",
+      "description": "The full shift shape repeats at least eleven input construction sites; independent expected arrays are excluded.",
+      "evidence": "Shape {breaks,end,start,weekday} at source lines 7, 9, 10, 21, 26, 28, 29, 30, 41, 42, 47. { weekday: 1, start: \"08:00\", end: \"16:00\", breaks: [{ start: \"12:00\", end: \"12:30\" }] }",
+      "suggestion": "Use a fresh shift(...) constructor for input schedules, retaining each explicit shift/break time and all expected result literals.",
+      "code_snippet": "Shape {breaks,end,start,weekday} at source lines 7, 9, 10, 21, 26, 28, 29, 30, 41, 42, 47. { weekday: 1, start: \"08:00\", end: \"16:00\", breaks: [{ start: \"12:00\", end: \"12:30\" }] }",
+      "code_fix": "mergeRenderedSchedule([shift(1, \"08:00\", \"16:00\", [breakWindow(\"12:00\", \"12:30\")])], stored);",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-38",
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/schedule-read.test.ts",
+      "line": 7,
+      "row": "M2",
+      "severity": "MEDIUM",
+      "category": "repeated-literal-payload",
+      "description": "Four persisted work-hour input rows share the same complete shape.",
+      "evidence": "Shape {ends_at,entry_kind,starts_at,weekday} at source lines 7, 8, 9, 10. { entry_kind: \"weekly_break\", weekday: 1, starts_at: \"14:00:00\", ends_at: \"14:15:00\" }",
+      "suggestion": "Add workHourRow(kind,weekday,start,end) for input rows; leave the expected split-shift output literal.",
+      "code_snippet": "Shape {ends_at,entry_kind,starts_at,weekday} at source lines 7, 8, 9, 10. { entry_kind: \"weekly_break\", weekday: 1, starts_at: \"14:00:00\", ends_at: \"14:15:00\" }",
+      "code_fix": "workHourRow(\"weekly_break\", 1, \"14:00:00\", \"14:15:00\")",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-39",
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/work-hours.test.ts",
+      "line": 16,
+      "row": "M2",
+      "severity": "MEDIUM",
+      "category": "repeated-literal-payload",
+      "description": "Fourteen full shift input records are constructed inline.",
+      "evidence": "Shape {breaks,end,start,weekday} at source lines 16, 17, 18, 19, 25, 26, 27, 28, 29, 45, 46, 50, 62, 78. { weekday: 1, start: \"07:00\", end: \"16:00\", breaks: [] }",
+      "suggestion": "Use shift(...) for actual input records and a weekday map for the four-/five-day templates; preserve explicit 80-percent and invalid-window facts.",
+      "code_snippet": "Shape {breaks,end,start,weekday} at source lines 16, 17, 18, 19, 25, 26, 27, 28, 29, 45, 46, 50, 62, 78. { weekday: 1, start: \"07:00\", end: \"16:00\", breaks: [] }",
+      "code_fix": "shifts: [1, 2, 3, 4].map(day => shift(day, \"07:00\", \"16:00\"))",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-40",
+      "file": "C:/DEV/ElproSaas/tests/unit/features/scheduling/capacity.golden.test.ts",
+      "line": 8,
+      "row": "M2",
+      "severity": "MEDIUM",
+      "category": "repeated-literal-payload",
+      "description": "Nine complete shift inputs are reconstructed around the existing facts() factory.",
+      "evidence": "Shape {breaks,end,start,weekday} at source lines 8, 14, 28, 39, 47, 55, 61, 62, 77. { weekday: 1, start: \"10:00\", end: \"10:30\", breaks: [] }",
+      "suggestion": "Add a pure shift(...) builder to scheduling-atdd; keep deliberate microsecond/buffer/reduction boundaries explicit and golden expected terms independent.",
+      "code_snippet": "Shape {breaks,end,start,weekday} at source lines 8, 14, 28, 39, 47, 55, 61, 62, 77. { weekday: 1, start: \"10:00\", end: \"10:30\", breaks: [] }",
+      "code_fix": "input.people[0].shifts = [shift(1, \"10:00\", \"10:30\")];",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-41",
+      "file": "C:/DEV/ElproSaas/tests/unit/features/scheduling/conflicts.test.ts",
+      "line": 45,
+      "row": "M2",
+      "severity": "MEDIUM",
+      "category": "repeated-literal-payload",
+      "description": "Three complete shift input records repeat inline without a shared shift constructor; expected conflict payloads are excluded.",
+      "evidence": "Shape {breaks,end,start,weekday} at source lines 45, 50, 50. { weekday: 1, start: \"bad\", end: \"17:00\", breaks: [] }",
+      "suggestion": "Use the same fresh scheduling shift(...) builder for malformed/split shifts, preserving the malformed start literal as an explicit override.",
+      "code_snippet": "Shape {breaks,end,start,weekday} at source lines 45, 50, 50. { weekday: 1, start: \"bad\", end: \"17:00\", breaks: [] }",
+      "code_fix": "shifts: [shift(1, \"07:00\", \"12:00\", [breakWindow(\"10:00\", \"10:30\")]), shift(1, \"13:00\", \"17:00\")]",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-42",
+      "file": "C:/DEV/ElproSaas/tests/unit/server/authz/permission-matrix.test.ts",
+      "line": 11,
+      "row": "M2",
+      "severity": "MEDIUM",
+      "category": "repeated-literal-payload",
+      "description": "Nine complete permission-decision request objects repeat the same shape.",
+      "evidence": "Shape {capability,module,roles} at source lines 11, 17, 18, 25, 26, 27, 28, 59, 60. { roles: [\"tenant_admin\"], module: \"foundation\", capability: \"Memberships.Manage\" }",
+      "suggestion": "Add permissionRequest(roles,module,capability) that performs no validation or authorization; keep malformed matrix cases and every role input explicit.",
+      "code_snippet": "Shape {capability,module,roles} at source lines 11, 17, 18, 25, 26, 27, 28, 59, 60. { roles: [\"tenant_admin\"], module: \"foundation\", capability: \"Memberships.Manage\" }",
+      "code_fix": "resolveCapability(permissionRequest([\"tenant_admin\"], \"foundation\", \"Memberships.Manage\"))",
+      "dimension": "maintainability"
+    },
+    {
+      "id": "maintainability-43",
+      "file": "C:/DEV/ElproSaas/tests/unit/server/commands/bookings-validation.test.ts",
+      "line": 52,
+      "row": "M2",
+      "severity": "MEDIUM",
+      "category": "repeated-literal-payload",
+      "description": "The complete editorReview receipt/decision payload is constructed four times; base input factory use is not deducted.",
+      "evidence": "Shape {decision,receipt} at source lines 52, 53, 57, 59. {receipt:\"receipt-one\",decision}",
+      "suggestion": "Add editorReview(receipt,decision) as a pure test builder; preserve malformed signature/actor additions and the distinct receipt values.",
+      "code_snippet": "Shape {decision,receipt} at source lines 52, 53, 57, 59. {receipt:\"receipt-one\",decision}",
+      "code_fix": "editorReview: editorReview(\"receipt-one\", decision)",
+      "dimension": "maintainability"
+    },
+    {
+      "row": "M1",
+      "severity": "MEDIUM",
+      "file": "C:/DEV/ElproSaas/tests/e2e/resources-person-profile.e2e.spec.ts",
+      "line": 35,
+      "related_lines": [
+        92,
+        104,
+        134
+      ],
+      "category": "network-first-violated",
+      "description": "The resource browser suite navigates to data-dependent user-detail content without installing an intercept or explicit readiness signal before those navigations. Its CDP fixture supplies a context/page but no such registration. Native awaited navigation and later locator assertions do not match the registry\u2019s before-navigation predicate.",
+      "evidence": "await page.goto(`/admin/users/${fixture.adminUserManagement.resourceProfileMembershipId}`); followed by resource-role/schedule field interaction; resource-cdp-attachment fixture only attaches/provides/closes the owned context/page.",
+      "recommendation": "Register observation of the real navigation/read response before each data-dependent navigation, then await it before interacting. Keep real server data and durable persistence checks.",
+      "suggestion": "Use a prearmed real-response promise rather than a generic post-navigation wait; do not stub away persistence.",
+      "codefix": "const target = `/admin/users/${fixture.adminUserManagement.resourceProfileMembershipId}`;\nconst ready = page.waitForResponse((response) =>\n  response.request().isNavigationRequest() &&\n  new URL(response.url()).pathname === target && response.status() === 200);\nawait page.goto(target);\nawait ready;",
+      "production_defect_claim": false,
+      "runtime_race_demonstrated": false,
+      "dimension": "performance"
+    }
+  ],
+  "new_product_executions": 0,
+  "execution": {
+    "requestedMode": "auto",
+    "resolvedMode": "capacity-batched subagents plus sequential performance fallback",
+    "probeEnabled": true,
+    "supports": {
+      "subagent": true,
+      "agentTeam": false
+    },
+    "capacity_refusals": [
+      {
+        "dimension": "isolation",
+        "attempts": 2,
+        "message": "agent thread limit reached"
+      },
+      {
+        "dimension": "performance",
+        "attempts": 4,
+        "message": "agent thread limit reached"
+      }
+    ],
+    "new_product_executions": 0,
+    "capacity_recovery": "Fresh independent isolation and maintainability spawns succeeded after determinism completed; capacity-batched subagent mode retained.",
+    "worker_batches": [
+      [
+        "determinism"
+      ],
+      [
+        "isolation",
+        "maintainability"
+      ],
+      [
+        "performance: sequential capability fallback"
+      ]
+    ],
+    "parallel_gain_claim": null,
+    "independent_high_children": 3,
+    "sequential_dimensions": [
+      "performance"
+    ]
+  },
+  "reviewed_files": [
+    "C:/DEV/ElproSaas/.agents/skills/auto-bmad/scripts/tests/test_routing_migration.py",
+    "C:/DEV/ElproSaas/.claude/skills/auto-bmad/scripts/tests/test_routing_migration.py",
+    "C:/DEV/ElproSaas/tests/e2e/booking-editor.e2e.spec.ts",
+    "C:/DEV/ElproSaas/tests/e2e/global-setup.ts",
+    "C:/DEV/ElproSaas/tests/e2e/resources-person-profile.e2e.spec.ts",
+    "C:/DEV/ElproSaas/tests/e2e/support/booking-editor-atdd.ts",
+    "C:/DEV/ElproSaas/tests/e2e/support/resource-cdp-attachment.ts",
+    "C:/DEV/ElproSaas/tests/factories/tenants/core.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/audit-anon-isolation.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/booking-editor-review-fixes.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/booking-editor-round2.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/booking-editor.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/bookings-replay-authority.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/bookings.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/quote-pdf-validity.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/resources-boundaries.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/resources.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/update-job.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/components/booking-editor.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/features/booking-read-actions.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/jobs/job-runs.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/admin-user-management.rls.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/approved-public-acl-repair.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/bookings.rls.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/calc-tables-migration-reset.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/crm-tables-migration-reset.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/cross-tenant-isolation.rls.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/file-tables-migration-reset.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/membership-self-grant.rls.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/migration-reset.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/onboarding-checklist.rls.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/pricing-tables-migration-reset.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/quote-follow-ups-migration-reset.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/quote-pipeline-read-model.rls.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/quote-review-authorization-migration-reset.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/resources.rls.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/role-harness.atdd.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/settings-rls.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/tenant-table-inventory.ts",
+    "C:/DEV/ElproSaas/tests/support/authz/role-harness.ts",
+    "C:/DEV/ElproSaas/tests/support/booking-conflict-attestation.ts",
+    "C:/DEV/ElproSaas/tests/support/booking-conflicts-atdd.ts",
+    "C:/DEV/ElproSaas/tests/support/booking-editor-atdd.ts",
+    "C:/DEV/ElproSaas/tests/support/booking-editor-contract.ts",
+    "C:/DEV/ElproSaas/tests/support/booking-editor-production.ts",
+    "C:/DEV/ElproSaas/tests/support/bookings-atdd.ts",
+    "C:/DEV/ElproSaas/tests/support/global-setup.ts",
+    "C:/DEV/ElproSaas/tests/support/quote-send-diagnostics.ts",
+    "C:/DEV/ElproSaas/tests/support/scheduling-atdd.ts",
+    "C:/DEV/ElproSaas/tests/support/stack-gate.ts",
+    "C:/DEV/ElproSaas/tests/support/test-env.ts",
+    "C:/DEV/ElproSaas/tests/unit/admin-users/read-pagination.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/e2e/resource-cdp-attachment.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/resources/booking-attempt-transport.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/resources/booking-editor-input.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/resources/capacity-inputs.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/resources/resource-form-inputs.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/resources/schedule-form-merge.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/resources/schedule-read.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/resources/work-hours.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/scheduling/capacity.golden.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/scheduling/conflicts.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/scheduling/dst.golden.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/quote-send-diagnostics.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/scope/booking-editor-scope.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/scope/manifest-derivations.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/scope/manifest-shape.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/scope/resources-activation.atdd.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/security-headers.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/server/authz/permission-matrix.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/server/authz/role-catalogue.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/server/authz/role-harness.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/server/bookings/conflict-attestation.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/server/commands/bookings-validation.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/server/resources/e2e-save-failure.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/support/global-setup.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/support/test-env.test.ts"
+  ],
+  "excluded_files": [
+    {
+      "file": "C:/DEV/ElproSaas/.env.test.example",
+      "reason": "format not scorable by the ledger"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/compose.test.yaml",
+      "reason": "format not scorable by the ledger"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/capacity.json",
+      "reason": "format not scorable by the ledger"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/conflicts.json",
+      "reason": "format not scorable by the ledger"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/dst.json",
+      "reason": "format not scorable by the ledger"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/regressions.json",
+      "reason": "format not scorable by the ledger"
+    }
+  ],
+  "context_files": [
+    "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-1-scheduling-activation-person-profiles-and-work-hours.md",
+    "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-2-bookings-and-assignees-schema-and-transactional-commands.md",
+    "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-3-deterministic-conflict-engine-detection-core.md",
+    "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md"
+  ],
+  "release_authority": false,
+  "review_clearance": false,
+  "new_bmad_broad_review_round": false,
+  "limitations": [
+    "Registry L2 missing priority marker is not assigned by any of the four installed dimension step row lists; measured convention reported, no unassigned deduction invented."
+  ]
+}

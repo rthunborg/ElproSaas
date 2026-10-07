@@ -1,12 +1,12 @@
 {
   "schema_version": "0.2.0",
-  "snapshot_at": "2026-10-07T15:05:23.841200+00:00",
+  "snapshot_at": "2026-10-07T15:34:24.710409+00:00",
   "repo": "ElproSaas",
   "collection_mode": "contract_static",
   "collection_status": "COLLECTED",
   "inventory_basis": "acceptance_criteria",
   "gate_basis": "priority_thresholds",
-  "source_sha": "0d1ff3a3577f8f4fc742b13cf92fb28ff598eb62",
+  "source_sha": "e92e0ec126ea541e109e8abe0ac02ba57085e68e",
   "target": {
     "type": "epic",
     "id": "14",
@@ -32,20 +32,20 @@
   },
   "coverage": {
     "inventory": {
-      "covered": 34,
+      "covered": 36,
       "total": 36,
-      "pct": 94
+      "pct": 100
     },
     "priority_breakdown": {
       "P0": {
         "total": 13,
-        "covered": 12,
-        "pct": 92
+        "covered": 13,
+        "pct": 100
       },
       "P1": {
         "total": 23,
-        "covered": 22,
-        "pct": 96
+        "covered": 23,
+        "pct": 100
       },
       "P2": {
         "total": 0,
@@ -64,7 +64,7 @@
         "criteria_covered": 10
       },
       "api": {
-        "tests": 224,
+        "tests": 229,
         "criteria_covered": 26
       },
       "component": {
@@ -86,22 +86,22 @@
     }
   },
   "tests": {
-    "files": 37,
-    "cases": 292,
+    "files": 38,
+    "cases": 297,
     "skipped_cases": 0,
     "fixme_cases": 0,
     "pending_cases": 0
   },
   "risk_summary": {
-    "critical_open": 1,
-    "high_open": 1,
+    "critical_open": 0,
+    "high_open": 0,
     "medium_open": 0,
     "low_open": 0
   },
   "heuristics": {
     "endpoint_gaps": 0,
-    "auth_negative_path_status": "partial",
-    "error_path_status": "partial",
+    "auth_negative_path_status": "present",
+    "error_path_status": "present",
     "ui_journey_status": "not_applicable",
     "ui_state_status": "not_applicable"
   },
@@ -110,7 +110,7 @@
     "results_file": "C:\\DEV\\ElproSaas\\_bmad-output\\test-artifacts\\live-verification-results.json",
     "freshness": "not_present",
     "recorded_source_sha": "",
-    "current_source_sha": "0d1ff3a3577f8f4fc742b13cf92fb28ff598eb62",
+    "current_source_sha": "e92e0ec126ea541e109e8abe0ac02ba57085e68e",
     "producer": "",
     "counted": 0,
     "stale": 0,
@@ -123,50 +123,44 @@
     "invalid": 0,
     "requirements_live_only": 0
   },
-  "blockers": [
-    {
-      "id": "14.1-AC2",
-      "severity": "high",
-      "reason": "Second raw person-profile insert for the same membership must reject with constraint failure and exact unchanged count/state; positive upsert and repeated form updates do not exercise the unique rejection. Actual profile default_work_role_id writer must reject concrete foreign and nonexistent work roles and preserve exact state/audit. Booking work_role_id negatives are a different field/writer."
-    },
-    {
-      "id": "14.1-AC5",
-      "severity": "critical",
-      "reason": "Same-tenant authorized caller supplies a concrete foreign membership or person profile to the actual resource command/checked RPC; assert denial and exact unchanged resource/audit state. Existing foreign-tenant-ID and forged-actor cases do not exercise that parent-reference path. Actual authenticated role-ineligible checked resource RPC denial and positive planner mutation are unexecuted. Generic registered command probe deliberately stops at envelope authorization and never calls the business RPC. Existing user-detail host is admin-only; no planner UI is required. Actual no-membership, invited and disabled callers reading resource rows and invoking checked resource RPCs are unexecuted. Disabled has_tenant_role helper evidence exists; invited/no-member helper tests use is_active_tenant_member, a different predicate."
-    }
-  ],
+  "blockers": [],
   "recommendations": [
     {
-      "priority": "URGENT",
-      "action": "Run a focused resource negative pack through actual checked RPC/command boundaries: concrete foreign membership/profile; no-member/invited/disabled/role-ineligible read and mutation; current planner mutation positive; exact unchanged resource/audit snapshots.",
-      "requirements": [
-        "14.1-AC5",
-        "14.1-RLS-001",
-        "14.1-RLS-002",
-        "14.1-RLS-003"
-      ]
-    },
-    {
       "priority": "HIGH",
-      "action": "Exercise second raw profile insert rejection and foreign/nonexistent default work-role writer rejection, with exact unchanged count/state/audit.",
-      "requirements": [
-        "14.1-AC2",
-        "14.1-DB-001",
-        "14.1-DB-002"
-      ]
-    },
-    {
-      "priority": "HIGH",
-      "action": "Retain mandatory empty-chain migration+seed+required integration CI before merge. Do not substitute populated local-stack evidence or treat recovery-loader skip as covered.",
+      "action": "Run mandatory empty-database migration chain, seed and REQUIRED full-integration Epic CI before merge; populated-schema results and the Storage physical-loader skip do not satisfy it.",
       "requirements": []
     },
     {
       "priority": "MEDIUM",
-      "action": "Record contrast/daylight review and cross-rule exploratory charter; obtain approved representative performance thresholds before certification.",
+      "action": "Obtain owner-approved representative performance volumes/thresholds, then record engine/save benchmarks under 14.NFR-PERF-001.",
       "requirements": [
-        "14.NFR-PERF-001",
-        "14.NFR-A11Y-001",
+        "14.NFR-PERF-001"
+      ]
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Record actual contrast/daylight review of conflict states and primary actions under 14.NFR-A11Y-001.",
+      "requirements": [
+        "14.NFR-A11Y-001"
+      ]
+    },
+    {
+      "priority": "LOW",
+      "action": "Record a cross-rule multi-assignee work-hour/DST/access-window/retry exploratory charter outcome under 14.EXP-001.",
+      "requirements": [
         "14.EXP-001"
+      ]
+    },
+    {
+      "priority": "HIGH",
+      "action": "Retain Story14.1/14.2/14.4 follow-up recommendations and draft-PR caveats; coverage is not review clearance. No additional broad review is started.",
+      "requirements": []
+    },
+    {
+      "priority": "HIGH",
+      "action": "Story15.1 must execute actual Schema/Resurser empty-slot click and drag with supplied person/interval context and keyboard/dialog parity before calendar exposure and completion; no prefill-seam credit.",
+      "requirements": [
+        "14.4-E2E-006(empty-slot click/drag portion)"
       ]
     }
   ],
@@ -176,35 +170,35 @@
     "artifact_url": "",
     "journey_evidence_url": ""
   },
-  "gate_status": "FAIL",
+  "gate_status": "PASS",
   "gate_criteria": {
     "p0_coverage_required": "100%",
-    "p0_coverage_actual": "92%",
-    "p0_status": "NOT_MET",
+    "p0_coverage_actual": "100%",
+    "p0_status": "MET",
     "p1_coverage_target": "90%",
     "p1_coverage_minimum": "80%",
-    "p1_coverage_actual": "96%",
+    "p1_coverage_actual": "100%",
     "p1_status": "MET",
     "overall_coverage_minimum": "80%",
-    "overall_coverage_actual": "94%",
+    "overall_coverage_actual": "100%",
     "overall_status": "MET"
   },
   "design_scenario_coverage": {
     "total_requirements": 77,
-    "fully_covered": 69,
-    "partially_covered": 5,
+    "fully_covered": 74,
+    "partially_covered": 0,
     "uncovered": 3,
-    "overall_coverage_percentage": 90,
+    "overall_coverage_percentage": 96,
     "priority_breakdown": {
       "P0": {
         "total": 8,
-        "covered": 7,
-        "percentage": 88
+        "covered": 8,
+        "percentage": 100
       },
       "P1": {
         "total": 66,
-        "covered": 62,
-        "percentage": 94
+        "covered": 66,
+        "percentage": 100
       },
       "P2": {
         "total": 2,
@@ -219,16 +213,12 @@
     }
   },
   "new_product_executions": 0,
-  "uncovered_requirements": [
-    "14.1-AC2",
-    "14.1-AC5"
-  ],
-  "partial_design_obligations": [
-    "14.1-RLS-001",
-    "14.1-DB-001",
-    "14.1-DB-002",
-    "14.1-RLS-002",
-    "14.1-RLS-003"
+  "uncovered_requirements": [],
+  "partial_design_obligations": [],
+  "uncovered_design_obligations": [
+    "14.NFR-PERF-001",
+    "14.NFR-A11Y-001",
+    "14.EXP-001"
   ],
   "receiving_owner_obligations": [
     {
@@ -238,5 +228,366 @@
       "execution_credit": false,
       "gate": "before applicable calendar exposure and Story15.1 completion"
     }
-  ]
+  ],
+  "gate_progression": [
+    {
+      "iteration": 0,
+      "gate_status": "FAIL",
+      "preserved_commit": "e92e0ec126ea541e109e8abe0ac02ba57085e68e",
+      "formal": {
+        "FULL": 34,
+        "PARTIAL": 2,
+        "NONE": 0,
+        "P0": "12/13",
+        "P1": "22/23"
+      },
+      "supplementary": {
+        "FULL": 69,
+        "PARTIAL": 5,
+        "NONE": 3,
+        "P0": "7/8",
+        "P1": "62/66"
+      },
+      "remediation_ids": [
+        "14.1-RLS-001",
+        "14.1-RLS-002",
+        "14.1-RLS-003",
+        "14.1-DB-001",
+        "14.1-DB-002"
+      ]
+    },
+    {
+      "iteration": 1,
+      "phase": "PHASE_1_COMPLETE",
+      "formal": {
+        "FULL": 36,
+        "PARTIAL": 0,
+        "NONE": 0,
+        "P0": "13/13",
+        "P1": "23/23"
+      },
+      "supplementary": {
+        "FULL": 74,
+        "PARTIAL": 0,
+        "NONE": 3,
+        "P0": "8/8",
+        "P1": "66/66"
+      },
+      "evidence": "epic-14-gate-iter1-evidence.json",
+      "product_fix_claim": false,
+      "gate_status": "PASS"
+    }
+  ],
+  "recorded_iteration_execution": {
+    "focused": {
+      "mode": "focused",
+      "nativeExitCode": 0,
+      "signal": null,
+      "startedAt": "2026-10-07T15:14:44.977Z",
+      "finishedAt": "2026-10-07T15:14:48.786Z",
+      "required": true,
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "totalFiles": 1,
+      "totalSuites": 2,
+      "cases": [
+        {
+          "title": "[P0] 14.1-RLS-001 own-tenant authorized caller cannot use real foreign membership or profile",
+          "status": "passed",
+          "durationMs": 523.581
+        },
+        {
+          "title": "[P1] 14.1-RLS-002 lower roles cannot call any resource writer; projektledare persists audited mutations",
+          "status": "passed",
+          "durationMs": 659.6029000000001
+        },
+        {
+          "title": "[P1] 14.1-RLS-003 no-member invited and disabled callers see no resources and cannot mutate",
+          "status": "passed",
+          "durationMs": 840.3274000000001
+        },
+        {
+          "title": "[P1] 14.1-DB-001 second raw profile insert rejects unique membership with exact no-op state",
+          "status": "passed",
+          "durationMs": 421.9933000000001
+        },
+        {
+          "title": "[P1] 14.1-DB-002 actual profile writers reject foreign and nonexistent default work roles without writes or audit",
+          "status": "passed",
+          "durationMs": 486.0291000000002
+        }
+      ]
+    },
+    "affected": {
+      "mode": "affected",
+      "nativeExitCode": 0,
+      "signal": null,
+      "startedAt": "2026-10-07T15:15:11.583Z",
+      "finishedAt": "2026-10-07T15:15:39.530Z",
+      "required": true,
+      "total": 47,
+      "passed": 47,
+      "failed": 0,
+      "skipped": 0,
+      "totalFiles": 7,
+      "totalSuites": 16,
+      "cases": [
+        {
+          "title": "[P0] 14.1-RLS-001 own-tenant authorized caller cannot use real foreign membership or profile",
+          "status": "passed",
+          "durationMs": 718.1541
+        },
+        {
+          "title": "[P1] 14.1-RLS-002 lower roles cannot call any resource writer; projektledare persists audited mutations",
+          "status": "passed",
+          "durationMs": 715.6265000000001
+        },
+        {
+          "title": "[P1] 14.1-RLS-003 no-member invited and disabled callers see no resources and cannot mutate",
+          "status": "passed",
+          "durationMs": 847.9164000000001
+        },
+        {
+          "title": "[P1] 14.1-DB-001 second raw profile insert rejects unique membership with exact no-op state",
+          "status": "passed",
+          "durationMs": 437.4521
+        },
+        {
+          "title": "[P1] 14.1-DB-002 actual profile writers reject foreign and nonexistent default work roles without writes or audit",
+          "status": "passed",
+          "durationMs": 466.462
+        }
+      ]
+    },
+    "full": {
+      "mode": "full",
+      "nativeExitCode": 0,
+      "signal": null,
+      "startedAt": "2026-10-07T15:15:45.271Z",
+      "finishedAt": "2026-10-07T15:18:25.867Z",
+      "required": true,
+      "total": 1466,
+      "passed": 1465,
+      "failed": 0,
+      "skipped": 1,
+      "totalFiles": 135,
+      "totalSuites": 447,
+      "cases": [
+        {
+          "title": "[P0] 14.1-RLS-001 own-tenant authorized caller cannot use real foreign membership or profile",
+          "status": "passed",
+          "durationMs": 1932.1064
+        },
+        {
+          "title": "[P1] 14.1-RLS-002 lower roles cannot call any resource writer; projektledare persists audited mutations",
+          "status": "passed",
+          "durationMs": 2691.2046000000005
+        },
+        {
+          "title": "[P1] 14.1-RLS-003 no-member invited and disabled callers see no resources and cannot mutate",
+          "status": "passed",
+          "durationMs": 1836.1129999999994
+        },
+        {
+          "title": "[P1] 14.1-DB-001 second raw profile insert rejects unique membership with exact no-op state",
+          "status": "passed",
+          "durationMs": 860.8689000000004
+        },
+        {
+          "title": "[P1] 14.1-DB-002 actual profile writers reject foreign and nonexistent default work roles without writes or audit",
+          "status": "passed",
+          "durationMs": 824.8162999999995
+        }
+      ]
+    }
+  },
+  "discovered_inventory": {
+    "cases": 342,
+    "files": 44,
+    "unmapped_cases": 45
+  },
+  "phase1_matrix_path": "C:/Users/Rasmus/AppData/Local/Temp/tea-trace-coverage-matrix-epic14-iter1-20261007T153223Z.json",
+  "phase1_matrix_sha256": "7d2a751cbb67fc698606db089e2c21b7376c8013b28697d7862aecaa7490c84e",
+  "gate_iteration": 1,
+  "release_authority": false,
+  "review_clearance": false,
+  "provenance_audit": {
+    "prior_files_verified": 53,
+    "iteration_artifacts_verified": 23,
+    "source_fingerprint": "f34ee23dc52a0f92f6de0ea24b0328946c5dbe96d1c6a34986abcef20e94712a",
+    "new_test_sha256": "2f653b1dd3c63a5776556307cd7d8764b6ed70df10000e13b9b69a8810e340b9",
+    "artifact_checks": [
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-affected-execution.json",
+        "sha256": "1e1ec8fc164fffeb48b8d7034e2be3a99b4c8c6b0cb2b71784619cdc857847c4",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-affected-output.txt",
+        "sha256": "adef1b328936af134478c1bdadb8d8927b6f40b8410a55497a5b08e9db4de0dd",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-affected.json",
+        "sha256": "d383ee5d05879814069a123f2240023dddca42dfa294c21600f0a36ba9a3a3e9",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-api-generation.json",
+        "sha256": "544e144648dacd556d3da190ba37cd94fa5e52f27d3e95a7b9ac14004c22a571",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-artifact-scan.json",
+        "sha256": "400a6df4e4efb15aade26222eacebc870fbcba7886415bfda45514638d08fa9c",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-automation-summary.md",
+        "sha256": "a89bbbb551dc0f71730b19c9ea77e9fb7b034d47499fb8b3c6d7b7bb47d95d19",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-e2e-generation.json",
+        "sha256": "24d0b7a41e7e8fc410a42ffe97ad779830efc309f8492e4caf29d26ffa344dde",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-evidence.mjs",
+        "sha256": "30a05ebef6ffe3a762933c20204c3b592472599b3489272fe3f0f631e9110558",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-focused-execution.json",
+        "sha256": "a9a1a8d2699c5fa14928f925012048b942ade666dd23a3d9897d40ac53822446",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-focused-output.txt",
+        "sha256": "389e9e8fcc35ed2c8782d9f691ece8bef4eb59f95e62082cf4b8863792bc95b5",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-focused.json",
+        "sha256": "adacdb2ef1aed356f0d21525c574d0a080529aff18f8bda8560a939f645d1ff1",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-full-execution.json",
+        "sha256": "ecd3d89a6137bf7e54c8fead04bc1cea647f809ee80b521c9b7906d39d26ce47",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-full-output.txt",
+        "sha256": "44db245c773b0f89261c646ca29cf6eae8acdd432f44343d3e7af6cb26576e06",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-full.json",
+        "sha256": "1d0cbb9ba8a8fc20fdb019191dbc452940dc14e766174dfdbbfc86abe4724dc3",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-generation-summary.json",
+        "sha256": "5b21aac6c013ce44ae1bf884d814189e3a5229b79074e071dab8a0a3f5cec9c1",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-lint-execution.json",
+        "sha256": "1f132dfe54f5bbea4ce6271a67cf84f6ce13d5aa33c738344a7dbb648f48ed3b",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-lint-output.txt",
+        "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-local-binding.json",
+        "sha256": "0c80fc23b59fe59577dcd05e851dcce938c3a6d150791a29d2f1a97516023ee0",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-preserved-inputs.json",
+        "sha256": "4c68d5aa68faedf2bb5883fdfabc2dc04b01bd9695347de6de7b3ea927b20f5c",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-run-local.mjs",
+        "sha256": "fe44555530bbd63e4565880606af52f82f68a07ee4b0c611dd22d23b87d6f751",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-run-local.ps1",
+        "sha256": "038144724e37cc849a5c73bfab922bec5e1ca6b58407a479b7ba60c3526dee3c",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-typecheck-execution.json",
+        "sha256": "4d122a9e7f41b2ecc21f2946632c7caf596d3c91309c275f3ba3ebd13dcba6c4",
+        "matches": true
+      },
+      {
+        "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-typecheck-output.txt",
+        "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+        "matches": true
+      }
+    ],
+    "stdout_cosmetic_corrections": {
+      "correctedAt": "2026-10-07T15:27:45.449Z",
+      "reason": "Authorized staged diff-check repair after the original execution manifest was captured",
+      "currentByteHashes": "artifacts[].sha256 now identifies the three current repository stdout files",
+      "capturedRawHashes": "Prior captured-byte hashes and unchanged original raw bytes remain available below",
+      "corrections": [
+        {
+          "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-affected-output.txt",
+          "priorSha256": "0b8bfe51c1a47a7376f0163915f0f26590c0e6c7549302a8709c930bf21e7a98",
+          "currentSha256": "adef1b328936af134478c1bdadb8d8927b6f40b8410a55497a5b08e9db4de0dd",
+          "rawOriginalPath": "C:/Users/Rasmus/AppData/Local/Temp/epic-14-gate-iter1-affected-output-original.txt",
+          "rawOriginalSha256": "0b8bfe51c1a47a7376f0163915f0f26590c0e6c7549302a8709c930bf21e7a98",
+          "priorBytes": 102,
+          "currentBytes": 101,
+          "removedBytes": 1,
+          "mutation": "Removed one duplicate terminal LF byte only",
+          "contentBeforeTerminalNewlinesUnchanged": true,
+          "nativeExitCodesUnchanged": true,
+          "testCountsUnchanged": true
+        },
+        {
+          "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-focused-output.txt",
+          "priorSha256": "218d0e68ded222430eca98e04a03d1ca3a60302db365a16b995b4ddfce6fae5d",
+          "currentSha256": "389e9e8fcc35ed2c8782d9f691ece8bef4eb59f95e62082cf4b8863792bc95b5",
+          "rawOriginalPath": "C:/Users/Rasmus/AppData/Local/Temp/epic-14-gate-iter1-focused-output-original.txt",
+          "rawOriginalSha256": "218d0e68ded222430eca98e04a03d1ca3a60302db365a16b995b4ddfce6fae5d",
+          "priorBytes": 101,
+          "currentBytes": 100,
+          "removedBytes": 1,
+          "mutation": "Removed one duplicate terminal LF byte only",
+          "contentBeforeTerminalNewlinesUnchanged": true,
+          "nativeExitCodesUnchanged": true,
+          "testCountsUnchanged": true
+        },
+        {
+          "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-full-output.txt",
+          "priorSha256": "a82d25503d44a1b62d56016bf39b64563a67a070ecc31ca825f0c4294d4a983e",
+          "currentSha256": "44db245c773b0f89261c646ca29cf6eae8acdd432f44343d3e7af6cb26576e06",
+          "rawOriginalPath": "C:/Users/Rasmus/AppData/Local/Temp/epic-14-gate-iter1-full-output-original.txt",
+          "rawOriginalSha256": "a82d25503d44a1b62d56016bf39b64563a67a070ecc31ca825f0c4294d4a983e",
+          "priorBytes": 98,
+          "currentBytes": 97,
+          "removedBytes": 1,
+          "mutation": "Removed one duplicate terminal LF byte only",
+          "contentBeforeTerminalNewlinesUnchanged": true,
+          "nativeExitCodesUnchanged": true,
+          "testCountsUnchanged": true
+        }
+      ],
+      "productGatesRerun": 0,
+      "structuredExecutionAndResultJsonUnchanged": true,
+      "sourceAndSnapshotAssertionsUnchanged": true
+    },
+    "stdout_originals_independently_verified": true
+  }
 }
