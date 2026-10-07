@@ -730,3 +730,45 @@ No new deferred items harvested.
 1. Two owner product/scope decisions asked together; no prospective transfer or acceptance policy applied. Spec opened for review.
 
 **Next:** Reply to the two owner questions; builddelegate resumes approved14.4planning after decision record, thenATDD/build. Human review: /bmad-checkpoint-preview codex/epic14-resume. Project context refresh recommended after epic completion.
+
+## Report — 2026-10-07T16:14:03Z (final â€” caveated draft)
+
+**Epic:** `14` — 4 stories.
+**Branch:** `codex/epic14-resume` (HEAD `d13dfa7`).
+**Pipeline status:** Caveated epic pipeline completion; all four BMAD stories remain review; publish one draft PR. No merge or deployment.
+**Continues:** False
+
+**Summary:** Delivered person profiles/work hours, transactional bookings/assignees, deterministic conflict detection, and the booking editor with live reviewed warnings and atomic selected-group audited override.
+
+**Timing:** started 2026-09-29T08:23:21Z; completed in progress — elapsed 199h 50m (≈21h 37m AI-run, ≈178h 13m human/idle wait); resumed 18×.
+
+**Stories:**
+1. 14.1 â€” build done; follow-up passes 1; deferred 0; review unverified; epic trace FULL.
+2. 14.2 â€” build done; follow-up passes 1; deferred 0; review unverified; epic trace FULL.
+3. 14.3 â€” build done; follow-up passes 0; two completed independent review rounds; deferred 0; review verified; epic trace FULL.
+4. 14.4 â€” build done; follow-up passes 1; two completed independent review rounds; deferred 0; review unverified; epic trace FULL.
+
+**Skipped:** (none)
+
+**Epic gate:** PASS after one targeted remediation iteration: 36/36 formal requirements FULL (P0 13/13, P1 23/23); supplementary 74/77 FULL with performance, manual accessibility/daylight and exploratory evidence unrecorded.
+
+**TEA:** Five new boundary cases passed 5/5; affected tests 47/47. REQUIRED full integration: 1466 total, 1465 passed, 0 failed, 1 existing CI-only Storage skip. Final editor unit evidence: 2035 passed, 0 failed, 1 existing Windows xattr skip. Browser: 18/19 diagnostic plus separate 1/1 same-build pass; no 19/19 single-run claim. NFR CONCERNS (0 FAIL); test-quality 0/F Request Changes, 48 deduplicated advisory findings (7 High, 41 Medium), 85 files examined. Skips receive no acceptance credit; 40.545s is test elapsed, not HTTP duration.
+
+**Retrospective:** REJECTED â€” _bmad-output/implementation-artifacts/epic-14-retro-2026-10-07.md; six open action items; all four sprint entries remain review.
+
+**Overrides:** Existing approvals retained; owner Contract D transfers only real calendar empty-slot click/drag to 15.1 before calendar exposure/completion. Owner disabled Ubuntu timesyncd; fresh author and verification resumed. All resumed sensitive delegates Sol 6.1 High; ordinary retrospective Low. Capacity fallbacks disclosed. Connected GitHub app replaces invalid gh CLI authentication for PR metadata. Root-owned resource Stop requests accepted; no shutdown verification claimed.
+
+**Open questions:**
+1. Performance targets and representative volumes remain owner-pending; bounded review clearance and action ownership remain open.
+
+**Deferred work:**
+1. Six fully verified historical obligations resolved: tax readiness inputs, failed-PDF audit, PDF preview binding, merged job dates, atomic job creation, strict activation dates. Archived only these six; retained 176 entries, including 27 ambiguous parser hints.
+2. Contract D actual calendar click/drag acceptance belongs to 15.1; performance/manual accessibility/exploratory obligations remain uncredited.
+6 archived; 176 retained. A provisional heuristic-based archive was corrected before commit; every uncertain original entry is preserved.
+
+**⚠️ Needs human:**
+1. Before merge: execute empty-database migration chain + seed + REQUIRED full Epic CI with actual executed/skipped counts.
+2. Resolve retained 14.1/14.2/14.4 review recommendations through bounded permitted review; triage the 48 test-quality advisories.
+3. Complete manual accessibility/exploratory evidence and obtain approved performance targets before certification claims. No immediate manual machine commands are required.
+
+**Next:** Human review: /bmad-checkpoint-preview codex/epic14-resume. Project context: run /bmad-project-context refresh (recommended after an epic).
