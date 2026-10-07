@@ -705,6 +705,7 @@ _CRITICAL_PHASES = {
 }
 _CODEX_ESCALATION = {
     ("gpt-6.1-sol", "low"): 0,
+    ("gpt-6-astra", "low"): 0,
     ("gpt-6.1-sol", "medium"): 1,
     ("gpt-6.1-sol", "high"): 2,
     # Historical resume capsules retain their ledger; migrate with a reason.
@@ -756,8 +757,10 @@ def _validate_route_selection(payload: dict) -> dict:
         raise ContractError("route-select route must be one of: " + ", ".join(_ROUTES))
     model, effort, phase = selection["model"], selection["effort"], selection["phase"]
     codex_selected = selection["host"] == "codex" or selection["route"] == "cli:codex"
-    if codex_selected and (model != "gpt-6.1-sol" or effort not in ("low", "medium", "high")):
-        raise ContractError("Codex routes require exact gpt-6.1-sol with low, medium or high effort")
+    astra_planning = (model == "gpt-6-astra" and effort == "low"
+                      and phase in {"planning", "coordination", "readiness", "task_decomposition"})
+    if codex_selected and not astra_planning and (model != "gpt-6.1-sol" or effort not in ("low", "medium", "high")):
+        raise ContractError("Codex routes require gpt-6.1-sol with low, medium or high effort, or gpt-6-astra/low for planning and coordination")
     governed = _GOVERNED_CODEX_ROUTES.get(phase) if codex_selected else None
     if governed is not None:
         actual = (selection["role"], selection["profile"], model, effort)
@@ -815,7 +818,7 @@ def cmd_route_select(state_file: Path, payload: dict) -> dict:
             raise ContractError(
                 f"refusing noncanonical Codex route change for in-flight phase {selection['phase']!r}: "
                 f"{current['model']}/{current['effort']} -> {selection['model']}/{selection['effort']}; "
-                "same-phase changes must use gpt-6.1-sol with a supported effort")
+                "same-phase changes must use an authorized model/effort pair")
         if old_rank is not None and new_rank is not None and new_rank < old_rank:
             raise ContractError(
                 f"refusing route downgrade for in-flight phase {selection['phase']!r}: "

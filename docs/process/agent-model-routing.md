@@ -1,7 +1,10 @@
 # Project agent model routing
 
-Owner decisions: 2026-10-06. All Codex primary agents, named roles, generic and
-nested subagents, and external Codex reviewers use `gpt-6.1-sol`. Ordinary
+Owner decisions: 2026-10-06 and 2026-10-07. Codex primary agents, named roles,
+generic/nested subagents and external reviewers default to `gpt-6.1-sol`.
+Non-sensitive planners, coordinators, readiness assessors and task-decomposition
+agents may instead use `gpt-6-astra` with `low` effort (UI: GPT-6 Astra Light).
+This is an allowed alternative, not a change to the project default. Ordinary
 BMAD development **and review** start at Low, including planning, implementation,
 follow-up review and independent review. The owner starts Auto-BMAD at Low and
 has already authorized autonomous effort selection and escalation. Never ask
@@ -60,7 +63,7 @@ Auto-BMAD copies carry matching defaults. `default`, `light`, `standard` and
 is Low unless its actual scope involves sensitive domains or critical conflict;
 its phase name alone does not force High. Ordinary follow-up/independent review and epic test work use Low unless
 their actual scope requires High. Historical profile/layer identifiers remain
-for compatibility, but every Codex route uses Sol 6.1.
+for compatibility, but implementation, review and test execution routes continue to use Sol 6.1.
 
 Before each dispatch, assess risk from the approved task/context and any current
 scope facts. The orchestrator's no-code-reading rule remains: its planning/build
@@ -97,3 +100,26 @@ The developer persona, Build, Build Auto and Code Review customization files
 load this policy. Delegate prompts carry it through all nesting. Re-run
 `/auto-bmad reprovision` after profile/template changes. BMAD reinstall can
 replace installed tooling; reconcile it with this owner policy before running.
+
+## Optional Astra planning and coordination
+
+Select GPT-6 Astra Light when starting a fresh planning/coordinator chat, or
+explicitly dispatch a generic planning subagent with model `gpt-6-astra` and
+reasoning_effort `low`. Do not use a named implementation/review role for this.
+Astra may inspect readiness evidence, decompose work, schedule assignments and
+coordinate results. It must explicitly dispatch implementation, review, test
+execution and integration repairs to Sol under the existing effort policy.
+Sensitive planning judgments also go to Sol High without asking permission.
+
+For recorded planning handoffs, route-select accepts Astra Low only for phases
+`planning`, `coordination`, `readiness` and `task_decomposition`. Supply the
+explicit nine-key route capsule; effort_policy.py continues to select Sol for
+its existing execution phases. Worker submission evidence still records Sol
+implementation/review routes; it does not substitute a coordinator model for
+the model that actually performed the work. The parallel coordinator itself
+has no model lock in its shared claim store.
+
+If an Astra planning task needs more reasoning, delegate to Sol Medium for
+non-sensitive work or Sol High for sensitive work and record the reason.
+Light is the UI label; configuration and API arguments remain `low`.
+Existing sessions are not reconfigured by this policy update.
