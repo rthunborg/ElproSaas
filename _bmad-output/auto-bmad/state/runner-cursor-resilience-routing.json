@@ -1,0 +1,14 @@
+{
+  "phase": "build",
+  "role": "runner-failure-repair",
+  "profile": "standard",
+  "model": "gpt-6.1-sol",
+  "effort": "high",
+  "host": "codex",
+  "tier": "subagents",
+  "route": "subagent",
+  "escalation_reason": "Service-role query privacy and cursor/runner transactional integrity",
+  "owner_authorization": "2026-10-07: Can we fix the failures?",
+  "baseline": "aa60da25",
+  "scope": "One historical cursor lookup HTTP504 incident; preserve closed email/provisioning and audit coherence."
+}
