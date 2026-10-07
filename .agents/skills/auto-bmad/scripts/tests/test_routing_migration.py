@@ -910,7 +910,8 @@ class RoutingAndMigrationTests(unittest.TestCase):
 
     def test_legacy_adoption_is_refusal_and_ambiguity_safe(self):
         with tempfile.TemporaryDirectory() as td:
-            impl = Path(td) / "impl"
+            # Hosted Windows TEMP may use an 8.3 alias; keep probe input canonical.
+            impl = Path(td).resolve() / "impl"
             impl.mkdir()
             key = "10-6-tax-answer-reconciliation"
             source = impl / f"{key}.md"

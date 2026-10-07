@@ -41,6 +41,14 @@ jobs:
       - name: Actual CLI two-worker lifecycle
         run: python -X utf8 .agents/skills/auto-bmad/scripts/tests/test_parallel_cli.py -v
       - name: Existing model routing
-        run: python -X utf8 .agents/skills/auto-bmad/scripts/tests/test_routing_migration.py
+        shell: pwsh
+        run: |
+          python -X utf8 .agents/skills/auto-bmad/scripts/tests/test_routing_migration.py -v 2>&1 | Tee-Object -Variable testOutput
+          $testExit = $LASTEXITCODE
+          if ($testExit -ne 0) {
+            $failure = ($testOutput -join "`n").Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Output "::error title=Routing regression failure::$failure"
+          }
+          exit $testExit
       - name: Existing external CLI process behavior
         run: python -X utf8 .agents/skills/auto-bmad/scripts/tests/test_cli_delegate_windows_pid.py
