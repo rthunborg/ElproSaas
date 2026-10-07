@@ -1,5 +1,5 @@
 {
-  "status": "diagnostic proposal ready; owner manual provenance completed; runtime service experiment requires explicit owner approval; Story14.3 remains priorblocked",
+  "status": "BLOCKED current clock unstable after owner rollback; already-authorized owner persistent timesyncd disable action required by guard; Story14.3 remains priorblocked",
   "currentFull": {
     "total": 1366,
     "passed": 1362,
@@ -30,8 +30,8 @@
       "nativeExit": 1
     }
   ],
-  "proven": "Independent native Linux wall-clock regressions; chronyd utilityVM PID241 PHC reference class and fourteen successful ADJ_TICK requests; global729 maps via729188156 to Ubuntu timesyncd PID156",
-  "causeLimits": "Exact PHC device/reference redacted; prior automatic guest completion/exit unknown; no particular historical test cause or exact backward-step origin proven; no durable repair or service mutation",
+  "proven": "Owner stopped-service55s observation hadzero reversals/near1rates; restored-service single native0 check had2811samples/3reversals/min-1985.812987ms/adjustedraw1.071687471289135; sameactiveenabledMainPID2457beforeafter",
+  "causeLimits": "Supports co-disciplineconflict andCanonical recommendation; historicalindividual testcauses unknown; no durablefix or currentstablegate proof; exactPHCdevice redacted; priorautomatic guestcompletion/exit unknown",
   "ownerProbe": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-admin-probe.ps1",
   "ownerProbeSafeOutput": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-admin-probe-result.json",
   "ownerProbeExecuted": true,
@@ -67,13 +67,17 @@
     "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-root-provider.json",
     "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-sampler-audit.json",
     "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-system-provenance.cjs",
-    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-system-provenance.json"
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-system-provenance.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-stability-sampler.py",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-stability-runner.cjs",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-after-rollback-stability.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-owner-experiment-receipt.json"
   ],
   "delegateOwnedFileExcluded": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-windows-ntp-offsets.json",
   "safeAudit": {
     "nativeExit": 0,
-    "scannedArtifacts": 30,
-    "jsonParsed": 23,
+    "scannedArtifacts": 35,
+    "jsonParsed": 25,
     "secretAuthorityPiiPatternHits": 0,
     "modeSelectedTimexFieldsOnly": true
   },
@@ -89,7 +93,8 @@
     "guestExit": "UNKNOWN",
     "existingSharedAgettyAdoptedOrStopped": false,
     "ownerManualGuestJobCompleted": true,
-    "ownerManualGuestJobStatus": 0
+    "ownerManualGuestJobStatus": 0,
+    "currentGuestSamplerCompleted": true
   },
   "specOrProductChanged": false,
   "clockServicePolicyChanged": false,
@@ -140,8 +145,8 @@
   "resourceState": "rootStop accepted,savedstate preserved,no moreDB use; confirmedshutdown not independently asserted",
   "interventionProposal": {
     "artifact": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-diagnosis.md",
-    "ownerApprovalRequired": true,
-    "executed": false,
+    "ownerApprovalRequired": false,
+    "executed": true,
     "scope": "temporary runtime stop/start Ubuntu-24.04 systemd-timesyncd.service only; all utilityVM PHC/chronyd/config/enablement unchanged",
     "plannedStopWindowSeconds": 90,
     "validationMaximumRawSeconds": 55,
@@ -149,6 +154,90 @@
     "inactiveMainPidZeroRequiredBeforeAndAfter": true,
     "rollback": "start exact unit and verify prior active/running state; cannot undo time history; start canstep clock",
     "causeStatus": "primary-source supported controlled isolation experiment, not proven historicalcause or guaranteed immediate convergence",
-    "delegateOwnedExactCommandArtifact": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-owner-intervention-proposal.md"
+    "delegateOwnedExactCommandArtifact": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-owner-intervention-proposal.md",
+    "executor": "owner; no agent service mutation"
+  },
+  "ownerExperimentReceipt": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-owner-experiment-receipt.json",
+  "postRollbackCheck": {
+    "artifact": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-after-rollback-stability.json",
+    "runnerNativeExit": 0,
+    "readOnly": true,
+    "serviceClockMutations": false,
+    "samplerRuns": 1,
+    "runningGuardNativeExit": 0,
+    "ubuntuAlreadyRunningWsl2": true,
+    "gnuTimeoutVerified": true,
+    "before": {
+      "nativeExit": 0,
+      "stderrBytes": 0,
+      "values": {
+        "MainPID": "2457",
+        "Id": "systemd-timesyncd.service",
+        "LoadState": "loaded",
+        "ActiveState": "active",
+        "SubState": "running",
+        "FragmentPath": "/usr/lib/systemd/system/systemd-timesyncd.service",
+        "UnitFileState": "enabled"
+      }
+    },
+    "samplerNativeExit": 0,
+    "samplerTransportError": null,
+    "samplerStderrBytes": 0,
+    "metrics": {
+      "readOnly": true,
+      "rawDeadlineSeconds": 55,
+      "samples": 2811,
+      "backwardSteps": 3,
+      "minimumRealtimeDeltaMs": -1985.812987,
+      "minimumAdjustedDeltaMs": 0.246667,
+      "rawElapsedMs": 55000.082317,
+      "adjustedToRawRatio": 1.071687471289135,
+      "realtimeToRawRatio": 0.9994061971978194
+    },
+    "after": {
+      "nativeExit": 0,
+      "stderrBytes": 0,
+      "values": {
+        "MainPID": "2457",
+        "Id": "systemd-timesyncd.service",
+        "LoadState": "loaded",
+        "ActiveState": "active",
+        "SubState": "running",
+        "FragmentPath": "/usr/lib/systemd/system/systemd-timesyncd.service",
+        "UnitFileState": "enabled"
+      }
+    },
+    "currentClockStable": false
+  },
+  "nextOwnerAction": {
+    "alreadyAuthorized": true,
+    "agentCannotAdoptOrStopUserOwnedService": true,
+    "command": "wsl.exe --distribution Ubuntu-24.04 --user root --exec timeout --kill-after=1s 5s systemctl disable --now systemd-timesyncd.service",
+    "freshUbuntuRunningGuardRequired": true,
+    "readbackRequired": "exact unit disabled/inactive/dead/MainPID0",
+    "rollback": "wsl.exe --distribution Ubuntu-24.04 --user root --exec timeout --kill-after=1s 5s systemctl enable --now systemd-timesyncd.service",
+    "rollbackReadback": "enabled/active/running",
+    "performedByAuthor": false
+  },
+  "harnessCorrection": {
+    "issue": "earlier invocation mixedPowerShell/WSLsyntax and wasnotdirectlyrunnable",
+    "savedPython": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-stability-sampler.py",
+    "nativeArgvRunner": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-stability-runner.cjs",
+    "stdinSourceWithoutShellInterpolation": true,
+    "pythonParsedExecutedNativeExit": 0,
+    "nodeSyntaxCheckNativeExit": 0,
+    "samplerRuns": 1
+  },
+  "fullGateReady": false,
+  "specRestored": false,
+  "routing": {
+    "model": "gpt-6.1-sol",
+    "effort": "High",
+    "reason": "signed-proof/time-integrity diagnosis"
+  },
+  "wslScopeAuthorization": {
+    "broaderUserWslAuthorizationValid": true,
+    "trustedGuardStillApplies": true,
+    "noManagedResourceLaunchOrDbUse": true
   }
 }

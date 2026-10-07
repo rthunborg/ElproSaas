@@ -9,10 +9,10 @@ spec_folder: null
 story_id: null
 branch: codex/epic14-resume
 status: in-progress
-updated_at: "2026-10-06T17:50:39Z"
+updated_at: "2026-10-07T09:42:57Z"
 started_at: "2026-10-06T11:47:14Z"
 completed_at: null
-active_seconds: 11461
+active_seconds: 11691
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -82,7 +82,7 @@ branch_deleted: false
 open_questions: []
 deferred_work: []
 blockers:
-  - "Story14.3 patch verification remains failed. Owner manual read completed status0: chronyd PID241 owns initial WSL utilityVM namespace and follows PHC; systemd-timesyncd PID729 maps to Ubuntu24.04 localPID156. Proposed reversible owner-run Ubuntu timesyncd runtime stop/start experiment awaits execution; causal clock repair remains unproven. No host mutation or gate rerun this continuation."
+  - "Owner stopped-timesyncd window:2733samples/55s/0backwardsteps/adjusted-raw0.999998. Single agent afterrollback window:native0/2811samples/55s/3backwardsteps/min-1985.812987ms/adjusted-raw1.071687471289135; service active/running/enabled PID2457 before/after. Clock unstable; verification and spec restoration blocked. Canonical Ubuntu24.04 recommends disabling conflicting timesyncd when WSL host synchronization is chosen. Trusted resource rule forbids agent stopping user-owned applications; exact owner disable--now/readback required."
 overrides:
   empty_chain_ci_required: true
   unattended_run_confirmed_by_owner_request: true
@@ -146,6 +146,17 @@ overrides:
   clock_provider_vm_chronyd_phc_confirmed: true
   clock_provider_ubuntu_timesyncd_confirmed: true
   clock_intervention_owner_execution_required: true
+  owner_clock_experiment_approved: true
+  owner_clock_experiment_executed: true
+  owner_clock_experiment_runtime_rollback_complete: true
+  owner_authorized_similar_wsl_operations: true
+  current_clock_stable: false
+  after_rollback_clock_samples: 2811
+  after_rollback_clock_backward_steps: 3
+  after_rollback_clock_min_delta_ms: "-1985.812987"
+  after_rollback_adjusted_raw_ratio: "1.071687471289135"
+  after_rollback_sampler_native_exit: 0
+  clock_service_config_changed_by_agent: false
 constraints:
   - "Approved Story14.3 scope and PhaseB manifest only; resources active, scheduling pending untilEpic15."
   - Allfour transferred conflict checks mandatory before14.4/EpicPR.

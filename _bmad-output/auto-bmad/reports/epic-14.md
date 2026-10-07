@@ -621,3 +621,39 @@ No new deferred items harvested.
 1. Perform concrete owner-run Administrator metadata read in _bmad-output/test-artifacts/story14-3-time-diagnosis.md. Require existing GNU timeout and GUEST_READ_COMPLETE=true/GUEST_JOB_STATUS=0. No unsupported automatic retry.
 
 **Next:** Owner-run provider read, then concrete scoped clock intervention approval, stable-clock verification, delegate restoration and patch gate/follow-up. Human review: /bmad-checkpoint-preview codex/epic14-resume. Project context refresh recommended after epic completion.
+
+## Report — 2026-10-06T17:53:31Z (halted â€” owner clock experiment approval pending)
+
+**Epic:** `14` — 4 stories.
+**Branch:** `codex/epic14-resume` (HEAD `239f82d`).
+**Pipeline status:** Halted: Story14.3 remains blocked on patch verification.
+**Continues:** 2026-10-06T17:40:16Z (halted â€” owner-run clock provider read required)
+
+**Summary:** Owner manual metadata read completed with both success markers. UtilityVM PHC chronyd and Ubuntu24.04 timesyncd ownership established. Sol6.1 High delegate prepared one reversible runtime stop/55-second observation/start experiment, not executed. Primary Canonical guidance supports potential co-discipline conflict; exact failure causality unproven.
+
+**Timing:** started 2026-09-29T08:23:21Z; completed in progress — elapsed 177h 30m (≈15h 20m AI-run, ≈162h 09m human/idle wait); resumed 15×.
+
+**Stories:**
+1. 14.1/14.2 previously landed; approvals valid.
+2. 14.3 unchanged:1362 passed,3 failed,1 intentional skip;143 focused passes. One completed independent review round;9 fixes preserved.
+
+**Skipped:**
+1. 14.4 remains gated by14.3.
+
+**Epic gate:** Not reached; empty-chain CI unexecuted.
+
+**TEA:** No new TEA execution.
+
+**Retrospective:** Not reached.
+
+**Overrides:** No clock/service/config/product changes, resource launches or tests this continuation.
+
+**Open questions:**
+1. Will removing Ubuntu NTP co-discipline stabilize shared Linux clock? Exact reversal and historical failure causes remain unproven.
+
+**Deferred work:** (none)
+
+**⚠️ Needs human:**
+1. Approval pending for owner-run temporary Ubuntu timesyncd stop, bounded observation and start rollback; exact commands in story14-3-time-owner-intervention-proposal.md.
+
+**Next:** Approve/run bounded owner experiment and return tagged readings. Then assess supported durable repair and rerun mandatory verification before delegate restoration. Human review: /bmad-checkpoint-preview codex/epic14-resume. Project context refresh recommended after epic completion.

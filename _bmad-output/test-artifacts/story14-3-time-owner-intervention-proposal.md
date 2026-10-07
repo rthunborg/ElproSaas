@@ -1,4 +1,36 @@
-# Owner-run runtime experiment — not executed
+# Historical runtime experiment and current stabilization handoff
+
+The owner completed the runtime experiment and restored timesyncd: [exact receipt](story14-3-time-owner-experiment-receipt.json). The stopped-service window had2733 samples, zero backward steps and adjusted/raw0.999998374377834. The one agent read after restoration recorded2811 samples, three backward steps (minimum−1985.812987ms), adjusted/raw1.071687471289135, with MainPID2457 active/running/enabled before and after. See [current numeric result](story14-3-time-after-rollback-stability.json). This contrast supports co-discipline conflict and Canonical's recommended configuration; it does not prove every historical test cause or a durable repair.
+
+## Current owner-only step
+
+Existing authorization for similar WSL operations is recorded. Agents still cannot stop this user-owned service under the trusted resource rule; this is not an automatic-review or UAC refusal. In **Windows PowerShell**, first run `wsl.exe --list --verbose` and proceed only if Ubuntu-24.04 is already Running WSL2. The owner can apply this persistent change:
+
+```powershell
+wsl.exe --distribution Ubuntu-24.04 --user root --exec timeout --kill-after=1s 5s systemctl disable --now systemd-timesyncd.service
+wsl.exe --distribution Ubuntu-24.04 --user root --exec timeout --kill-after=1s 5s systemctl show systemd-timesyncd.service '--property=Id,ActiveState,SubState,MainPID,UnitFileState' --no-pager
+```
+
+Require exact Id, disabled/inactive/dead/MainPID0. Unlike the previous runtime stop, this removes the service's boot enablement and stops it now. Keep utility-VM PHC chronyd and host synchronization unchanged. Shared-kernel clock effects remain applicable. A command timeout leaves the service job outcome uncertain: inspect exact state, do not retry blindly.
+
+The earlier mixed PowerShell/WSL sampler instructions below are **historical, superseded, and must not be copied**. The corrected saved Python file and explicit native-argv runner executed successfully once. For a later authorized read after the owner's change, use the saved file from **Windows PowerShell**, only after fresh Running and exact unit-state checks:
+
+```powershell
+wsl.exe --distribution Ubuntu-24.04 --user root --exec timeout --kill-after=1s 59s python3 /mnt/c/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-stability-sampler.py
+```
+
+This read-only file has a55-second MONOTONIC_RAW deadline and prints numeric metrics. Missing path/tool or timeout means incomplete evidence; no installation or repeat is implied. Verify unit remains disabled/inactive/dead/MainPID0 afterward. The after-rollback runner intentionally requires an active unit and should not be used for this disabled-state observation.
+
+Owner rollback to the previously enabled/active state is:
+
+```powershell
+wsl.exe --distribution Ubuntu-24.04 --user root --exec timeout --kill-after=1s 5s systemctl enable --now systemd-timesyncd.service
+wsl.exe --distribution Ubuntu-24.04 --user root --exec timeout --kill-after=1s 5s systemctl show systemd-timesyncd.service '--property=ActiveState,SubState,MainPID,UnitFileState' --no-pager
+```
+
+Require enabled/active/running/nonzero MainPID. This restores service state, not time history; startup can adjust the shared clock again. No owner persistent change, agent service mutation, new resource or application verification has occurred. Current clock instability keeps Story14.3 blocked.
+
+## Historical proposal before the completed runtime experiment
 
 The manual receipt identifies utility-VM chronyd PID241 with a configured PHC reference, and kernel PID729 as Ubuntu-24.04's local PID156 systemd-timesyncd. Both providers previously made successful clock-adjustment calls. This establishes simultaneous discipline of the shared Linux clock, not the cause of every backward step or failed test. The PHC device and reference remain redacted. See [receipt](story14-3-time-owner-receipt.json).
 
