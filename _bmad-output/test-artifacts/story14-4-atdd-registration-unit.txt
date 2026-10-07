@@ -1,0 +1,90 @@
+TAP version 13
+# (node:44440) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/DEV/ElproSaas/tests/unit/features/resources/booking-editor-input.test.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to C:\\DEV\\ElproSaas\\package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: [P1] 14.4-UNIT-INPUT-001 canonical decision orders logical identities and trims reason
+ok 1 - [P1] 14.4-UNIT-INPUT-001 canonical decision orders logical identities and trims reason # SKIP
+  ---
+  duration_ms: 0.5922
+  type: 'test'
+  ...
+# Subtest: [P1] 14.4-UNIT-INPUT-002 duplicate selected logical identities do not form a valid decision
+ok 2 - [P1] 14.4-UNIT-INPUT-002 duplicate selected logical identities do not form a valid decision # SKIP
+  ---
+  duration_ms: 0.063
+  type: 'test'
+  ...
+# Subtest: [P0] 14.4-UNIT-INPUT-003 closed human decision rejects authority and transport fields
+ok 3 - [P0] 14.4-UNIT-INPUT-003 closed human decision rejects authority and transport fields # SKIP
+  ---
+  duration_ms: 0.0865
+  type: 'test'
+  ...
+# Subtest: [P1] 14.4-UNIT-INPUT-004 current-set review cannot carry a whitespace-only reason
+ok 4 - [P1] 14.4-UNIT-INPUT-004 current-set review cannot carry a whitespace-only reason # SKIP
+  ---
+  duration_ms: 0.041
+  type: 'test'
+  ...
+# Subtest: [P1] 14.4-UNIT-INPUT-005 reviewed warning set permits an empty selected subset
+ok 5 - [P1] 14.4-UNIT-INPUT-005 reviewed warning set permits an empty selected subset # SKIP
+  ---
+  duration_ms: 0.037
+  type: 'test'
+  ...
+# Subtest: [P1] 14.4-UNIT-INPUT-006 equivalent permutations produce the same canonical business decision
+ok 6 - [P1] 14.4-UNIT-INPUT-006 equivalent permutations produce the same canonical business decision # SKIP
+  ---
+  duration_ms: 0.0273
+  type: 'test'
+  ...
+# Subtest: [P1] 14.4-UNIT-INPUT-007 untouched displayed minutes preserve exact PostgreSQL microseconds
+ok 7 - [P1] 14.4-UNIT-INPUT-007 untouched displayed minutes preserve exact PostgreSQL microseconds # SKIP
+  ---
+  duration_ms: 0.0625
+  type: 'test'
+  ...
+# Subtest: [P1] 14.4-UNIT-INPUT-008 changed Stockholm fold input uses the existing earliest-instant policy
+ok 8 - [P1] 14.4-UNIT-INPUT-008 changed Stockholm fold input uses the existing earliest-instant policy # SKIP
+  ---
+  duration_ms: 0.0272
+  type: 'test'
+  ...
+# Subtest: [P1] 14.4-UNIT-INPUT-009 changed Stockholm gap input uses the existing first-valid-instant policy
+ok 9 - [P1] 14.4-UNIT-INPUT-009 changed Stockholm gap input uses the existing first-valid-instant policy # SKIP
+  ---
+  duration_ms: 0.1026
+  type: 'test'
+  ...
+# Subtest: [P1] 14.4-UNIT-INPUT-010 changed full-day spring bounds span Stockholm's 23-hour local day
+ok 10 - [P1] 14.4-UNIT-INPUT-010 changed full-day spring bounds span Stockholm's 23-hour local day # SKIP
+  ---
+  duration_ms: 0.5969
+  type: 'test'
+  ...
+# Subtest: [P1] 14.4-UNIT-INPUT-011 changed full-day autumn bounds span Stockholm's 25-hour local day
+ok 11 - [P1] 14.4-UNIT-INPUT-011 changed full-day autumn bounds span Stockholm's 25-hour local day # SKIP
+  ---
+  duration_ms: 0.0478
+  type: 'test'
+  ...
+# (node:50260) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/DEV/ElproSaas/tests/unit/scope/booking-editor-scope.test.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to C:\\DEV\\ElproSaas\\package.json.
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: [P0] 14.4-GOV-001 editor stays within active resources and exposes no recurrence/E15 controls or navigation
+ok 12 - [P0] 14.4-GOV-001 editor stays within active resources and exposes no recurrence/E15 controls or navigation # SKIP
+  ---
+  duration_ms: 0.9782
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 0
+# fail 0
+# cancelled 0
+# skipped 12
+# todo 0
+# duration_ms 176.9701

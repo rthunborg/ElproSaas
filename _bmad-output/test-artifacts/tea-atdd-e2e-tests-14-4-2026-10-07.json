@@ -1,0 +1,285 @@
+{
+  "success": true,
+  "subagent": "atdd-e2e-tests",
+  "story_id": "14.4",
+  "output_file": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/tea-atdd-e2e-tests-14-4-2026-10-07.json",
+  "tests": [
+    {
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "content": "/**\n * Story 14.4 ATDD RED: every case is intentionally skipped.\n * Planned selectors are test-owned contracts from AC1..6 / Contract D, UNVERIFIED.\n * No calendar/nav/recurrence host is scaffolded. Empty-slot click/drag belongs\n * to 15.1 actual Schema/Resurser before their entry exposure and completion.\n * Library gate exception: playwright-utils=true but package is absent; use\n * established resourcePage fixture with typed production transport binding.\n */\nimport { test, expect, type Scenario } from \"./support/booking-editor-atdd\";\nimport type { Locator, Page } from \"@playwright/test\";\nimport { bookingSnapshot, type BookingSnapshot, type DurableRow } from \"../support/bookings-atdd\";\n\nasync function signIn(page: Page, scenario: Scenario): Promise<void> {\n  await page.goto(\"/login\");\n  await page.getByLabel(\"E-post\").fill(scenario.credentials.email);\n  await page.getByLabel(\"Lösenord\").fill(scenario.credentials.password);\n  await page.getByRole(\"button\", { name: \"Logga in\" }).click();\n  await expect(page).toHaveURL(/\\/dashboard$/);\n}\nconst editor = (page: Page) => page.getByTestId(\"booking-editor\");\nconst summary = (page: Page, id: string) => page.getByTestId(\"booking-summary-\" + id);\nasync function openToolbar(page: Page): Promise<void> {\n  await page.goto(\"/jobs\");\n  await page.getByTestId(\"booking-entry-toolbar\").getByRole(\"button\", { name: \"Ny bokning\" }).click();\n  await expect(editor(page)).toHaveAttribute(\"role\", \"dialog\");\n  await expect(editor(page)).toHaveAttribute(\"aria-modal\", \"true\");\n}\nasync function fillDraft(page: Page, scenario: Scenario): Promise<void> {\n  const sheet = editor(page);\n  await sheet.getByTestId(\"booking-description\").fill(scenario.description);\n  await sheet.getByTestId(\"booking-start\").fill(scenario.startsLocal);\n  await sheet.getByTestId(\"booking-end\").fill(scenario.endsLocal);\n  await sheet.getByTestId(\"booking-work-role\").selectOption(scenario.workRoleId);\n  await sheet.getByTestId(\"booking-status\").selectOption(\"planned\");\n  for (const label of scenario.assigneeLabels) {\n    await sheet.getByRole(\"checkbox\", { name: label, exact: true }).check();\n  }\n  await expect(sheet.getByTestId(\"booking-availability\")).toBeVisible();\n}\nfunction added(before: readonly DurableRow[], after: readonly DurableRow[]): DurableRow[] {\n  const priorIds = new Set(before.map((row) => row.id));\n  return after.filter((row) => !priorIds.has(row.id));\n}\nfunction expectOneCreate(\n  before: BookingSnapshot, after: BookingSnapshot, scenario: Scenario,\n  connections: { jobId: string | null; customerId: string | null },\n): DurableRow {\n  const created = added(before.bookings, after.bookings);\n  expect(created).toHaveLength(1);\n  const row = created[0]!;\n  expect(row).toMatchObject({\n    tenant_id: scenario.tenantId, description: scenario.description,\n    starts_at: scenario.expectedStartsAt, ends_at: scenario.expectedEndsAt,\n    status: \"planned\", all_day: false,\n    work_role_id: scenario.workRoleId,\n    job_id: connections.jobId, customer_id: connections.customerId,\n    series_id: null, occurrence_index: null, is_exception: false,\n  });\n  expect(after.assignees.filter((item) => item.booking_id === row.id)\n    .map((item) => item.person_profile_id).sort()).toEqual([...scenario.assigneeIds].sort());\n  const audits = added(before.audit, after.audit);\n  expect(audits).toHaveLength(1);\n  expect(audits[0]).toMatchObject({ tenant_id: scenario.tenantId, actor_user_id: scenario.actorUserId });\n  expect(row.create_command_id).toEqual(expect.any(String));\n  expect(row.create_result).toMatchObject({ bookingId: row.id });\n  return row;\n}\nasync function expectTarget(locator: Locator, minHeight = 44): Promise<void> {\n  await locator.scrollIntoViewIfNeeded();\n  const bounds = await locator.boundingBox();\n  expect(bounds).not.toBeNull();\n  expect(bounds!.width).toBeGreaterThanOrEqual(44);\n  expect(bounds!.height).toBeGreaterThanOrEqual(minHeight);\n}\nasync function saveConfirmed(page: Page, confirmed: Promise<void>): Promise<void> {\n  await editor(page).getByTestId(\"booking-save\").click();\n  await confirmed;\n  await expect(page.getByTestId(\"booking-save-status\")).toHaveText(/sparats/i);\n  await expect(page.getByTestId(\"booking-save-status\")).toHaveAttribute(\"role\", \"status\");\n}\n\ntest.describe(\"Story 14.4 booking editor retained browser acceptance (RED)\", () => {\n  test.skip(\"[P0] E2E-006 toolbar creates a standalone booking through the desktop sheet\", async ({ resourcePage: page, bookingEditor: h }) => {\n    const s = await h.seed(\"conflict-free\");\n    await page.setViewportSize({ width: 1280, height: 800 });\n    const observer = await h.observeNextConfirmedSave(); // network first\n    const before = await bookingSnapshot(s.tenantIds);\n    await signIn(page, s);\n    await openToolbar(page);\n    const bounds = await editor(page).boundingBox();\n    expect(bounds).not.toBeNull();\n    expect(bounds!.x).toBeGreaterThan(0);\n    expect(Math.abs(bounds!.x + bounds!.width - 1280)).toBeLessThanOrEqual(1);\n    for (const field of [\"booking-job\", \"booking-customer\", \"booking-facility\", \"booking-contact\"]) {\n      await expect(editor(page).getByTestId(field)).toHaveValue(\"\");\n    }\n    await fillDraft(page, s);\n    await expect(editor(page).getByTestId(\"booking-all-day\")).not.toBeChecked();\n    await saveConfirmed(page, observer.confirmed);\n    const row = expectOneCreate(before, await bookingSnapshot(s.tenantIds), s, { jobId: null, customerId: null });\n    expect(row.facility_id).toBeNull();\n    expect(row.contact_id).toBeNull();\n  });\n\n  for (const host of [\"job\", \"customer\"] as const) {\n    test.skip(\"[P0] E2E-006 \" + host + \" entry persists preconnection then reopens and edits\", async ({ resourcePage: page, bookingEditor: h }) => {\n      const s = await h.seed(\"conflict-free\");\n      const before = await bookingSnapshot(s.tenantIds);\n      const createObserver = await h.observeNextConfirmedSave();\n      await signIn(page, s);\n      await page.goto(host === \"job\" ? \"/jobs/\" + s.jobId : \"/customers/\" + s.customerId);\n      await page.getByTestId(\"booking-entry-\" + host).getByRole(\"button\", { name: /^(Boka|Ny bokning)$/ }).click();\n      await expect(editor(page).getByTestId(host === \"job\" ? \"booking-job\" : \"booking-customer\"))\n        .toHaveValue(host === \"job\" ? s.jobId : s.customerId);\n      await fillDraft(page, s);\n      // Bind compatible connection options, then deliberately clear optional links.\n      await editor(page).getByTestId(\"booking-customer\").selectOption(s.customerId);\n      await editor(page).getByTestId(\"booking-facility\").selectOption(s.facilityId);\n      await editor(page).getByTestId(\"booking-contact\").selectOption(s.contactId);\n      await editor(page).getByTestId(\"booking-contact\").selectOption(\"\");\n      await editor(page).getByTestId(\"booking-facility\").selectOption(\"\");\n      await saveConfirmed(page, createObserver.confirmed);\n      const committed = await bookingSnapshot(s.tenantIds);\n      const row = expectOneCreate(before, committed, s, { jobId: host === \"job\" ? s.jobId : null, customerId: s.customerId });\n      expect(row.facility_id).toBeNull();\n      expect(row.contact_id).toBeNull();\n      await page.reload();\n      await summary(page, row.id).getByTestId(\"booking-edit\").click();\n      await expect(editor(page).getByTestId(\"booking-description\")).toHaveValue(s.description);\n      await expect(editor(page).getByTestId(\"booking-start\")).toHaveValue(s.startsLocal);\n      const updateObserver = await h.observeNextConfirmedSave(); // before edit/save\n      await editor(page).getByTestId(\"booking-description\").fill(s.description + \" edited\");\n      await saveConfirmed(page, updateObserver.confirmed);\n      const updated = await bookingSnapshot(s.tenantIds);\n      expect(updated.bookings.filter((item) => item.id === row.id)).toHaveLength(1);\n      expect(updated.bookings.find((item) => item.id === row.id)).toMatchObject({\n        description: s.description + \" edited\", starts_at: row.starts_at, ends_at: row.ends_at,\n        job_id: row.job_id, customer_id: row.customer_id,\n      });\n      expect(added(committed.bookings, updated.bookings)).toHaveLength(0);\n      expect(added(committed.audit, updated.audit)).toHaveLength(1);\n      await page.reload();\n      await summary(page, row.id).getByTestId(\"booking-edit\").click();\n      await expect(editor(page).getByTestId(\"booking-description\")).toHaveValue(s.description + \" edited\");\n    });\n  }\n\n  test.skip(\"[P1] E2E-001/007 360x640 fullscreen editor scrolls without overflow and keeps actions reachable\", async ({ resourcePage: page, bookingEditor: h }) => {\n    const s = await h.seed(\"conflict-free\");\n    await page.setViewportSize({ width: 360, height: 640 });\n    await signIn(page, s);\n    await openToolbar(page);\n    await fillDraft(page, s);\n    const bounds = await editor(page).boundingBox();\n    expect(bounds).not.toBeNull();\n    expect(Math.abs(bounds!.x)).toBeLessThanOrEqual(1);\n    expect(Math.abs(bounds!.y)).toBeLessThanOrEqual(1);\n    expect(bounds!.width).toBe(360);\n    expect(bounds!.height).toBe(640);\n    const scroll = editor(page).getByTestId(\"booking-editor-scroll-body\");\n    expect(await scroll.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);\n    expect(await editor(page).evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);\n    for (const target of [\"booking-start\", \"booking-end\", \"booking-status\", \"booking-work-role\", \"booking-close\"]) {\n      await expectTarget(editor(page).getByTestId(target));\n    }\n    for (const id of s.assigneeIds) {\n      await expectTarget(editor(page).getByTestId(\"booking-assignee-option-\" + id));\n    }\n    await expectTarget(editor(page).getByTestId(\"booking-save\"), 48);\n    const saveBounds = await editor(page).getByTestId(\"booking-save\").boundingBox();\n    expect(saveBounds!.y).toBeGreaterThanOrEqual(0);\n    expect(saveBounds!.y + saveBounds!.height).toBeLessThanOrEqual(640);\n  });\n\n  test.skip(\"[P1] E2E-002 reload chip counts persisted OPEN logical conflicts only\", async ({ resourcePage: page, bookingEditor: h }) => {\n    const s = await h.seed(\"persisted-conflict-states\");\n    const durable = await bookingSnapshot(s.tenantIds);\n    const rows = durable.conflicts.filter((row) => row.booking_id === s.persistedBookingId || row.related_booking_id === s.persistedBookingId);\n    expect(rows.filter((row) => row.status === \"open\")).toHaveLength(s.expectedOpenRowCount);\n    expect(rows.filter((row) => row.status === \"accepted\").length).toBeGreaterThan(0);\n    expect(rows.filter((row) => row.status === \"resolved\").length).toBeGreaterThan(0);\n    expect(s.expectedOpenLogicalCount).toBeGreaterThan(0);\n    await signIn(page, s);\n    await page.goto(\"/jobs/\" + s.jobId);\n    const chip = summary(page, s.persistedBookingId).getByTestId(\"booking-open-conflict-count\");\n    await expect(chip).toHaveAccessibleName(s.expectedOpenLogicalCount + \" öppna konflikter\");\n    await page.reload();\n    await expect(chip).toHaveAccessibleName(s.expectedOpenLogicalCount + \" öppna konflikter\");\n    expect(await bookingSnapshot(s.tenantIds)).toEqual(durable);\n  });\n\n  for (const dismissal of [\"Escape\", \"close\", \"back\"] as const) {\n    test.skip(\"[P1] E2E-003/007 dirty \" + dismissal + \" cancel retains draft and discard restores entry focus\", async ({ resourcePage: page, bookingEditor: h }) => {\n      const s = await h.seed(\"conflict-free\");\n      const before = await bookingSnapshot(s.tenantIds);\n      await signIn(page, s);\n      await openToolbar(page);\n      await editor(page).getByTestId(\"booking-description\").fill(s.description);\n      const requestDismissal = async () => {\n        if (dismissal === \"Escape\") await page.keyboard.press(\"Escape\");\n        else if (dismissal === \"close\") await editor(page).getByTestId(\"booking-close\").click();\n        else await page.goBack();\n      };\n      await requestDismissal();\n      const guard = page.getByTestId(\"booking-discard-confirmation\");\n      await expect(guard).toHaveAttribute(\"role\", \"alertdialog\");\n      await guard.getByTestId(\"booking-keep-editing\").click();\n      await expect(editor(page).getByTestId(\"booking-description\")).toHaveValue(s.description);\n      await expect(editor(page)).toBeVisible();\n      await requestDismissal();\n      await guard.getByTestId(\"booking-discard\").click();\n      await expect(editor(page)).toBeHidden();\n      await expect(page.getByTestId(\"booking-entry-toolbar\").getByRole(\"button\", { name: \"Ny bokning\" })).toBeFocused();\n      expect(await bookingSnapshot(s.tenantIds)).toEqual(before);\n      await page.getByTestId(\"booking-entry-toolbar\").getByRole(\"button\", { name: \"Ny bokning\" }).click();\n      await expect(editor(page).getByTestId(\"booking-description\")).toHaveValue(\"\");\n    });\n  }\n\n  test.skip(\"[P1] E2E-003 in-flight save blocks Escape close and back until confirmed\", async ({ resourcePage: page, bookingEditor: h }) => {\n    const s = await h.seed(\"conflict-free\");\n    const gate = await h.holdNextSave();\n    const observer = await h.observeNextConfirmedSave();\n    const before = await bookingSnapshot(s.tenantIds);\n    try {\n      await signIn(page, s);\n      await openToolbar(page);\n      await fillDraft(page, s);\n      await editor(page).getByTestId(\"booking-save\").click();\n      await gate.started;\n      await expect(editor(page)).toHaveAttribute(\"aria-busy\", \"true\");\n      await expect(editor(page).getByTestId(\"booking-close\")).toBeDisabled();\n      await expect(editor(page).getByTestId(\"booking-save\")).toBeDisabled();\n      await page.keyboard.press(\"Escape\");\n      await page.goBack();\n      await expect(editor(page)).toBeVisible();\n      await expect(editor(page).getByTestId(\"booking-description\")).toHaveValue(s.description);\n      await expect(page.getByTestId(\"booking-discard-confirmation\")).toHaveCount(0);\n      expect(await bookingSnapshot(s.tenantIds)).toEqual(before);\n      await gate.release();\n      await observer.confirmed;\n      await expect(page.getByTestId(\"booking-save-status\")).toHaveText(/sparats/i);\n      expectOneCreate(before, await bookingSnapshot(s.tenantIds), s, { jobId: null, customerId: null });\n    } finally { await gate.release(); }\n  });\n\n  test.skip(\"[P0] E2E-004/005 phone failure keeps unsent draft and explicit retry confirms one durable save\",\n    { annotation: [{ type: \"skipNetworkMonitoring\", description: \"Expected transient save failure is the subject of the test\" }] },\n    async ({ resourcePage: page, bookingEditor: h }) => {\n      const s = await h.seed(\"conflict-free\");\n      await page.setViewportSize({ width: 360, height: 640 });\n      const failure = await h.failNextSaveOnce();\n      const before = await bookingSnapshot(s.tenantIds);\n      await signIn(page, s);\n      await openToolbar(page);\n      await fillDraft(page, s);\n      await editor(page).getByTestId(\"booking-save\").click();\n      await failure.failed;\n      await expect(editor(page).getByTestId(\"booking-save-error\")).toHaveAttribute(\"role\", \"alert\");\n      await expect(editor(page).getByTestId(\"booking-save-error\")).toContainText(/försök igen/i);\n      await expect(editor(page).getByTestId(\"booking-unsent\")).toBeVisible();\n      await expect(page.getByTestId(\"booking-save-status\")).toHaveCount(0);\n      await expect(editor(page).getByTestId(\"booking-description\")).toHaveValue(s.description);\n      await expect(editor(page).getByTestId(\"booking-start\")).toHaveValue(s.startsLocal);\n      await expect(editor(page).getByTestId(\"booking-end\")).toHaveValue(s.endsLocal);\n      for (const label of s.assigneeLabels) await expect(editor(page).getByRole(\"checkbox\", { name: label, exact: true })).toBeChecked();\n      expect(await bookingSnapshot(s.tenantIds)).toEqual(before);\n      const observer = await h.observeNextConfirmedSave();\n      await expectTarget(editor(page).getByTestId(\"booking-retry\"), 48);\n      await editor(page).getByTestId(\"booking-retry\").click();\n      await observer.confirmed;\n      await expect(page.getByTestId(\"booking-save-status\")).toHaveText(/sparats/i);\n      expectOneCreate(before, await bookingSnapshot(s.tenantIds), s, { jobId: null, customerId: null });\n    });\n\n  test.skip(\"[P0] E2E-005 phone lost committed response replays one booking assignments conflicts and attributable audit\",\n    { annotation: [{ type: \"skipNetworkMonitoring\", description: \"Lose only the response after real atomic commit\" }] },\n    async ({ resourcePage: page, bookingEditor: h }) => {\n      const s = await h.seed(\"conflicted\");\n      await page.setViewportSize({ width: 360, height: 640 });\n      const lost = await h.loseNextCommittedSaveResponseOnce();\n      const before = await bookingSnapshot(s.tenantIds);\n      await signIn(page, s);\n      await openToolbar(page);\n      await fillDraft(page, s);\n      await expect(editor(page).getByTestId(\"booking-conflict-panel\")).toBeVisible();\n      await editor(page).getByTestId(\"booking-review-current-warnings\").check();\n      await editor(page).getByTestId(\"booking-select-logical-\" + s.selectedLogicalId).check();\n      const reason = \"Samordnat tillfälligt arbete\";\n      await editor(page).getByTestId(\"booking-override-reason\").fill(reason);\n      await editor(page).getByTestId(\"booking-save\").click();\n      await lost.committed; // adapter must await actual SQL outcome before dropping response\n      await expect(editor(page).getByTestId(\"booking-save-error\")).toBeVisible();\n      await expect(page.getByTestId(\"booking-save-status\")).toHaveCount(0);\n      await expect(editor(page).getByTestId(\"booking-description\")).toHaveValue(s.description);\n      await expect(editor(page).getByTestId(\"booking-override-reason\")).toHaveValue(reason);\n      const committed = await bookingSnapshot(s.tenantIds);\n      const row = expectOneCreate(before, committed, s, { jobId: null, customerId: null });\n      const conflicts = committed.conflicts.filter((item) => item.booking_id === row.id || item.related_booking_id === row.id);\n      expect(conflicts).toHaveLength(s.expectedConflictRowCount);\n      expect(conflicts.filter((item) => item.status === \"accepted\")).toHaveLength(s.expectedAcceptedRowCount);\n      expect(conflicts.filter((item) => item.status === \"open\")).toHaveLength(s.expectedOpenRowCount);\n      expect(s.expectedAcceptedRowCount).toBeGreaterThan(0);\n      expect(s.expectedOpenRowCount).toBeGreaterThan(0);\n      for (const conflict of conflicts.filter((item) => item.status === \"accepted\")) {\n        expect(conflict).toMatchObject({ acceptance_reason: reason, accepted_by_membership_id: s.actorMembershipId });\n        expect(conflict.accepted_at).toEqual(expect.any(String));\n      }\n      const observer = await h.observeNextConfirmedSave();\n      await editor(page).getByTestId(\"booking-retry\").click();\n      await observer.confirmed;\n      await expect(page.getByTestId(\"booking-save-status\")).toHaveText(/sparats/i);\n      expect(await bookingSnapshot(s.tenantIds)).toEqual(committed); // exact outcome/audit/no duplicate identity\n    });\n\n  test.skip(\"[P1] AC2/ E2E-007 latest warning wins and preview failure remains visibly unknown\",\n    { annotation: [{ type: \"skipNetworkMonitoring\", description: \"Expected preview failure is the subject of the test\" }] },\n    async ({ resourcePage: page, bookingEditor: h }) => {\n      const s = await h.seed(\"conflicted\");\n      const race = await h.raceNextPreviews(); // arm before navigation/action\n      await signIn(page, s);\n      await openToolbar(page);\n      await fillDraft(page, s);\n      await race.olderStarted;\n      await editor(page).getByTestId(\"booking-end\").fill(\"2026-10-12T17:00\");\n      await race.newerStarted;\n      await race.releaseNewerAndWaitForRender();\n      const panel = editor(page).getByTestId(\"booking-conflict-panel\");\n      await expect(panel).toContainText(s.newerWarning.text);\n      for (const detail of [s.newerWarning.rule, s.newerWarning.person, s.newerWarning.window, s.newerWarning.collision]) {\n        await expect(panel).toContainText(detail);\n      }\n      await expect(panel.getByRole(\"img\", { name: s.newerWarning.timelineName })).toBeVisible();\n      await race.releaseOlderAndWaitForSettlement();\n      await expect(panel).toContainText(s.newerWarning.text);\n      await expect(panel.getByText(s.olderWarning.text, { exact: true })).toHaveCount(0);\n      await editor(page).getByTestId(\"booking-review-current-warnings\").check();\n      const failure = await h.failNextPreviewOnce();\n      await editor(page).getByTestId(\"booking-end\").fill(\"2026-10-12T18:00\");\n      await failure.failed;\n      await expect(editor(page).getByTestId(\"booking-review-current-warnings\")).not.toBeChecked();\n      await expect(editor(page).getByTestId(\"booking-preview-error\")).toHaveAttribute(\"role\", \"alert\");\n      await expect(editor(page).getByTestId(\"booking-preview-unknown\")).toBeVisible();\n      await expect(editor(page).getByTestId(\"booking-conflict-free\")).toHaveCount(0);\n      await expect(editor(page).getByTestId(\"booking-end\")).toHaveValue(\"2026-10-12T18:00\");\n    });\n\n  test.skip(\"[P1] E2E-007 keyboard focus remains in sheet and warnings announce explanatory timeline\", async ({ resourcePage: page, bookingEditor: h }) => {\n    const s = await h.seed(\"conflicted\");\n    await signIn(page, s);\n    await openToolbar(page);\n    expect(await editor(page).evaluate((el) => el.contains(document.activeElement))).toBe(true);\n    await fillDraft(page, s);\n    const warnings = editor(page).getByTestId(\"booking-conflict-panel\");\n    await expect(warnings).toHaveAttribute(\"aria-live\", \"polite\");\n    await expect(warnings).toContainText(s.olderWarning.text);\n    await expect(warnings.getByRole(\"img\", { name: s.olderWarning.timelineName })).toBeVisible();\n    await editor(page).getByTestId(\"booking-close\").focus();\n    await page.keyboard.press(\"Shift+Tab\");\n    expect(await editor(page).evaluate((el) => el.contains(document.activeElement))).toBe(true);\n    await page.keyboard.press(\"Tab\");\n    expect(await editor(page).evaluate((el) => el.contains(document.activeElement))).toBe(true);\n    await page.keyboard.press(\"Escape\");\n    const guard = page.getByTestId(\"booking-discard-confirmation\");\n    expect(await guard.evaluate((el) => el.contains(document.activeElement))).toBe(true);\n    await guard.getByTestId(\"booking-keep-editing\").press(\"Enter\");\n    expect(await editor(page).evaluate((el) => el.contains(document.activeElement))).toBe(true);\n  });\n});\n",
+      "description": "13 intentionally skipped browser journeys for retained 14.4 entries, responsive editor, durable count, dirty/pending guards, explicit phone retry/replay, asynchronous warnings and keyboard semantics",
+      "expected_to_fail": true,
+      "acceptance_criteria_covered": [
+        "AC1: retained toolbar/job/customer entry, standalone/compatible optional links and desktop/360x640 responsive editor",
+        "AC2: latest warning display, explanatory mini-timeline, failed preview unknown",
+        "AC3: browser-selected review and reason exercised in lost-response atomic commit; exact authority/no-op variants owned by command/RPC suites",
+        "AC4: persisted OPEN-only logical count excludes accepted/resolved after reload",
+        "AC5: dirty Escape/back/close cancellation/discard, focus return and pending dismissal guard",
+        "AC6: transient and lost committed response at 360x640, draft retention, explicit retry, actual SQL readback with one outcome/audit"
+      ],
+      "priority_coverage": {
+        "P0": 5,
+        "P1": 8,
+        "P2": 0,
+        "P3": 0
+      },
+      "cases": [
+        {
+          "name": "E2E-006 toolbar standalone",
+          "priority": "P0",
+          "acceptance_criteria": [
+            "AC1"
+          ],
+          "red_reason": "Editor not implemented and scoped real production browser transport/fixture binding deliberately absent; test.skip until binding is implemented and intentional RED is demonstrated."
+        },
+        {
+          "name": "E2E-006 job preconnected create/edit",
+          "priority": "P0",
+          "acceptance_criteria": [
+            "AC1"
+          ],
+          "red_reason": "Editor not implemented and scoped real production browser transport/fixture binding deliberately absent; test.skip until binding is implemented and intentional RED is demonstrated."
+        },
+        {
+          "name": "E2E-006 customer preconnected create/edit",
+          "priority": "P0",
+          "acceptance_criteria": [
+            "AC1"
+          ],
+          "red_reason": "Editor not implemented and scoped real production browser transport/fixture binding deliberately absent; test.skip until binding is implemented and intentional RED is demonstrated."
+        },
+        {
+          "name": "E2E-001/007 phone geometry/targets",
+          "priority": "P1",
+          "acceptance_criteria": [
+            "AC1"
+          ],
+          "red_reason": "Editor not implemented and scoped real production browser transport/fixture binding deliberately absent; test.skip until binding is implemented and intentional RED is demonstrated."
+        },
+        {
+          "name": "E2E-002 persisted OPEN-only chip",
+          "priority": "P1",
+          "acceptance_criteria": [
+            "AC4"
+          ],
+          "red_reason": "Editor not implemented and scoped real production browser transport/fixture binding deliberately absent; test.skip until binding is implemented and intentional RED is demonstrated."
+        },
+        {
+          "name": "E2E-003/007 dirty Escape",
+          "priority": "P1",
+          "acceptance_criteria": [
+            "AC5"
+          ],
+          "red_reason": "Editor not implemented and scoped real production browser transport/fixture binding deliberately absent; test.skip until binding is implemented and intentional RED is demonstrated."
+        },
+        {
+          "name": "E2E-003/007 dirty close",
+          "priority": "P1",
+          "acceptance_criteria": [
+            "AC5"
+          ],
+          "red_reason": "Editor not implemented and scoped real production browser transport/fixture binding deliberately absent; test.skip until binding is implemented and intentional RED is demonstrated."
+        },
+        {
+          "name": "E2E-003/007 dirty back",
+          "priority": "P1",
+          "acceptance_criteria": [
+            "AC5"
+          ],
+          "red_reason": "Editor not implemented and scoped real production browser transport/fixture binding deliberately absent; test.skip until binding is implemented and intentional RED is demonstrated."
+        },
+        {
+          "name": "E2E-003 pending dismissal",
+          "priority": "P1",
+          "acceptance_criteria": [
+            "AC5"
+          ],
+          "red_reason": "Editor not implemented and scoped real production browser transport/fixture binding deliberately absent; test.skip until binding is implemented and intentional RED is demonstrated."
+        },
+        {
+          "name": "E2E-004/005 phone transient retry",
+          "priority": "P0",
+          "acceptance_criteria": [
+            "AC6"
+          ],
+          "red_reason": "Editor not implemented and scoped real production browser transport/fixture binding deliberately absent; test.skip until binding is implemented and intentional RED is demonstrated."
+        },
+        {
+          "name": "E2E-005 lost committed response replay",
+          "priority": "P0",
+          "acceptance_criteria": [
+            "AC3",
+            "AC6"
+          ],
+          "red_reason": "Editor not implemented and scoped real production browser transport/fixture binding deliberately absent; test.skip until binding is implemented and intentional RED is demonstrated."
+        },
+        {
+          "name": "AC2 last response wins / failure unknown",
+          "priority": "P1",
+          "acceptance_criteria": [
+            "AC2"
+          ],
+          "red_reason": "Editor not implemented and scoped real production browser transport/fixture binding deliberately absent; test.skip until binding is implemented and intentional RED is demonstrated."
+        },
+        {
+          "name": "E2E-007 keyboard/focus/live timeline",
+          "priority": "P1",
+          "acceptance_criteria": [
+            "AC2",
+            "AC5"
+          ],
+          "red_reason": "Editor not implemented and scoped real production browser transport/fixture binding deliberately absent; test.skip until binding is implemented and intentional RED is demonstrated."
+        }
+      ]
+    }
+  ],
+  "fixture_files": [
+    {
+      "file": "tests/e2e/support/booking-editor-atdd.ts",
+      "content": "/**\n * Story 14.4 RED fixture contract. No browser/server launch occurs here.\n * library gate exception: playwright-utils flag=true, package absent.\n * Reuse the project's guarded resourcePage and per-run .auth/fixture.json.\n * These are planned test-owned bindings, not observed production APIs.\n * The default library framework workflow may establish playwright-utils later;\n * no missing dependency import is generated in this RED contract.\n */\nimport { test as base, expect } from \"./resource-cdp-attachment\";\nimport type { Page, TestInfo } from \"@playwright/test\";\n\nexport type Scenario = {\n  readonly credentials: { readonly email: string; readonly password: string };\n  readonly tenantIds: string[];\n  readonly tenantId: string;\n  readonly actorMembershipId: string;\n  readonly actorUserId: string;\n  readonly assigneeIds: readonly string[];\n  readonly assigneeLabels: readonly string[];\n  readonly description: string;\n  readonly startsLocal: string;\n  readonly endsLocal: string;\n  readonly expectedStartsAt: string;\n  readonly expectedEndsAt: string;\n  readonly jobId: string;\n  readonly customerId: string;\n  readonly facilityId: string;\n  readonly contactId: string;\n  readonly workRoleId: string;\n  readonly persistedBookingId: string;\n  readonly expectedOpenLogicalCount: number;\n  readonly expectedConflictRowCount: number;\n  readonly expectedAcceptedRowCount: number;\n  readonly expectedOpenRowCount: number;\n  readonly selectedLogicalId: string;\n  readonly olderWarning: { readonly text: string; readonly timelineName: string; readonly rule: string; readonly person: string; readonly window: string; readonly collision: string };\n  readonly newerWarning: { readonly text: string; readonly timelineName: string; readonly rule: string; readonly person: string; readonly window: string; readonly collision: string };\n};\nexport type SaveGate = {\n  /** Actual matching request has reached the adapter's hold point. */\n  readonly started: Promise<void>;\n  readonly release: () => Promise<void>;\n};\nexport type PreviewRace = {\n  readonly olderStarted: Promise<void>;\n  readonly newerStarted: Promise<void>;\n  /** Release captured real production responses; never synthesize detector facts. */\n  readonly releaseNewerAndWaitForRender: () => Promise<void>;\n  readonly releaseOlderAndWaitForSettlement: () => Promise<void>;\n};\nexport interface BookingEditorHarness {\n  /**\n   * Use scoped local adminQuery/adminExec helpers only at test execution.\n   * Read credentials from tests/e2e/.auth/fixture.json; provision dedicated\n   * per-test person/job/customer rows under that authenticated tenant.\n   * Fixed Stockholm 2026-10-12 fixtures; no Date.now-derived booking boundaries.\n   * Unique description and IDs per test; no broad seed/reset or unrelated edits.\n   * Capture affected existing rows and restore only owned changes in dispose.\n   */\n  seed(mode: \"conflict-free\" | \"conflicted\" | \"persisted-conflict-states\"): Promise<Scenario>;\n  /** Register actual production save observation BEFORE navigation/action. */\n  observeNextConfirmedSave(): Promise<{ readonly confirmed: Promise<void> }>;\n  /** Hold actual request before writes; release is idempotent and always cleaned. */\n  holdNextSave(): Promise<SaveGate>;\n  /** Observe a real transient SERVER_ERROR before any durable writes. */\n  failNextSaveOnce(): Promise<{ readonly failed: Promise<void> }>;\n  /**\n   * Run real save to durable completion, then lose only its response.\n   * committed resolves from actual SQL outcome/readback, not request sent/200 mock.\n   * Retry must preserve original business command, create UUID and review decision.\n   */\n  loseNextCommittedSaveResponseOnce(): Promise<{ readonly committed: Promise<void> }>;\n  /**\n   * Capture first/second real preview responses for different candidates,\n   * deliver newer then older, and acknowledge browser application settlement.\n   * Binding must identify actual Next action transport, not guess an /api URL.\n   */\n  raceNextPreviews(): Promise<PreviewRace>;\n  failNextPreviewOnce(): Promise<{ readonly failed: Promise<void> }>;\n  /** Remove routes/holds/listeners and only per-test SQL rows; never stop browser. */\n  dispose(): Promise<void>;\n}\n\n/**\n * Deliberately unbound: replace ONLY this function with actual production\n * transport + scoped SQL fixture wiring during development, before unskipping.\n * Do not install dependencies or add application endpoints to satisfy this test.\n * All durable assertions in the spec use existing bookingSnapshot directly.\n */\nasync function bindBookingEditorHarness(\n  page: Page,\n  testInfo: TestInfo,\n): Promise<BookingEditorHarness> {\n  void page;\n  void testInfo;\n  throw new Error(\n    \"ATDD_UNBOUND_BOOKING_EDITOR_BROWSER: bind real scoped .auth/fixture.json \" +\n    \"SQL setup/cleanup and production preview/save transport before activation; \" +\n    \"no browser selector or durable behavior has been verified by this scaffold\",\n  );\n}\n\nexport const test = base.extend<{ bookingEditor: BookingEditorHarness }>({\n  bookingEditor: async ({ resourcePage }, provide, testInfo) => {\n    const harness = await bindBookingEditorHarness(resourcePage, testInfo);\n    try { await provide(harness); }\n    finally { await harness.dispose(); }\n  },\n});\nexport { expect };\n",
+      "description": "Typed test-owned composition of the existing resource-cdp-attachment fixture; clearly unbound scoped SQL seed and real Next-action transport adapter, requiring production binding before activation. No fabricated durable result, synthetic provider endpoint or absent dependency import.",
+      "expected_to_fail": true
+    }
+  ],
+  "fixture_needs": [
+    "Implement bindBookingEditorHarness using existing resourcePage, per-run tests/e2e/.auth/fixture.json admin credentials, and real current booking-authorized membership; no service-role browser/application credential.",
+    "Scoped test execution-only adminQuery/adminExec setup of dedicated same-tenant persons/work role/compatible job/customer/facility/contact and fixed Stockholm intervals. Unique descriptions/IDs per test; cleanup only owned rows/restore captured owned fixture changes. No broad seed/reset.",
+    "Supply conflict-free/conflicted/persisted-conflict-states modes with independently known engine-fact expectations; mixed mode includes candidate-related accepted/open logical groups and persisted count mode includes accepted/resolved plus multi-association OPEN deduplication.",
+    "Bind observation/holding/failure/committed-response-loss to actual Next server action transport after implementation; register before navigation/action, retain real actor/session, and never invent an API URL.",
+    "Transient save failure must happen before writes; assert full existing bookingSnapshot equality. Lost response must happen after real SQL commit; committed promise requires durable outcome, never mock 200 or request sent.",
+    "Confirmed save observation requires real successful production save/replay confirmation. Spec reads existing bookingSnapshot directly for full bookings/assignees/conflicts/audit and immutable create_result/update_outcomes.",
+    "Bind preview race to two actual production preview responses for different candidates with settlement acknowledgments; newest warning expectation includes rule/person/window/collision and accessible timeline. Never return fabricated detector facts.",
+    "Dispose all per-test routes/listeners/holds idempotently. The root owns attached browser/server lifecycle; no browser close/launch or process cleanup in the harness."
+  ],
+  "knowledge_fragments_used": [
+    "library-integration-mandate",
+    "playwright-utils-mandate",
+    "selector-resilience",
+    "confidence-gate",
+    "network-first",
+    "fixture-architecture",
+    "fixtures-composition",
+    "timing-debugging",
+    "intercept-network-call",
+    "network-error-monitor",
+    "auth-session"
+  ],
+  "confidence": {
+    "journeys_and_planned_selectors": 8,
+    "fixture_composition": 7,
+    "rationale": "Ready-for-dev spec Tasks & Acceptance and owner Contract D pin retained behavior; existing resources-person-profile.e2e.spec.ts and resource-cdp-attachment.ts establish project test import/sign-in/owned browser use; existing bookings-atdd.ts exposes real bookingSnapshot and SQL migrations establish durable row shape.",
+    "unknowns": [
+      "Editor semantic locators are planned test-owned contracts and have not been observed in a browser.",
+      "Actual preview/save action transport, scoped fixture adapter and deterministic response/render settlement need development binding.",
+      "Independent expected logical/raw conflict counts and attribution must be populated from fixed real test facts before activation."
+    ],
+    "before_write_recorded": true
+  },
+  "selector_contract": {
+    "verification": "UNVERIFIED; no browser session or server launch",
+    "observed_existing_patterns": [
+      "E-post/Lösenord/Logga in from resources-person-profile.e2e.spec.ts; /login then /dashboard",
+      "Current /jobs, /jobs/[jobId], /customers/[customerId] hosts from spec Code Map/source context"
+    ],
+    "planned_accessible_names": [
+      "Ny bokning",
+      "Boka",
+      "<fixture assignee display name>",
+      "<fixture descriptive mini-timeline name>",
+      "<n> öppna konflikter"
+    ],
+    "planned_data_testids": [
+      "booking-editor",
+      "booking-summary-",
+      "booking-entry-toolbar",
+      "booking-description",
+      "booking-start",
+      "booking-end",
+      "booking-work-role",
+      "booking-status",
+      "booking-availability",
+      "booking-save",
+      "booking-save-status",
+      "booking-all-day",
+      "booking-entry-",
+      "booking-customer",
+      "booking-facility",
+      "booking-contact",
+      "booking-edit",
+      "booking-editor-scroll-body",
+      "booking-assignee-option-",
+      "booking-open-conflict-count",
+      "booking-close",
+      "booking-discard-confirmation",
+      "booking-keep-editing",
+      "booking-discard",
+      "booking-save-error",
+      "booking-unsent",
+      "booking-retry",
+      "booking-conflict-panel",
+      "booking-review-current-warnings",
+      "booking-select-logical-",
+      "booking-override-reason",
+      "booking-preview-error",
+      "booking-preview-unknown",
+      "booking-conflict-free"
+    ],
+    "dynamic_testids": [
+      "booking-entry-{toolbar|job|customer}",
+      "booking-summary-{bookingId}",
+      "booking-assignee-option-{personProfileId}",
+      "booking-select-logical-{logicalGroupId}"
+    ],
+    "binding_requirements": "Preserve semantic roles/labels for controls and actual dialog/alertdialog/status/alert live semantics. Planned data-testids are contracts for intended UI, not observed product selectors."
+  },
+  "playwright_utils_gate": {
+    "flag": true,
+    "package_installed": false,
+    "mandate_active": false,
+    "evidence": "package.json has @playwright/test but no @seontechnologies/playwright-utils. library-integration-mandate explicitly requires flag AND package; no imports against absent package.",
+    "future_recommendation": "Use TEA framework workflow if the owner later chooses to install/configure playwright-utils; no dependency change in this task."
+  },
+  "playwright_utils_deviations": [
+    {
+      "file": "tests/e2e/support/booking-editor-atdd.ts",
+      "line": 110,
+      "reason": "Package gate inactive; existing project resource test is extended rather than importing nonexistent utils merged fixtures."
+    },
+    {
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 13,
+      "reason": "Package gate inactive; established browser sign-in pattern is used rather than absent authToken fixture."
+    },
+    {
+      "file": "tests/e2e/support/booking-editor-atdd.ts",
+      "line": 63,
+      "reason": "No endpoint guesses or vanilla page.route/waitForResponse emitted; typed adapter must bind actual action transport during development. Error paths carry skipNetworkMonitoring annotations for a future monitor."
+    }
+  ],
+  "deferred_work": [
+    {
+      "obligation": "14.4-E2E-006 empty-slot click/drag portion only",
+      "owner": "Story 15.1: The Five Scheduling Views",
+      "hosts": [
+        "Schema",
+        "Resurser"
+      ],
+      "gate": "Both actual click and actual drag must open the same editor with interval/person context before applicable calendar entry exposure and before 15.1 completion. Prefill seam evidence gives no execution credit.",
+      "status": "transferred/pending; no calendar/nav/recurrence scaffold in this artifact"
+    }
+  ],
+  "test_count": 13,
+  "tdd_phase": "RED",
+  "execution": {
+    "browser_launched": false,
+    "server_launched": false,
+    "tests_run": 0,
+    "red_behavior_observed": false,
+    "reason": "Generate-only; editor absent and no authorized root production server. Skipped scaffold assertions are not coverage."
+  },
+  "open_questions": [],
+  "development_blockers": [
+    "Implement typed scoped SQL/production transport binding and editor before activation; demonstrate intentional behavioral RED after binding. These are expected RED needs, not unresolved owner decisions."
+  ],
+  "summary": "Generated 13 test.skip browser scaffolds covering all seven retained E2E obligations. JSON only, with a supplemental typed binding contract and explicit absent-package/selector verification limits."
+}

@@ -1,0 +1,70 @@
+{
+  "phase": "RED",
+  "totalScaffolds": 92,
+  "workers": [
+    {
+      "name": "atdd-api-tests",
+      "count": 58
+    },
+    {
+      "name": "atdd-e2e-tests",
+      "count": 13
+    },
+    {
+      "name": "component_red",
+      "count": 21
+    }
+  ],
+  "testFiles": [
+    {
+      "path": "tests/integration/commands/booking-editor.int.test.ts",
+      "lines": 628,
+      "priorities": {
+        "P0": 57,
+        "P1": 1,
+        "P2": 0,
+        "P3": 0
+      }
+    },
+    {
+      "path": "tests/e2e/booking-editor.e2e.spec.ts",
+      "lines": 370,
+      "priorities": {
+        "P0": 5,
+        "P1": 8,
+        "P2": 0,
+        "P3": 0
+      }
+    },
+    {
+      "path": "tests/integration/components/booking-editor.test.ts",
+      "lines": 120,
+      "priorities": {
+        "P1": 9
+      }
+    },
+    {
+      "path": "tests/unit/features/resources/booking-editor-input.test.ts",
+      "lines": 92,
+      "priorities": {
+        "P0": 1,
+        "P1": 10
+      }
+    },
+    {
+      "path": "tests/unit/scope/booking-editor-scope.test.ts",
+      "lines": 30,
+      "priorities": {
+        "P0": 1
+      }
+    }
+  ],
+  "fixtureFiles": [
+    "tests/support/booking-editor-atdd.ts",
+    "tests/e2e/support/booking-editor-atdd.ts",
+    "tests/support/booking-editor-contract.ts"
+  ],
+  "allSkipped": true,
+  "executed": 0,
+  "behavioralCoverage": false
+}

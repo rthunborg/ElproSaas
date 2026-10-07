@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/epic14-resume
 status: in-progress
-updated_at: "2026-10-07T11:43:05Z"
+updated_at: "2026-10-07T11:58:35Z"
 started_at: "2026-10-07T11:04:30Z"
 completed_at: null
-active_seconds: 1859
-timing_anchor: null
+active_seconds: 2713
+timing_anchor: 1791374315
 is_first_in_epic: false
 is_last_in_epic: true
 git_mode: remote
@@ -26,15 +26,17 @@ selected_effort: high
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: "Sensitive audited conflict overrides, authorization and transactional integrity in booking editor planning/build"
+escalation_reason: "Sensitive audited overrides, current review authority, authorization, replay and atomic transaction integrity"
 routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"Sensitive audited conflict overrides, authorization and transactional integrity in booking editor planning/build\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Sensitive14.4 preview/override authorization, replay and transactional-integrity acceptance scaffolds\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Sensitive audited overrides, current review authority, authorization, replay and atomic transaction integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: high
 tea_selected: [atdd, automate]
 tea_rationale: Scheduling/concurrency and transactional conflict persistence with audited authorization overrides.
 epic_story_count: 4
 stories_after_in_epic: 0
-completed_phases: [0, 1, 2, 3]
+completed_phases: [0, 1, 2, 3, 4]
 spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md"
 spec_approved: true
 build:
@@ -89,10 +91,10 @@ overrides:
   no_data_reset: true
   explicit_test_api_port: 55421
   explicit_test_db_port: 55422
-  root_guard_resource_id: 48fc14f8-3810-46f8-ab4f-8c416abc7d57
-  root_guard_request_id: 369297fb-24fa-4f9e-bf52-4118cc19ed7a
+  root_guard_resource_id: 24c8e6c8-37f9-4e87-8add-3e9a7818053c
+  root_guard_request_id: e10639e1-f569-4fdf-91d7-3535160e76ee
   root_guard_service_readiness_verified: true
-  root_guard_stop_requested: true
+  root_guard_stop_requested: false
   root_guard_stop_native_exit: 0
   root_guard_shutdown_verified: false
   plan_intent_gap_owner_questions_pending: false

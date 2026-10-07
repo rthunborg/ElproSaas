@@ -1,0 +1,12 @@
+[
+  {
+    "name": "api",
+    "nativeExit": 1,
+    "expectedMissingBinding": true
+  },
+  {
+    "name": "component-input",
+    "nativeExit": 1,
+    "expectedMissingBinding": true
+  }
+]

@@ -1,0 +1,27 @@
+[
+  {
+    "name": "registration-integration",
+    "nativeExit": 0,
+    "signal": null
+  },
+  {
+    "name": "registration-unit",
+    "nativeExit": 0,
+    "signal": null
+  },
+  {
+    "name": "registration-browser",
+    "nativeExit": 0,
+    "signal": null
+  },
+  {
+    "name": "typecheck",
+    "nativeExit": 0,
+    "signal": null
+  },
+  {
+    "name": "lint",
+    "nativeExit": 0,
+    "signal": null
+  }
+]

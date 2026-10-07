@@ -1,0 +1,15 @@
+Listing tests:
+  [chromium] › booking-editor.e2e.spec.ts:83:8 › Story 14.4 booking editor retained browser acceptance (RED) › [P0] E2E-006 toolbar creates a standalone booking through the desktop sheet
+  [chromium] › booking-editor.e2e.spec.ts:106:10 › Story 14.4 booking editor retained browser acceptance (RED) › [P0] E2E-006 job entry persists preconnection then reopens and edits
+  [chromium] › booking-editor.e2e.spec.ts:106:10 › Story 14.4 booking editor retained browser acceptance (RED) › [P0] E2E-006 customer entry persists preconnection then reopens and edits
+  [chromium] › booking-editor.e2e.spec.ts:148:8 › Story 14.4 booking editor retained browser acceptance (RED) › [P1] E2E-001/007 360x640 fullscreen editor scrolls without overflow and keeps actions reachable
+  [chromium] › booking-editor.e2e.spec.ts:175:8 › Story 14.4 booking editor retained browser acceptance (RED) › [P1] E2E-002 reload chip counts persisted OPEN logical conflicts only
+  [chromium] › booking-editor.e2e.spec.ts:193:10 › Story 14.4 booking editor retained browser acceptance (RED) › [P1] E2E-003/007 dirty Escape cancel retains draft and discard restores entry focus
+  [chromium] › booking-editor.e2e.spec.ts:193:10 › Story 14.4 booking editor retained browser acceptance (RED) › [P1] E2E-003/007 dirty close cancel retains draft and discard restores entry focus
+  [chromium] › booking-editor.e2e.spec.ts:193:10 › Story 14.4 booking editor retained browser acceptance (RED) › [P1] E2E-003/007 dirty back cancel retains draft and discard restores entry focus
+  [chromium] › booking-editor.e2e.spec.ts:220:8 › Story 14.4 booking editor retained browser acceptance (RED) › [P1] E2E-003 in-flight save blocks Escape close and back until confirmed
+  [chromium] › booking-editor.e2e.spec.ts:247:8 › Story 14.4 booking editor retained browser acceptance (RED) › [P0] E2E-004/005 phone failure keeps unsent draft and explicit retry confirms one durable save
+  [chromium] › booking-editor.e2e.spec.ts:276:8 › Story 14.4 booking editor retained browser acceptance (RED) › [P0] E2E-005 phone lost committed response replays one booking assignments conflicts and attributable audit
+  [chromium] › booking-editor.e2e.spec.ts:316:8 › Story 14.4 booking editor retained browser acceptance (RED) › [P1] AC2/ E2E-007 latest warning wins and preview failure remains visibly unknown
+  [chromium] › booking-editor.e2e.spec.ts:348:8 › Story 14.4 booking editor retained browser acceptance (RED) › [P1] E2E-007 keyboard focus remains in sheet and warnings announce explanatory timeline
+Total: 13 tests in 1 file
