@@ -7,6 +7,7 @@ import { isAuthorizedCronRequest } from "@/server/jobs/auth";
 import { emitDueFollowUpNotifications } from "@/server/notifications/follow-up-producer";
 import { processEmailOutbox } from "@/server/email/outbox";
 import { stockholmBusinessDate } from "@/lib/datetime/business-date";
+import { readCursor, type CursorReadOptions } from "@/server/jobs/cursor-read";
 
 const unauthorized = () => new Response("Unauthorized", { status: 401 });
 const CURSOR_PRODUCER = "jobs.runner";
@@ -28,28 +29,34 @@ type JobsRouteDependencies = {
   readonly execute?: RunnerDependencies["execute"];
 };
 
-async function loadProducerCursor(client: SupabaseClient, tenantId: string, producer: string): Promise<string | undefined> {
-  const { data, error } = await client
+async function loadProducerCursor(client: SupabaseClient, tenantId: string, producer: string, options: CursorReadOptions): Promise<string | undefined> {
+  const data = await readCursor((signal) => client
     .from("job_runs")
     .select("cursor,outcome")
     .eq("tenant_id", tenantId)
     .eq("producer", producer)
+    .in("outcome", ["completed", "partial"])
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
-    .limit(1);
-  if (error) throw new Error("Producer cursor lookup failed");
+    .limit(1)
+    .retry(false)
+    .abortSignal(signal), options);
   const latest = data?.[0];
-  return (latest?.outcome === "partial" || latest?.outcome === "failed") && typeof latest.cursor === "string" ? latest.cursor : undefined;
+  return latest?.outcome === "partial" && typeof latest.cursor === "string" ? latest.cursor : undefined;
 }
 
-async function loadResumeCursor(client: SupabaseClient): Promise<string | undefined> {
-  const { data, error } = await client
+async function loadResumeCursor(client: SupabaseClient, options: CursorReadOptions): Promise<string | undefined> {
+  // Global rows authorize a due-window continuation. The latest terminal row,
+  // including failed, clears that authority instead of reviving an older partial.
+  const data = await readCursor((signal) => client
     .from("job_runs")
     .select("cursor,outcome")
     .eq("producer", CURSOR_PRODUCER)
     .order("created_at", { ascending: false })
-    .limit(1);
-  if (error) throw new Error("Job cursor lookup failed");
+    .order("id", { ascending: false })
+    .limit(1)
+    .retry(false)
+    .abortSignal(signal), options);
   const cursor = data?.[0]?.cursor;
   return data?.[0]?.outcome === "partial" && typeof cursor === "string" ? cursor : undefined;
 }
@@ -88,16 +95,16 @@ export async function handleJobsRunRequest(request: Request, dependencies: JobsR
   const configuredBudget = dependencies.runBudgetMs ?? DEFAULT_RUN_BUDGET_MS;
   const runBudgetMs = Number.isFinite(configuredBudget) ? Math.max(1, configuredBudget) : DEFAULT_RUN_BUDGET_MS;
   const deadline = new Date(windowStartedAt.getTime() + runBudgetMs);
-  const abortSignal = dependencies.abortSignal ?? AbortSignal.timeout(runBudgetMs);
+  const abortSignal = AbortSignal.any([request.signal, ...(dependencies.abortSignal ? [dependencies.abortSignal] : []), AbortSignal.timeout(runBudgetMs)]);
   const correlationId = (dependencies.correlationId ?? randomUUID)();
-  const cursor = await loadResumeCursor(client);
+  const cursor = await loadResumeCursor(client, { scope: "resume", deadline, signal: abortSignal, now });
   const result = await run({
     listTenantIds: async () => {
       const { data, error } = await client.from("tenants").select("id").order("id");
       if (error) throw new Error("Tenant enumeration failed");
       return (data ?? []).map((row) => row.id);
     },
-    loadProducerCursor: async (producer, tenantId) => loadProducerCursor(client, tenantId, producer.id),
+    loadProducerCursor: async (producer, tenantId) => loadProducerCursor(client, tenantId, producer.id, { scope: "producer", deadline, signal: abortSignal, now }),
     execute: dependencies.execute ?? (async (producer, tenantId, producerCursor) => {
       if (producer.id === "quotes.follow-up-reminders") {
         return emitDueFollowUpNotifications(client, tenantId, stockholmBusinessDate(now()), { cursor: producerCursor, signal: abortSignal });
@@ -111,7 +118,7 @@ export async function handleJobsRunRequest(request: Request, dependencies: JobsR
     }),
     record: recordRun(client, correlationId),
     now,
-  }, { cursor, producers, chunkSize: dependencies.chunkSize, deadline, windowStartedAt });
+  }, { cursor, producers, chunkSize: dependencies.chunkSize, deadline, windowStartedAt, signal: abortSignal });
   return Response.json({ outcome: result.outcome, cursor: result.cursor ?? null });
 }
 

@@ -1,4 +1,5 @@
 import { ACTIVE_PRODUCERS, type ProducerDeclaration } from "./producers";
+import { CursorReadError, cursorAbortCategory } from "./cursor-read";
 
 export type JobRunOutcome = "completed" | "partial" | "failed";
 export type JobRunRecord = {
@@ -132,15 +133,15 @@ export function decodeCursor(cursor?: string): number {
 }
 
 /** Executes a bounded round-robin tenant slice. Empty 13.1 registry performs no DB work. */
-export async function runDueProducers(deps: RunnerDependencies, options: { readonly cursor?: string; readonly chunkSize?: number; readonly deadline?: Date; readonly producers?: readonly ProducerDeclaration[]; readonly windowStartedAt?: Date } = {}): Promise<{ readonly outcome: JobRunOutcome; readonly cursor?: string }> {
+export async function runDueProducers(deps: RunnerDependencies, options: { readonly cursor?: string; readonly chunkSize?: number; readonly deadline?: Date; readonly producers?: readonly ProducerDeclaration[]; readonly windowStartedAt?: Date; readonly signal?: AbortSignal } = {}): Promise<{ readonly outcome: JobRunOutcome; readonly cursor?: string }> {
   const producers = options.producers ?? ACTIVE_PRODUCERS;
   if (producers.length === 0) return { outcome: "completed" };
+  const now = deps.now ?? (() => new Date());
+  const windowStart = options.windowStartedAt ?? now();
   const tenants = await deps.listTenantIds();
   if (tenants.length === 0) return { outcome: "completed" };
   const resume = parseCursor(options.cursor);
   const max = Math.max(1, options.chunkSize ?? 25);
-  const now = deps.now ?? (() => new Date());
-  const windowStart = options.windowStartedAt ?? now();
   const windowStartedAt = windowStart.toISOString();
   const dueProducerIds = new Set(producers.filter((producer) => isProducerDueAt(producer.schedule, windowStart)).map((producer) => producer.id));
   const startsNewScheduledWindow = resume.hasDueProducerSnapshot
@@ -184,6 +185,7 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
     : resume.producerIndex;
   const continuationProducerIds = new Set([...resumedProducerIds, ...dueProducerIds]);
   let hadFailure = false;
+  const failureEvidence = () => hadFailure ? { errorSummary: "Background runner encountered producer failures" } : {};
   let executedProducer = false;
   const cursorAt = (nextIndex: number, producerIndex = 0) =>
     encodeCursor(
@@ -204,8 +206,9 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
       outcome: "partial",
       cursor,
       windowStartedAt,
-      startedAt: timestamp,
+      startedAt: windowStartedAt,
       finishedAt: timestamp,
+      ...failureEvidence(),
     });
   };
   const persistTerminal = async (outcome: "completed" | "failed") => {
@@ -215,8 +218,9 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
       producer: "jobs.runner",
       outcome,
       windowStartedAt,
-      startedAt: timestamp,
+      startedAt: windowStartedAt,
       finishedAt: timestamp,
+      ...failureEvidence(),
     });
   };
   let completed = 0;
@@ -239,17 +243,19 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
         await persistCursor(i, producerIndex);
         return { outcome: "partial", cursor: cursorAt(i, producerIndex) };
       }
-      if (options.deadline && now() >= options.deadline) {
-        if (!hasKnownWork && !options.cursor && !scannedTuple) return { outcome: "completed" };
+      if (options.signal?.aborted || (options.deadline && now() >= options.deadline)) {
+        if (!hadFailure && !hasKnownWork && !options.cursor && !scannedTuple) return { outcome: "completed" };
         await persistCursor(i, producerIndex);
         return { outcome: "partial", cursor: cursorAt(i, producerIndex) };
       }
       const startedAt = now().toISOString();
       let producerCursor: string | undefined;
+      let executionStarted = false;
       try {
         producerCursor = await deps.loadProducerCursor?.(producer, tenants[i]!);
         scannedTuple = true;
         const hasWork = hasKnownWork || Boolean(producerCursor);
+        if (options.signal?.aborted) throw new CursorReadError("producer", cursorAbortCategory(options.signal));
         if (options.deadline && now() >= options.deadline) {
           if (!hasWork) {
             const nextProducerIndex = producerIndex + 1;
@@ -261,8 +267,9 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
               await persistCursor(i + 1);
               return { outcome: "partial", cursor: cursorAt(i + 1) };
             }
-            if (options.cursor) await persistTerminal("completed");
-            return { outcome: "completed" };
+            const outcome = hadFailure ? "failed" : "completed";
+            if (options.cursor || hadFailure) await persistTerminal(outcome);
+            return { outcome };
           } else {
             await persistCursor(i, producerIndex);
             return { outcome: "partial", cursor: cursorAt(i, producerIndex) };
@@ -275,6 +282,7 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
         }
         executedProducer = true;
         executedForTenant = true;
+        executionStarted = true;
         const result = await deps.execute(producer, tenants[i]!, producerCursor);
         if (result?.cursor) {
           hadPartial = true;
@@ -284,14 +292,25 @@ export async function runDueProducers(deps: RunnerDependencies, options: { reado
         }
       } catch (error) {
         hadFailure = true;
-        await deps.record({ tenantId: tenants[i]!, producer: producer.id, outcome: "failed", cursor: producerCursor, windowStartedAt, startedAt, finishedAt: now().toISOString(), errorSummary: sanitizeJobError(error) });
+        await deps.record({ tenantId: tenants[i]!, producer: producer.id, outcome: "failed", cursor: executionStarted ? producerCursor : undefined, windowStartedAt, startedAt, finishedAt: now().toISOString(), errorSummary: sanitizeJobError(error) });
+        if (!executionStarted && (
+          (error instanceof CursorReadError && (error.category === "deadline" || error.category === "cancelled"))
+          || options.signal?.aborted
+          || (options.deadline && now() >= options.deadline)
+        )) {
+          // No mutation occurred at this tuple. Resume it, including off-schedule
+          // carried work, instead of advancing past an unread checkpoint.
+          await persistCursor(i, producerIndex);
+          return { outcome: "partial", cursor: cursorAt(i, producerIndex) };
+        }
       }
     }
     if (executedForTenant) completed += 1;
   }
   if (!executedProducer) {
-    if (options.cursor) await persistTerminal("completed");
-    return { outcome: "completed" };
+    const outcome = hadFailure ? "failed" : "completed";
+    if (options.cursor || hadFailure) await persistTerminal(outcome);
+    return { outcome };
   }
   if (hadPartial) {
     await persistCursor(0);
