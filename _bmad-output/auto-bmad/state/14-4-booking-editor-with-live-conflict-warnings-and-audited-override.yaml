@@ -1,0 +1,99 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 14-4-booking-editor-with-live-conflict-warnings-and-audited-override
+epic_num: 14
+story_num: 4
+story_suffix: ""
+story_source: sprint
+spec_folder: null
+story_id: null
+branch: codex/epic14-resume
+status: in-progress
+updated_at: "2026-10-07T11:04:30Z"
+started_at: "2026-10-07T11:04:30Z"
+completed_at: null
+active_seconds: 0
+timing_anchor: 1791371070
+is_first_in_epic: false
+is_last_in_epic: true
+git_mode: remote
+base_branch: main
+selected_phase: build
+selected_role: build-delegate
+selected_profile: standard
+selected_model: gpt-6.1-sol
+selected_effort: high
+selected_host: codex
+selected_tier: subagents
+selected_route: subagent
+escalation_reason: "Sensitive audited conflict overrides, authorization and transactional integrity in booking editor planning/build"
+routing_ledger:
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Sensitive audited conflict overrides, authorization and transactional integrity in booking editor planning/build\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: Scheduling/concurrency and transactional conflict persistence with audited authorization overrides.
+epic_story_count: 4
+stories_after_in_epic: 0
+completed_phases: [0, 1, 2]
+spec_path: null
+spec_approved: true
+build:
+  status: null
+  blocking_condition: null
+  followup_review_recommended: false
+  review_loop_iteration: 0
+  deferred_count: 0
+  warnings: []
+followup_passes: 0
+hitl_halt: null
+review_unverified: false
+story_trace: null
+legacy_review_resume: false
+legacy_review_iteration: null
+legacy_review_loop_done: false
+legacy_external_review_iterations: null
+legacy_convergence_unverified: false
+legacy_artifact_path: null
+commits: []
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+retro:
+  doc: null
+  verdict: null
+  open_action_items: 0
+bmad_status_flipped_at: null
+pr_url: null
+ci_run_url: null
+ci_status: unknown
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work: []
+blockers: []
+overrides:
+  unattended_run_confirmed_by_owner_request: true
+  existing_approvals_valid: true
+  all_four_transferred_checks_verified_before_14_4: true
+  empty_chain_ci_required: true
+  no_hosted_changes: true
+  no_data_reset: true
+  explicit_test_api_port: 55421
+  explicit_test_db_port: 55422
+  root_guard_resource_id: 48fc14f8-3810-46f8-ab4f-8c416abc7d57
+  root_guard_request_id: 369297fb-24fa-4f9e-bf52-4118cc19ed7a
+  root_guard_service_readiness_verified: true
+  root_guard_stop_requested: false
+constraints:
+  - "Approved PhaseB manifest-governed Story14.4 only; hardPhaseC exclusions."
+  - "Retain owner-approved ContractC; allfour14.3 checks passed beforeeditor exposure."
+  - "Saved isolated stack55421/55422 only; no resets/ledger edits/hosted changes; guard persistent resources."

@@ -9,24 +9,24 @@ spec_folder: null
 story_id: null
 branch: codex/epic14-resume
 status: in-progress
-updated_at: "2026-10-07T11:01:05Z"
+updated_at: "2026-10-07T11:02:12Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
 active_seconds: 59760
-timing_anchor: null
+timing_anchor: 1791370932
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: build
-selected_role: build-delegate
-selected_profile: standard
+selected_phase: tea_triage
+selected_role: test-risk-triage
+selected_profile: light
 selected_model: gpt-6.1-sol
-selected_effort: high
+selected_effort: low
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: "Automatic sensitive-task escalation: authorization, rls, transactional-integrity"
+escalation_reason: "Ordinary metadata-only test-risk classification; no code or security implementation"
 routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
@@ -44,6 +44,7 @@ routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: authorization, rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"low\",\"escalation_reason\":\"Ordinary metadata-only test-risk classification; no code or security implementation\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
