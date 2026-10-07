@@ -43,6 +43,21 @@ VALID_GIT_RUN = lambda _argv: (
 
 
 class RoutingAndMigrationTests(unittest.TestCase):
+    def test_astra_allowed_only_for_low_planning_routes(self):
+        payload = dict(phase="planning", role="planner", profile="light",
+                       model="gpt-6-astra", effort="low", host="codex",
+                       tier="subagents", route="subagent", escalation_reason="Owner-approved planning alternative")
+        for phase in ("planning", "coordination", "readiness", "task_decomposition"):
+            self.assertEqual(state_update._validate_route_selection({**payload, "phase": phase})["model"], "gpt-6-astra")
+        for phase in ("build", "followup_review", "security_layer", "tea_epic", "unknown"):
+            with self.assertRaises(state_update.ContractError):
+                state_update._validate_route_selection({**payload, "phase": phase})
+        for effort in ("medium", "high", "light"):
+            with self.assertRaises(state_update.ContractError):
+                state_update._validate_route_selection({**payload, "effort": effort})
+        self.assertLess(state_update._route_rank("gpt-6-astra", "low"), state_update._route_rank("gpt-6.1-sol", "high"))
+
+
     def test_cli_resolve_all_configured_phases_tools_and_errors(self):
         source = (ASSETS / "profiles.yaml").read_text(encoding="utf-8")
         source_lines = source.splitlines(keepends=True)

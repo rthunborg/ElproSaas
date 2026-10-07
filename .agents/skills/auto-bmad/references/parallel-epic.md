@@ -84,7 +84,7 @@ tracked worker files. Do not count a created worktree as a successful claim.
 
 Only dispatch a worker after the claim succeeds. Supply the assignment artifact,
 absolute root, approved spec and this reference. Use the task effort selected by
-agent-model-routing.md; all Codex routes use gpt-6.1-sol. Sensitive implementation
+agent-model-routing.md; planning/coordinator agents may use gpt-6-astra/low; implementation and review routes use gpt-6.1-sol. Sensitive implementation
 and review use High, ordinary work Low. Record route choices in that story's own state.
 
 Each iteration inspects status and admits eligible work up to the cap. A blocked

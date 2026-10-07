@@ -19,7 +19,7 @@ the current epic finishes.
 ## What you ask the coordinator
 
 After the tooling is integrated and you have a fresh coordinator checkout, start
-Sol 6.1 Light with:
+Sol 6.1 Light or GPT-6 Astra Light with:
 
 > Use Auto-BMAD to prepare a parallel readiness plan for Epic 15. Inspect current
 > prerequisites and existing sessions. Keep their work excluded. Finalize ready

@@ -28,8 +28,13 @@ Mandatory rules:
 
 ## Agent Model and Effort
 
-Use `gpt-6.1-sol` for every Codex primary agent, generic subagent, named role,
-and external Codex review in this project. Use `low` by default for ordinary
+Use `gpt-6.1-sol` by default for Codex primary agents, generic subagents, named
+roles and external Codex review. Owner-authorized exception: non-sensitive
+planning, coordination, readiness assessment and task decomposition may use
+`gpt-6-astra` with `low` effort (GPT-6 Astra Light in the UI). This applies to
+primary agents and planning/coordination subagents. Keep implementation and
+review delegates explicitly on Sol; never inherit Astra into those roles.
+Sensitive decisions require a `gpt-6.1-sol` High delegate, even inside planning. Use `low` by default for ordinary
 BMAD development AND review, including implementation, documentation, planning
 and follow-up review; `high` for tenant isolation, tenancy/provisioning, RBAC,
 permissions, authentication/authorization, security/RLS, secrets/public tokens,
