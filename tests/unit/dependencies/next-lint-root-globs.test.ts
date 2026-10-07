@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { createRequire } from "node:module";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 const require = createRequire(import.meta.url);
 const nextRequire = createRequire(require.resolve("eslint-config-next"));
@@ -24,7 +24,12 @@ function withRoots(run: (directory: string) => void) {
   mkdirSync(join(directory, "apps/web/pages"), { recursive: true });
   writeFileSync(join(directory, "apps/web/pages/about.tsx"), "export default function Page() { return null; }");
   try { process.chdir(directory); run(directory); }
-  finally { process.chdir(previous); rmSync(directory, { recursive: true, force: true }); }
+  finally {
+    process.chdir(previous);
+    assert.equal(dirname(resolve(directory)), resolve(tmpdir()));
+    assert.ok(basename(directory).startsWith("elpro-next-lint-roots-"));
+    rmSync(directory, { recursive: true, force: true });
+  }
 }
 const physical = (roots: string[]) => roots.map((root) => resolve(root)).sort();
 function roots(rootDir: unknown, cwd: string) {

@@ -1,17 +1,17 @@
+overrides:
+  browserslist: 4.28.8
+  postcss: ^8.5.23
+  sharp: 0.35.5
+  source-map-js: 1.2.2
+  '@next/eslint-plugin-next@16.3.6>fast-glob': npm:tinyglobby@0.2.17
+  brace-expansion: ^5.0.11
+  '@eslint/config-array': ^0.23.5
+  js-yaml: 4.3.2
+  nanoid: 3.3.18
+
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
-
-overrides:
-  '@eslint/config-array': ^0.23.5
-  '@next/eslint-plugin-next@16.3.6>fast-glob': npm:tinyglobby@0.2.17
-  brace-expansion: ^5.0.11
-  browserslist: 4.28.8
-  js-yaml: 4.3.2
-  nanoid: 3.3.18
-  postcss: ^8.5.23
-  sharp: ^0.35.3
-  source-map-js: 1.2.2
 
 patchedDependencies:
   '@next/eslint-plugin-next@16.3.6': patches/@next__eslint-plugin-next@16.3.6.patch
