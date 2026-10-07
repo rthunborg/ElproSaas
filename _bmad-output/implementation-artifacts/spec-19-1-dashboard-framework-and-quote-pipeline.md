@@ -4,7 +4,7 @@ type: 'feature'
 story_id: '19.1'
 sprint_key: '19-1-widget-registry-and-dashboard-framework'
 created: '2026-10-07'
-status: 'blocked'
+status: 'in-progress'
 phase: 'Phase B / Legacy Parity Release'
 baseline_revision: 'b8ccf1575ae94b33487470a08899f10022a8c3dc'
 baseline_ref: 'origin/main'
@@ -328,3 +328,8 @@ Reason: Required DB/RLS and production-server browser verification cannot execut
 Implementation: Manifest-governed dashboard framework and live quote pipeline implemented; author snapshot and exact continuation commands are recorded above.
 Evidence: focused 88 passed / 0 failed / 0 skipped; full unit 2036 passed / 0 failed / 1 pre-existing Linux-xattrs skip. Typecheck, lint (0 errors / 13 existing warnings), frozen install, high-threshold audit, lockfile, production build and source/bundle containment passed. Required DB/RLS 0 executed; 48 enabled browser cases collected / 0 executed. Independent review rounds: 0; gate held at step03.
 Completion hook: blocked/incomplete result preserved; no completed-trail reconciliation or completion claim. Author review-reference self-check passed 16 references / 0 errors, pending independent verification.
+
+## Verification Resume Metadata
+
+- 2026-10-07: The owner explicitly requested continuation of Story 19.1. Root reported a fresh trusted resource-guard actor hook and an active Compose registration; the prior HOOK_CONTEXT_UNAVAILABLE actor-hook blocker is resolved. Restore in-progress solely to resume the implementation-verification gate.
+- Runtime readiness, required DB/RLS and browser execution remain pending. Preserve the prior halted result as historical evidence; no new implementation, verification, review or completion is claimed by this metadata-only restoration. Baseline and frozen intent remain unchanged.
