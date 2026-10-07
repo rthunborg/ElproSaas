@@ -284,7 +284,7 @@ function cursorClient(rows: CursorRow[] = [], onRead?: (key: string, attempt: nu
       if (table === "tenants") return { select: () => ({ order: async () => { onOperation?.("enumerate"); return { data: [{ id: "tenant-a" }, { id: "tenant-b" }], error: null }; } }) };
       assert.equal(table, "job_runs");
       const equals = new Map<string, string>(); const orders: string[] = [];
-      let outcomes: string[] = []; let limit = 0;
+      let outcomes: string[] | undefined; let limit = 0;
       const query = {
         select: (fields: string) => { assert.equal(fields, "cursor,outcome"); return query; },
         eq: (field: string, value: string) => { equals.set(field, value); return query; },
@@ -298,7 +298,7 @@ function cursorClient(rows: CursorRow[] = [], onRead?: (key: string, attempt: nu
           const attempt = (reads.get(key) ?? 0) + 1; reads.set(key, attempt);
           const failure = onRead?.(key, attempt, signal);
           if (failure) return failure;
-          return { data: rows.filter((row) => [...equals].every(([field, value]) => row[field as "tenant_id" | "producer"] === value) && outcomes.includes(row.outcome))
+          return { data: rows.filter((row) => [...equals].every(([field, value]) => row[field as "tenant_id" | "producer"] === value) && (!outcomes || outcomes.includes(row.outcome)))
             .sort((a, b) => b.created_at - a.created_at || b.id - a.id).slice(0, limit), error: null, status: 200 };
         },
       };
@@ -325,7 +325,7 @@ test("[P0] resume and tenant cursor 504 recovery execute the recovered checkpoin
   const f = cursorClient([
     { tenant_id: "tenant-b", producer: "jobs.runner", outcome: "partial", cursor: global, id: 1, created_at: 1 },
     { tenant_id: "tenant-b", producer: producer.id, outcome: "partial", cursor: "saved-page", id: 2, created_at: 2 },
-    { tenant_id: "tenant-b", producer: "jobs.runner", outcome: "failed", cursor: null, id: 3, created_at: 3 },
+    { tenant_id: "tenant-b", producer: "jobs.runner", outcome: "partial", cursor: global, id: 3, created_at: 3 },
     { tenant_id: "tenant-b", producer: producer.id, outcome: "failed", cursor: null, id: 4, created_at: 4 },
     { tenant_id: "tenant-a", producer: producer.id, outcome: "partial", cursor: "other-tenant", id: 5, created_at: 5 },
     { tenant_id: "tenant-b", producer: "other.producer", outcome: "partial", cursor: "other-producer", id: 6, created_at: 6 },
@@ -345,7 +345,7 @@ test("[P0] resume and tenant cursor 504 recovery execute the recovered checkpoin
     assert.equal(q.signal.aborted, false);
     if (q.equals.get("producer") === producer.id) assert.equal(q.equals.get("tenant_id"), "tenant-b");
   }
-  assert.equal(f.rows.filter((row) => row.outcome === "failed").length, 2);
+  assert.equal(f.rows.filter((row) => row.outcome === "failed").length, 1);
 });
 
 test("[P0] exhausted producer lookups persist failure then recover prior partial without rewriting history", async () => {
@@ -369,6 +369,44 @@ test("[P0] exhausted producer lookups persist failure then recover prior partial
   assert.deepEqual(await recovered.json(), { outcome: "completed", cursor: null });
   assert.deepEqual(calls, ["tenant-a:saved-page"]);
   assert.deepEqual(f.rows.filter((row) => row.outcome === "failed"), history);
+});
+
+test("[P0] terminal global failure clears old due authority without replaying completed tuples or masking producer progress", async () => {
+  const hourly = { ...producer, schedule: "0 * * * *" };
+  for (const status of [403, 504]) {
+    let fail = true;
+    const f = cursorClient([
+      { tenant_id: "tenant-a", producer: "jobs.runner", outcome: "partial", cursor: encodeCursor(0, 0, [hourly.id], "tenant-a"), id: 1, created_at: 1 },
+      { tenant_id: "tenant-b", producer: hourly.id, outcome: "partial", cursor: "saved-page-b", id: 2, created_at: 2 },
+    ], (key) => fail && key === `${hourly.id}:tenant-b` ? { data: null, error: { message: "private upstream" }, status } : undefined);
+    const calls: string[] = [];
+    const dependencies = {
+      authorize: () => true, createClient: () => f.client, producers: [hourly],
+      execute: async (_candidate: unknown, tenant: string, cursor?: string) => { calls.push(`${tenant}:${cursor ?? "start"}`); },
+    };
+    const first = await handleJobsRunRequest(request(current), {
+      ...dependencies, chunkSize: 2, now: () => new Date("2030-01-01T12:05:00.000Z"),
+    });
+    assert.deepEqual(await first.json(), { outcome: "failed", cursor: null });
+    assert.deepEqual(calls, ["tenant-a:start"]);
+    assert.deepEqual(f.writes.map((row) => row.p_outcome), ["completed", "failed", "failed"]);
+    assert.ok(f.writes.every((row) => row.p_cursor === null));
+    assert.equal(f.writes[1]?.p_error_summary, `Cursor read failed (producer; ${status === 504 ? "transient_exhausted" : "non_transient"}; HTTP ${status})`);
+    assert.equal(f.writes[2]?.p_error_summary, "Background runner encountered producer failures");
+    assert.equal(f.reads.get(`${hourly.id}:tenant-b`), status === 504 ? 3 : 1);
+    const failures = f.rows.filter((row) => row.outcome === "failed").map((row) => ({ ...row }));
+
+    fail = false;
+    const second = await handleJobsRunRequest(request(current), {
+      ...dependencies, chunkSize: 1, now: () => new Date("2030-01-01T12:10:00.000Z"),
+    });
+    assert.deepEqual(calls, ["tenant-a:start", "tenant-b:saved-page-b"], "terminal authority must not replay tenant-a and consume tenant-b's chunk");
+    assert.deepEqual(await second.json(), { outcome: "completed", cursor: null });
+    assert.deepEqual(f.writes.slice(3).map((row) => [row.p_producer, row.p_tenant_id, row.p_outcome]), [
+      [hourly.id, "tenant-b", "completed"], ["jobs.runner", "tenant-b", "completed"],
+    ]);
+    assert.deepEqual(f.rows.filter((row) => row.outcome === "failed"), failures);
+  }
 });
 
 test("[P0] completed null checkpoints clear earlier producer and global partial progress", async () => {
@@ -519,7 +557,7 @@ test("[P0] installed Supabase transport performs exactly bounded cursor GETs and
         const url = new URL(String(input));
         assert.equal(url.pathname, "/rest/v1/job_runs");
         assert.equal(url.searchParams.get("producer"), "eq.jobs.runner");
-        assert.equal(url.searchParams.get("outcome"), "in.(completed,partial)");
+        assert.equal(url.searchParams.get("outcome"), null);
         assert.equal(url.searchParams.get("order"), "created_at.desc,id.desc");
         assert.equal(init?.method, "GET");
         assert.ok(init?.signal instanceof AbortSignal);

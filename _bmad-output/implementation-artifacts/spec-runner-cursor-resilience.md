@@ -67,6 +67,7 @@ context: ['docs/process/review-order.md']
 - 2026-10-07 implementation: preserved frozen intent. Root clarified that the approved checkpoint/audit repair includes selecting latest completed/partial progress while excluding failure-only rows; completed null still clears progress. No RPC validator or migration was changed. Independent review remains pending.
 - 2026-10-07 Round 1 fix: preserve the unread tuple after pre-execution cancellation/deadline, classify composed `TimeoutError` as deadline, and prove route RPC timing across partial/terminal invocations. Frozen intent and the RPC validator remain unchanged.
 - 2026-10-07 necessary CI follow-up: scoped dependency remediation for PR 83 audit failure, with installed Next lint/image compatibility evidence. Runner code and frozen intent remain unchanged; focused dependency review is pending.
+- 2026-10-07 consequential latest-fix correction: global latest terminal failure now clears old due-window authority, while producer checkpoint lookup still excludes failure-only rows. This supersedes only the global-query portion of the earlier selection choice; the three completed review rounds, dependencies and frozen intent are retained.
 
 ## Design Notes
 
@@ -78,7 +79,7 @@ Use the existing node:test loader for targeted jobs units, targeted ESLint, Type
 
 ### Implementation choices and executed evidence — 2026-10-07
 
-Implemented in the uncommitted `runner-cursor-resilience` worktree against baseline `aa60da251308a7fadd58c2a81ac24b2bfd058d98`. The reusable readonly handler allows three total attempts and fixed 100/200ms waits for HTTP 408/429/500/502/503/504. An absent/empty or matching numeric HTTP error code is required: SQL, auth, validation and unknown PostgREST codes do not acquire retry semantics from a 5xx status. Diagnostics contain only the controlled scope/category and an allow-listed HTTP status. Both queries retain their producer predicates, the producer query retains its tenant predicate, and descending `created_at,id` selection is deterministic. Selecting only completed/partial rows protects previous progress from failure-only observations; a selected completed null cursor clears earlier partial progress.
+Implemented initially in the `runner-cursor-resilience` worktree against baseline `aa60da251308a7fadd58c2a81ac24b2bfd058d98`. The reusable readonly handler allows three total attempts and fixed 100/200ms waits for HTTP 408/429/500/502/503/504. An absent/empty or matching numeric HTTP error code is required: SQL, auth, validation and unknown PostgREST codes do not acquire retry semantics from a 5xx status. Diagnostics contain only the controlled scope/category and an allow-listed HTTP status. Both queries retain their producer predicates, the producer query retains its tenant predicate, and descending `created_at,id` selection is deterministic. The final producer lookup selects completed/partial rows to protect prior checkpoint progress from failure-only observations; completed null clears that progress. The final global lookup selects the latest row across all outcomes, so completed/failed terminals clear older due-window authority. The consequential follow-up below records why matching these two policies caused replay.
 
 Installed `@supabase/postgrest-js` 2.108.2 source inspection showed SELECT retries enabled by default and `.retry(false)` returning the fluent builder. Both cursor queries disable those retries so the handler owns the attempt bound and SQL-code classification. `.abortSignal(signal)` returns the builder and forwards the signal to fetch. Each attempt also races cancellation/deadline, so even a mock or transport that ignores its signal cannot hold the read boundary indefinitely. Request cancellation, injected cancellation, and the existing budget signal are combined. Mutations and atomic run/audit persistence are outside this retry handler.
 
@@ -127,16 +128,41 @@ All commands first selected `C:/Users/Rasmus/.codex/worktrees/runner-cursor-resi
 
 Limits: physical lint fixtures and trusted synthetic image buffers exercise the real installed Windows native libraries and Next utility paths. They do not exercise a full production build, Linux native execution, browser image requests, hosted deployment or adversarial payload exploitation. Earlier runner tests retain their synthetic query/RPC/fetch and clock limits. Lower-severity audit findings, the pre-existing deferred failed-plus-cursor execution mismatch and unconfirmed historical external timeout causation remain explicitly recorded. Root owns focused High dependency review as Round 3 and Git/PR operations. This handoff is in-review.
 
+## Consequential Latest-Fix Follow-up
+
+Baseline: `8d5067e89030dff412030764c0fcd969d4c2a8a2`. Root authorized the narrow correction for [Bot P2 discussion r4205733206](https://github.com/rthunborg/ElproSaas/pull/83#discussion_r4205733206) after three completed review rounds. This is a newly identified reachable defect and its direct regression, not a fourth broad review. Owned changes are the global cursor SELECT, the jobs route RPC-contract fake/regression and this non-frozen task evidence/trail; runner logic, dependency remediation and all other files remain unchanged.
+
+### Proof and selected semantics
+
+Before the production edit, the new regression ran against the existing filtered global query and failed with native 1: 1 executed, 0 passed, 1 failed, 0 skipped/cancelled. Its old partial global row carried an hourly due snapshot into 12:05 off-schedule work. Tenant A completed; tenant B's cursor lookup failed permanently; the runner wrote a terminal failed row with null cursor. At 12:10, filtering failed global rows revived the older due snapshot and executed tenant A again, consuming the one-tuple chunk before tenant B could recover its saved producer checkpoint. The fake models ordered query outcomes and enforces the latest atomic RPC's cursor-only-for-partial contract.
+
+Root confirmed the minimum distinct-authority policy: global lookup reads the latest row across all outcomes, with only a latest partial resuming. A latest completed or failed row clears old global continuation authority. Producer lookup remains tenant/producer scoped and selects latest completed/partial, excluding failure-only observations so a prior partial checkpoint remains recoverable; completed null still clears it. This preserves permanent/exhausted producer and terminal runner failure semantics without persisting an invalid failed cursor, relaxing the RPC or converting all failures into partial outcomes. A failed tuple without an earlier producer checkpoint gets no revived off-schedule authority and waits for its next scheduled window. Budget/cancellation interruption still uses the already-reviewed same-tuple partial continuation.
+
+The final two-invocation regression exercises both permanent HTTP 403 and exhausted HTTP 504. It asserts that tenant A runs only once, tenant B subsequently executes its preserved `saved-page-b` checkpoint despite the one-tuple chunk, both failures remain recorded with controlled error evidence/null cursors, and the second invocation completes. Existing completed-null and producer failure-checkpoint recovery tests remain green. The earlier recovered-global fixture now uses a latest partial row rather than expecting a terminal failure to be ignored; the actual installed-client transport test asserts the global URL has no outcome filter.
+
+### Executed narrow gates
+
+| Command | Native result and counts |
+| --- | --- |
+| `node --experimental-strip-types --import ./tests/support/register.mjs --test --test-name-pattern='terminal global failure clears old due authority' tests/unit/server/jobs/route.test.ts` before the query edit | 1; 1 executed, 0 passed, 1 failed, 0 skipped/cancelled. The expected failure was the reproduced tenant-A replay. |
+| `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/server/jobs/*.test.ts` after the query edit and durable-summary assertions | 0; 59 executed, 59 passed, 0 failed/skipped/cancelled. |
+| `node node_modules/typescript/bin/tsc --noEmit --incremental false` | 0. |
+| `node node_modules/eslint/bin/eslint.js src/app/api/jobs/run/route.ts tests/unit/server/jobs/route.test.ts` | 0. |
+| `node scripts/verify/check-service-role-containment.mjs` | 0; authenticated service-role containment remains intact. |
+| `node scripts/verify/check-review-order.mjs _bmad-output/implementation-artifacts/spec-runner-cursor-resilience.md` | 0; one authored trail, 20 verified references, zero errors. |
+
+Limits remain synthetic query/RPC/fetch, injected clock and controlled fixtures. No database/hosted recovery, exact global unread-tuple preservation after a terminal failure or new scheduling authority is claimed. No audit rerun, full suite, migration, RPC change, dependency change, managed resource or Git operation occurred. Root owns focused independent High verification limited to this consequential patch and direct regression. This handoff is in-review.
+
 ## Suggested Review Order
 
 Author: cursor-resilience implementation author (`cursor_author`).
-Refreshed against the dependency-follow-up working tree based on HEAD `e8eb3e349bc23dc574087e3498b4e2f9574e5b8a`, retaining the runner baseline `aa60da251308a7fadd58c2a81ac24b2bfd058d98` and completed Round 1/2 fixes/review. Focused High Round 3 dependency review completed without consequential findings. Code, dependencies, verified stops and recorded evidence limits remain unchanged after review.
+Refreshed against the consequential latest-fix working tree based on HEAD `8d5067e89030dff412030764c0fcd969d4c2a8a2`, retaining the runner baseline `aa60da251308a7fadd58c2a81ac24b2bfd058d98` and all three completed review rounds, including dependency remediation. Narrow independent verification confirmed the global terminal-authority correction and direct 403/504 regression resolved without consequential regressions; this was not a fourth broad review. Runtime code, dependencies, verified stops and evidence limits remain unchanged after that verification.
 
 ### Authenticate and recover authoritative progress
 
-Authentication still precedes privileged client construction. Both cursor SELECTs now choose the latest completed/partial state, preserving checkpoint progress across failure-only rows while letting completed null clear progress; tenant and producer boundaries remain explicit.
+Authentication still precedes privileged client construction. Global lookup reads the latest row across all outcomes so terminal completed/failed clears older due authority; producer lookup reads latest completed/partial to preserve a checkpoint across failure-only rows, with completed null clearing that checkpoint. These different policies prevent completed-tuple replay without masking recoverable producer progress.
 
-- `src/app/api/jobs/run/route.ts:81` — `handleJobsRunRequest`: shared authenticated scheduler entry.
+- `src/app/api/jobs/run/route.ts:82` — `handleJobsRunRequest`: shared authenticated scheduler entry.
 - `src/app/api/jobs/run/route.ts:32` — `loadProducerCursor`: retains explicit tenant and producer predicates.
 - `src/app/api/jobs/run/route.ts:48` — `loadResumeCursor`: deterministic global progress selection.
 - `tests/unit/server/jobs/route.test.ts:323` — `resume and tenant cursor 504 recovery`: recovery AC executes the recovered checkpoint once.
@@ -148,7 +174,7 @@ The three-attempt handler owns status/code classification, signal propagation an
 - `src/server/jobs/cursor-read.ts:43` — `readCursor`: reusable readonly attempt boundary.
 - `src/server/jobs/cursor-read.ts:78` — `isHttpError`: SQL/auth/validation codes cannot authorize retries.
 - `tests/unit/server/jobs/cursor-read.test.ts:53` — `deadline expiry before reads`: fake-time budget AC covers reads and waits.
-- `tests/unit/server/jobs/route.test.ts:512` — `installed Supabase transport`: actual client observes bounded GETs and no SQL-code retry.
+- `tests/unit/server/jobs/route.test.ts:550` — `installed Supabase transport`: actual client observes bounded GETs and no SQL-code retry.
 
 ### Keep failure outcomes and elapsed summaries truthful
 
@@ -157,15 +183,15 @@ Permanent/exhausted all-read failures now remain failed even when no producer ex
 - `src/server/jobs/runner.ts:296` — `if (!executionStarted`: interrupted unread tuples retain their continuation.
 - `src/server/jobs/runner.ts:310` — `if (!executedProducer)`: terminal outcome respects failed lookups.
 - `tests/unit/server/jobs/runner.test.ts:589` — `all cursor lookup failures`: failure AC checks producer and runner outcomes with null cursors.
-- `tests/unit/server/jobs/route.test.ts:416` — `interrupted reads preserve the hourly tuple`: continuation and timing ACs traverse the route RPC mapping.
+- `tests/unit/server/jobs/route.test.ts:454` — `interrupted reads preserve the hourly tuple`: continuation and timing ACs traverse the route RPC mapping.
 
 ### Check checkpoint clearing, cancellation and evidence limits
 
-The route fake models filtered checkpoint selection and the existing atomic RPC validator. Completed-null clearing and permanent-error durability exercise failure edges. The real budget probe asserts that the composed transport signal carries `TimeoutError` while the persisted category remains deadline; continuation tests ensure partial summaries do not hide failures. The verification table above records executed commands, native codes and limits.
+The route fake models separate global-authority and producer-checkpoint selection plus the existing atomic RPC validator. The new permanent/exhausted two-invocation regression proves no completed-tuple replay while prior producer partial progress remains recoverable; existing completed-null clearing remains tested. The real budget probe checks timeout classification, and continuation tests retain failure evidence. The task tables above distinguish reproduced pre-fix failure from executed passing evidence.
 
-- `tests/unit/server/jobs/route.test.ts:374` — `completed null checkpoints`: completed state clears producer and global progress.
-- `tests/unit/server/jobs/route.test.ts:401` — `permanent producer errors`: one read and durable failed observations.
-- `tests/unit/server/jobs/route.test.ts:466` — `production composed budget timeout`: timeout AC persists deadline and preserves the unread tuple.
+- `tests/unit/server/jobs/route.test.ts:374` — `terminal global failure clears old due authority`: no replay; producer checkpoint and durable failures remain recoverable.
+- `tests/unit/server/jobs/route.test.ts:439` — `permanent producer errors`: one read and durable failed observations.
+- `tests/unit/server/jobs/route.test.ts:504` — `production composed budget timeout`: timeout AC persists deadline and preserves the unread tuple.
 - `tests/unit/server/jobs/runner.test.ts:606` — `partial continuation retains failure evidence`: resumable state retains the earlier failure.
 
 ### Restore the audit gate while preserving Next consumers
@@ -177,7 +203,7 @@ The version-scoped lint alias removes the unpatched braces path; the small consu
 - `tests/unit/dependencies/next-lint-root-globs.test.ts:55` — `patched Next no-html-link-for-pages`: actual rule still diagnoses page-route anchors.
 - `tests/unit/dependencies/next-image-optimizer.test.ts:30` — `installed Next optimizer decodes a synthetic SVG`: actual native SVG decoding preserves output dimensions and pixels.
 
-Evidence: 58/58 jobs tests plus 4/4 installed dependency fixtures, zero failed/skipped; frozen install, unsuppressed high-level audit, full lint, TypeScript, containment and the refreshed 20-reference review-order checker native 0. Limits: synthetic rows/RPC/fetch and injected clocks, plus a focused real composed timeout; trusted image/lint fixtures run on Windows native libraries. No local integration, Linux native, full production build or hosted recovery claim. Two moderate audit findings and 13 lint warnings remain; the historical failed-plus-cursor execution mismatch remains deferred, and hosted rollout remains separately authorized.
+Evidence: latest narrow jobs verification 59/59, zero failed/skipped, with TypeScript, targeted lint, containment and the 20-reference author checker native 0. Earlier unchanged dependency evidence remains 4/4 fixtures, frozen install, unsuppressed high-level audit and full lint native 0; it was not rerun for this query-only correction. Limits: synthetic rows/RPC/fetch and injected clocks, plus a focused real composed timeout; trusted image/lint fixtures run on Windows native libraries. No local integration, Linux native, full production build or hosted recovery claim. Two moderate audit findings and 13 prior lint warnings remain; the historical failed-plus-cursor execution mismatch remains deferred, and hosted rollout remains separately authorized.
 
 
 ### Review Findings
@@ -199,4 +225,9 @@ Reused independent High blind reviewer confirmed both accepted fixes resolved: i
 **Round 3 of 3 — dependency CI security follow-up only**
 
 Independent High reviewer found no concrete consequential defect in the dependency delta against e8eb3e349bc23dc574087e3498b4e2f9574e5b8a. Confirmed the version-scoped lint alias removes the braces chain, exact patched source-map-js and Sharp resolutions remain in the lockfile, no audit waiver exists, and all four actual installed Next consumer compatibility tests are included by the default unit-test glob and loader. This was readonly focused review; it did not repeat the runner review or tests. Evidence remains Windows fixtures, with no Linux native, production build, hosted or adversarial-payload claim. No open findings remain. This completes the final automatic round; further review is limited to newly changed-line regressions or unresolved consequential findings.
+
+
+### Consequential latest-fix verification after completed three rounds
+
+The reused independent High reviewer confirmed the reported global replay finding resolved: latest terminal global failure clears older continuation authority, while producer lookup preserves prior partial progress. The two-invocation regression meaningfully exercises both permanent HTTP 403 and exhausted HTTP 504; the completed tenant executes once, the next tenant resumes its saved checkpoint with a one-tuple chunk, and failed rows have null cursors under the unchanged atomic RPC contract. No consequential regression was found in this narrow fix. This was readonly verification of the latest consequential patch, not another broad or numbered review round, and did not rerun tests. The earlier three completed review rounds remain intact. Final author execution is 59/59 targeted jobs tests with zero failures/skips/cancellations; TypeScript, targeted lint, containment and 20-reference author review-order checker returned native 0. Synthetic evidence does not establish database or hosted recovery.
 

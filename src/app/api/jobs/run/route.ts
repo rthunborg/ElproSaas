@@ -46,11 +46,12 @@ async function loadProducerCursor(client: SupabaseClient, tenantId: string, prod
 }
 
 async function loadResumeCursor(client: SupabaseClient, options: CursorReadOptions): Promise<string | undefined> {
+  // Global rows authorize a due-window continuation. The latest terminal row,
+  // including failed, clears that authority instead of reviving an older partial.
   const data = await readCursor((signal) => client
     .from("job_runs")
     .select("cursor,outcome")
     .eq("producer", CURSOR_PRODUCER)
-    .in("outcome", ["completed", "partial"])
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
     .limit(1)
