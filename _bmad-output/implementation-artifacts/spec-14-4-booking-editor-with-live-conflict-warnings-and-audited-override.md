@@ -2,12 +2,13 @@
 title: 'Story 14.4: Booking Editor with Live Conflict Warnings and Audited Override'
 type: 'feature'
 created: '2026-10-07'
-status: 'blocked'
+status: 'draft'
 baseline_revision: '246c8402fec01fa5f4e46cfaf5466e78c0b9cd5c'
 review_loop_iteration: 0
 followup_review_recommended: false
 context:
   - 'docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md'
+  - 'docs/decisions/epic-14-story-ownership-contract-d-2026-10-07.md'
   - '_bmad-output/implementation-artifacts/epic-14-context.md'
   - '_bmad-output/test-artifacts/test-design-epic-14.md'
   - 'docs/process/review-order.md'
@@ -22,13 +23,13 @@ deferred: []
 
 **Problem:** Booking persistence and authoritative conflict detection exist, but users cannot create/edit bookings through the responsive editor or deliberately accept a collision with attributable evidence.
 
-**Approach:** Expose the existing checked detector through a sanitized live preview and use the existing atomic booking transaction for an explicit, reasoned override. Deliver the approved side-sheet/full-screen editor, optional connections, persistent open-conflict count, dirty guard, and connected failure/retry behavior. Preserve the full approved entry-point obligation pending the decisions below.
+**Approach:** Expose the existing checked detector through a sanitized live preview and use the existing atomic booking transaction for an explicit, reasoned override. Deliver the approved side-sheet/full-screen editor, optional connections, persistent open-conflict count, dirty guard, and connected failure/retry behavior. Under owner-approved Contract D, retain current toolbar and pre-connected job/customer entries and the reusable person/time-prefill seam; only empty-slot click/drag acceptance transfers to Story 15.1 before actual calendar entry-point exposure/completion.
 
 ## Boundaries & Constraints
 
-**Always:** Phase B legacy parity; active `resources` owns this capability and `scheduling` remains pending with empty live surfaces. Follow Contract C and the existing sole detector, current-row verification, shared tenant gate, command-only writes, same-tenant references, exact workflow identity, and atomic booking/assignees/conflicts/acceptance/outcome/audit. `Bookings.Manage` grants admin/project leader writes; Montör reads only its own joined bookings/conflicts and has no editor mutation or tenant-wide preview authority. Resolve actor from current authorized membership and time in SQL. Evaluate Stockholm time/DST through existing helpers; preserve untouched PostgreSQL microseconds. Keep unsent input after transient failure, explicit retry, and success only on confirmed persistence.
+**Always:** Phase B legacy parity; active `resources` owns this capability and `scheduling` remains pending with empty live surfaces. Follow Contract C, owner-approved Contract D and the existing sole detector, current-row verification, shared tenant gate, command-only writes, same-tenant references, exact workflow identity, and atomic booking/assignees/conflicts/acceptance/outcome/audit. `Bookings.Manage` grants admin/project leader writes; Montör reads only its own joined bookings/conflicts and has no editor mutation or tenant-wide preview authority. Resolve actor from current authorized membership and time in SQL. Evaluate Stockholm time/DST through existing helpers; preserve untouched PostgreSQL microseconds. Keep unsent input after transient failure, explicit retry, and success only on confirmed persistence.
 
-**Block If:** The entry-host/acceptance-granularity decisions in Planning Gate remain unresolved; a current conflict or candidate can inherit a different preview's acceptance; implementation needs a pending scheduling view, wider permissions, a second detector, privileged application credentials, or new job/competence facts. Routine engineering choices within the existing boundaries need no owner checkpoint.
+**Block If:** A current conflict or candidate can inherit a different preview's acceptance; implementation needs a pending scheduling view, wider permissions, a second detector, privileged application credentials, or new job/competence facts. Routine engineering choices within the existing boundaries need no owner checkpoint.
 
 **Never:** Ship E15 scheduling projections/nav, recurrence controls/expansion, resolver, time reporting, calendar feed, notifications, file ownership, E16 job depth, overtime mutation, hosted changes, AI/PWA/offline/portal/vendor APIs, or other Phase C scope. Do not copy Lovable code. No acceptance flag on the booking, client-authored detector authority, tenant-wide blanket acceptance, independent post-save acceptance write, or edited applied migration.
 
@@ -38,7 +39,7 @@ deferred: []
 |---|---|---|---|
 | Standalone/connected | Valid create/update; optional job/customer/facility/contact | Same editor and transaction; connections can be cleared; compatible same-tenant references | Generic validation/authorization errors retain draft |
 | Live warning | Assignee/time/role/connection changes; asynchronous preview responses race | Latest candidate's authoritative rule/person/window/collision timeline replaces obsolete warnings and availability hints | Failed preview is visible; never present unknown as conflict-free |
-| Conflict save | Current warning set; explicit acknowledgment and nonblank reason | Accepted logical groups and remaining open groups follow owner-selected granularity; acceptance actor/time/audit commit atomically | Missing acknowledgment returns BOOKING_CONFLICT_UNACKNOWLEDGED; invalid reason/identity is a no-op |
+| Conflict save | Current warning set; explicit acknowledgment and nonblank reason | Explicitly reviewed candidate warning set with required reason; selected reviewed candidate-related whole logical groups become accepted, other reviewed candidate conflicts remain open, unrelated tenant conflicts excluded; acceptance actor/time/audit commit atomically | Missing acknowledgment returns BOOKING_CONFLICT_UNACKNOWLEDGED; invalid reason/identity is a no-op |
 | Stale review | Candidate/facts change after preview, including concurrent booking | Fresh warnings and renewed explicit acknowledgment; no acceptance/write from stale review | PREVIEW_STALE, retain draft; no silent acceptance across server retry |
 | Replay/fault | Response lost after commit, altered reason/selection, revoked actor, or fault before audit | Equal authorized retry returns historical outcome once; changed business decision conflicts; faults roll back all rows | COMMAND_CONFLICT/current denial/retryable SERVER_ERROR; exact no-op evidence |
 | Existing workflow | Identical accepted key, changed collision, unrelated peer conflicts | Identical evidence survives; changed identity becomes open; chip counts open only | Never infer resolver outcome or accept unrelated conflicts |
@@ -63,21 +64,21 @@ Inspected at the full baseline above; narrow UI inspection plus a synchronous co
 
 ## Tasks & Acceptance
 
-**Execution, after both planning decisions are recorded:**
+**Provisional execution, reconciled to Contract D; official replan remains pending:**
 
 1. `src/features/resources/booking-types.ts`, new `src/features/resources/booking-editor-input.ts`, `src/server/commands/bookings/validation.ts`, `src/server/commands/command-errors.ts`, `booking-db.ts` — define canonical human decision, selected logical identities/reason, preview freshness and stable errors. Business replay includes the normalized decision/reason; transport proof/expiry/correlation does not alter replay identity. Unit-test every matrix edge in `tests/unit/features/resources/booking-editor-input.test.ts` and existing booking validation tests.
 2. `src/server/bookings/conflict-facts.ts`, new `src/server/bookings/editor-preview.ts`, `conflict-attestation.ts`, `save-with-conflicts.ts`, existing create/update commands — preserve sole-engine output; project sanitized logical warnings with all participant keys and availability hints. Bind a server-authenticated editor receipt to actor/tenant/canonical candidate/proposed UUID/versions/exact reviewed identities/freshness. Never expose raw detector proof, fact bundle, secret or durable command history. Suppress obsolete UI results. Fresh save cannot silently renew human acceptance after stale facts.
 3. New `supabase/migrations/*_booking_editor_audited_override.sql`, generated with discovered `supabase migration new` — extend checked snapshot/finalize/private commit and replay identity to validate the human decision under the first gate, including direct-RPC callers, before any writes. Persist acceptance reason/current membership/time and audit atomically; retain ACL, current authorization/revocation, unchanged-key evidence, changed-key open refresh and legacy replay. Scope every selected whole logical group to the candidate. Update exact RPC ACL assertions in existing booking RLS/reset suites.
 4. New `src/features/resources/bookings-read.ts`, `src/features/resources/booking-actions.ts`, `src/features/resources/booking-action-state.ts` — checked cookie-bound reads, same-tenant picker options, optional connections, read-scoped persistent open count and typed preview/save/retry actions. No client tenant authority; no generalized CRM/job read leak. Revalidate actual host routes after confirmation.
-5. New `src/components/resources/BookingEditor.tsx`, `src/components/resources/BookingConflictPanel.tsx`, `src/components/resources/BookingEntry.tsx`, `src/components/resources/BookingConflictChip.tsx`; `src/app/(app)/jobs/page.tsx`, `src/app/(app)/jobs/[jobId]/page.tsx`, `src/app/(app)/customers/[customerId]/page.tsx`, `src/components/jobs/JobDetailView.tsx`, `src/components/crm/CustomerDetail.tsx` — implement fields, multi-person availability hints/work-role filter, latest inline warnings with text and mini-timeline, owner-selected acknowledgment/reason, open chip and edit reopening. Reuse existing dialog behavior for responsive side/full-screen sheet, keyboard focus/dirty Escape/back/close guard and in-sheet failure/retry. Connect current toolbar and pre-connected job/customer entries; the slot-host obligation remains governed by Planning Gate, not silently replaced.
-6. `tests/integration/commands/booking-editor.int.test.ts`, existing conflict/replay/RLS suites, new `tests/e2e/booking-editor.e2e.spec.ts`, `tests/unit/scope/booking-editor-scope.test.ts` — implement all 14.4-COMP-001..004, INT-001..005, E2E-001..007 and GOV-001 obligations, including authoritative stale preview, forged/unauthorized selection, aggregate candidate sorting third, exact rollback/replay/audit, inherited microseconds/DST, count reload and 360×640 failure/retry. Actual browser action and persistence readback prove the outer surface; mocks do not prove it.
+5. New `src/components/resources/BookingEditor.tsx`, `src/components/resources/BookingConflictPanel.tsx`, `src/components/resources/BookingEntry.tsx`, `src/components/resources/BookingConflictChip.tsx`; `src/app/(app)/jobs/page.tsx`, `src/app/(app)/jobs/[jobId]/page.tsx`, `src/app/(app)/customers/[customerId]/page.tsx`, `src/components/jobs/JobDetailView.tsx`, `src/components/crm/CustomerDetail.tsx` — implement fields, multi-person availability hints/work-role filter, latest inline warnings with text and mini-timeline, explicit current-set review, required reason and selected logical conflict acceptance, open chip and edit reopening. Reuse existing dialog behavior for responsive side/full-screen sheet, keyboard focus/dirty Escape/back/close guard and in-sheet failure/retry. Connect current toolbar and pre-connected job/customer entries; only the real empty-slot click/drag portion belongs to Story 15.1 under Contract D; no E15 slot host ships here.
+6. `tests/integration/commands/booking-editor.int.test.ts`, existing conflict/replay/RLS suites, new `tests/e2e/booking-editor.e2e.spec.ts`, `tests/unit/scope/booking-editor-scope.test.ts` — implement all retained 14.4-COMP-001..004, INT-001..005, E2E-001..007 and GOV-001 obligations (14.4-E2E-006 empty-slot click/drag portion transfers to 15.1; retained entry portion stays here), including authoritative stale preview, forged/unauthorized selection, aggregate candidate sorting third, exact rollback/replay/audit, inherited microseconds/DST, count reload and 360×640 failure/retry. Actual browser action and persistence readback prove the outer surface; mocks do not prove it.
 7. `_bmad-output/implementation-artifacts/spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md` and `_bmad-output/test-artifacts/story14-4-verification.md` — record actual revision/commands/executed-failed-skipped evidence, AC mapping, limits and author-written final review trail after implementation/fixes. Parent owns workflow/progress state. Predev ATDD and postdev automation remain separate later phases; planning creates no tests or completed trail.
 
-**Acceptance Criteria, subject to the explicitly unresolved decisions:**
+**Provisional Acceptance Criteria, reconciled to the recorded owner decisions; official replan pending:**
 
-1. Given an entitled current toolbar/job/customer entry, when opened and edited, then the desktop side sheet or 360×640 full-screen sheet exposes all approved fields, optional standalone connections, availability hints and prefilled context without E15/recurrence controls (COMP-001/002, E2E-001/006). The approved empty-slot click/drag obligation is preserved for decision below.
+1. Given an entitled current toolbar/job/customer entry, when opened and edited, then the desktop side sheet or 360×640 full-screen sheet exposes all approved fields, optional standalone connections, availability hints and prefilled context without E15/recurrence controls (COMP-001/002, E2E-001/006). Only empty-slot click/drag transfers to Story 15.1 actual Schema/Resurser hosts; it must pass before calendar entry-point exposure/completion and is not claimed here.
 2. Given changed assignees/time or other detector inputs, when current preview returns, then the visible panel explains every relevant rule/person/window/collision with an accessible mini-timeline, old results cannot overwrite newer warnings, and failures remain visibly unknown (COMP-003/004).
-3. Given current warnings, when saving without explicit acknowledgment or with blank/forged/stale/unauthorized acceptance, then the editor shows the corresponding safe error, retains draft and commits no business/outcome/audit rows; authorized nonblank override atomically persists the owner-selected accepted groups with actor/time/reason and one audit (INT-001/002/003).
+3. Given current warnings, when saving without explicit acknowledgment or with blank/forged/stale/unauthorized acceptance, then the editor shows the corresponding safe error, retains draft and commits no business/outcome/audit rows; authorized explicit current-set review with nonblank reason atomically accepts selected reviewed candidate-related complete logical groups with actor/time/reason and one audit, leaving other reviewed candidate conflicts open and excluding unrelated tenant conflicts (INT-001/002/003).
 4. Given accepted/unaccepted/resolved conflicts and a later collision change, when the booking reloads or is updated, then open-only counts persist, identical acceptance survives and changed identity is open; unrelated conflicts are never accepted by this candidate's action (INT-004/005, E2E-002).
 5. Given dirty edits, when Escape/back/close is requested, then cancel retains input and deliberate discard closes with predictable focus return; in-flight saves cannot silently dismiss the form (E2E-003/007).
 6. Given transient failure or lost response after commit at 360×640, when explicit retry occurs, then suitable unsent state remains, success appears only after server confirmation and durable state contains one booking/assignment/conflict set with one attributable audit (E2E-004/005).
@@ -85,13 +86,15 @@ Inspected at the full baseline above; narrow UI inspection plus a synchronous co
 
 ## Spec Change Log
 
+- 2026-10-07 preparation author: recorded owner-approved Contract D; reconciled only empty-slot entry ownership and selective reviewed conflict acceptance in the intent contract; retained all other approved intent and historical blocked evidence. Status is draft for the pending official replan, not ready-for-dev or new verification.
+
 ## Review Triage Log
 
 ## Design Notes
 
 Human acknowledgment and detector attestation are different authority. Bind the editor review to the proposed create UUID and current logical collision set; the existing create snapshot otherwise regenerates the UUID used by identity. A new server-authenticated preview receipt is distinct from the private detector proof. Derive acceptance groups from the same engine output, covering v1 base and v2 aggregate association keys, and verify them in the same transaction. Preserve full-tenant refresh without allowing the editor to accept unrelated conflicts.
 
-The final architecture supersedes older UX wording that an override stays open: accepted is a workflow record, not a booking flag. The remaining granularity decision affects which candidate conflicts become accepted, not this settled state model or existing permissions.
+The final architecture supersedes older UX wording that an override stays open: accepted is a workflow record, not a booking flag. Contract D settles granularity: explicit review and required reason, selected reviewed candidate-related complete logical groups accepted, other reviewed candidate conflicts open; existing permissions and current server authority remain unchanged.
 
 ## Verification
 
@@ -102,6 +105,15 @@ Later implementation commands: `pnpm typecheck`, `pnpm lint`, `pnpm run test:uni
 After implementation/fixes, author and validate the final review trail with `node scripts/verify/check-review-order.mjs _bmad-output/implementation-artifacts/spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md`; planning has no final Suggested Review Order heading.
 
 ## Planning Gate
+
+Current preparation state: **owner decisions resolved; draft pending official replan**. [Contract D (2026-10-07)](../../docs/decisions/epic-14-story-ownership-contract-d-2026-10-07.md) records both human approvals. This preparation is not a READY-FOR-DEVELOPMENT verdict or a new Build Auto planning/verification run.
+
+- Only empty-slot click/drag portion of `14.4-E2E-006` transfers to **Story 15.1: The Five Scheduling Views**, actual `Schema`/`Resurser` hosts. Both real click and drag must open the same editor with selected interval/person context and must pass before applicable calendar entry-point exposure and before 15.1 completion. Story 14.4 keeps its editor, toolbar/job/customer entries and reusable person/time-prefill seam; no scheduling nav/view/slot host is added now. All other 14.4 acceptance stays.
+- Conflicted save requires explicit review/acknowledgment of the current candidate warning set plus required nonblank reason. Selected reviewed candidate-related complete logical conflict groups become accepted; other reviewed candidate conflicts stay open. Unrelated tenant conflicts are excluded. Preserve current server authorization/facts, exact identity, stable preview create UUID and atomic booking/acceptance/outcome/audit.
+
+The intent-contract amendments above contain only these owner-selected policy/ownership resolutions; all other approved intent remains frozen. Original baseline/evidence/blocked result below remain historical. Root commits preparation and confirms a clean tree before one official replan with `Halt after planning.` No renderer, official planning, ATDD, implementation, product test, migration, resource or hosted action ran during preparation. Planning-source changes invalidate the old Epic 14 context cache; it was neither rewritten nor retimestamped. The official context workflow must refresh it as required, including on the draft-resume route. No owner questions remain from this blocker.
+
+## Historical Planning Gate — blocked before Contract D
 
 Gate verdict: **blocked — intent gap**. Actionable independent tasks and outermost UI criteria are preserved, but the sufficient/coherent gate cannot pass until the following observable choices are selected. This is not a service/credential/test blocker.
 
@@ -122,6 +134,8 @@ Unanswered owner question: **May a user explicitly acknowledge the current candi
 Options: (A) explicitly review all candidate warnings and accept selected logical conflicts with reason, leaving others open (recommended, matching the mixed-conflict journey); (B) Boka ändå accepts every candidate-related logical conflict with reason. Either choice must be recorded before implementation. Both require current actor/facts/identity, nonblank reason and atomic audit; neither authorizes accepting unrelated conflicts or silent acceptance after stale preview.
 
 ## Auto Run Result
+
+### Historical canonical result — before Contract D approval
 
 Status: blocked
 Blocking condition: intent gap

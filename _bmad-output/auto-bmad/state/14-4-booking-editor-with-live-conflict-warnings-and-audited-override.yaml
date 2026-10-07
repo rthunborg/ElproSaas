@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/epic14-resume
 status: in-progress
-updated_at: "2026-10-07T11:16:46Z"
+updated_at: "2026-10-07T11:29:12Z"
 started_at: "2026-10-07T11:04:30Z"
 completed_at: null
 active_seconds: 735
-timing_anchor: null
+timing_anchor: 1791372261
 is_first_in_epic: false
 is_last_in_epic: true
 git_mode: remote
@@ -38,8 +38,8 @@ completed_phases: [0, 1, 2]
 spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md"
 spec_approved: true
 build:
-  status: blocked
-  blocking_condition: intent gap
+  status: draft
+  blocking_condition: null
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
@@ -77,12 +77,9 @@ pr_merged: false
 merge_method: null
 merge_commit: null
 branch_deleted: false
-open_questions:
-  - "Transfer empty-slot portion of14.4-E2E-006 toE15, mandatorybeforecalendar entrypoint exposure, or authorize a named active-resource slot host now?"
-  - "Allow selected reviewed candidate conflicts accepted withreason whileothersremainopen, or require Bokaanda toacceptallcandidate conflicts? Unrelatedtenant conflicts always excluded."
+open_questions: []
 deferred_work: []
-blockers:
-  - "14.4 requires two owner decisions: empty-slot click/drag acceptance host/transfer boundary and selected-vs-all reviewed candidate conflict acceptance."
+blockers: []
 overrides:
   unattended_run_confirmed_by_owner_request: true
   existing_approvals_valid: true
@@ -98,7 +95,16 @@ overrides:
   root_guard_stop_requested: true
   root_guard_stop_native_exit: 0
   root_guard_shutdown_verified: false
-  plan_intent_gap_owner_questions_pending: true
+  plan_intent_gap_owner_questions_pending: false
+  owner_approved_story14_4_decisions: true
+  owner_approved_empty_slot_transfer_to_epic15: true
+  empty_slot_14_4_E2E006_mandatory_before_epic15_exposure: true
+  owner_approved_selected_reviewed_candidate_conflicts: true
+  unselected_reviewed_candidate_conflicts_remain_open: true
+  unrelated_tenant_conflicts_excluded: true
+  acceptance_contract_d_owner_approved: true
+  acceptance_contract_d_document: docs/decisions/epic-14-story-ownership-contract-d-2026-10-07.md
+  current_story_build_status: draft
 constraints:
   - "Approved PhaseB manifest-governed Story14.4 only; hardPhaseC exclusions."
   - "Retain owner-approved ContractC; allfour14.3 checks passed beforeeditor exposure."

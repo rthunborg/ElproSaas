@@ -44,7 +44,7 @@ All four transferred checks, including equivalent mandatory P0 evidence, must pa
 - Story 14.1: one person profile per membership, default work-role reuse, weekly work templates and exceptions, tenant calendar days, capacity inputs, admin maintenance, deactivated-user semantics, and `resources` activation.
 - Story 14.2: standalone or optionally connected bookings, multi-assignees, composite same-tenant references, UTC instants, conflict-workflow schema, and transactional SECURITY INVOKER create/update foundation commands with RLS, authorization, idempotency, rollback and booking-assignee-audit atomicity; no user-facing booking entry.
 - Story 14.3: one pure, clock-free conflict engine shared by preview and authoritative save, integrated into the write transaction with current-row recheck and atomic conflict persistence/refresh, covering double booking, over-capacity, outside-work-hours, access-window, and competence conflicts.
-- Story 14.4: responsive booking editor, live warnings, explicit `Boka ändå`, required reason, persisted accepted/open conflicts, audit evidence, dirty-state protection, retained unsent state, explicit retry, and server-confirmed success.
+- Story 14.4: responsive booking editor, live warnings, explicit review via `Boka ändå`, required nonblank reason, selected reviewed candidate-related logical conflicts accepted and other reviewed conflicts open, audit evidence, dirty-state protection, retained unsent state, explicit retry, and server-confirmed success. [Contract D](../../docs/decisions/epic-14-story-ownership-contract-d-2026-10-07.md) transfers only the empty-slot click/drag portion of 14.4-E2E-006 to Story 15.1; all other 14.4 acceptance remains.
 - Existing Phase B guardrails for tenant isolation, role/capability enforcement, audit, manifest coherence, H4 tenant-table enrollment, service-role exclusion, and cumulative regression.
 
 ### Out of Scope
@@ -73,7 +73,7 @@ Probability and impact use the TEA 1–3 scale. Score is probability × impact. 
 | R14-SEC-01 | SEC | A tenant or role reaches another tenant's person, hours, calendar, booking, assignee, or conflict data, or child rows mix tenants. | 2 | 3 | 6 | Enroll every table in `TENANT_TABLES`; cover cross-tenant CRUD, parent spoofing, anon, disabled membership, and same-tenant role negatives. | Dev + test owner / each migration PR |
 | R14-SEC-02 | SEC | Montör own-booking scope, capability, route, and command authorization diverge. | 2 | 3 | 6 | Per-role tests at DB/read/command/route layers; prove Montör sees only joined own-person bookings and cannot invoke planner/admin mutations. | Dev + test owner / Stories 14.1, 14.2, 14.4 |
 | R14-DATA-05 | DATA | Constraints admit invalid windows, duplicate assignees, orphaned profiles, cross-tenant links, or multiple profiles per membership. | 2 | 3 | 6 | DB negatives for interval, uniqueness, domain, 1:1, and composite same-tenant invariants. | Dev + test owner / Stories 14.1–14.2 |
-| R14-BUS-01 | BUS | Conflict override is silently accepted, lacks reason/actor, remains open, or carries stale acceptance to a changed collision. | 2 | 3 | 6 | Require nonblank reason; atomically persist accepted conflicts and audit; keep unacknowledged conflicts open; reopen changed natural keys. | Dev + test owner / Story 14.4 |
+| R14-BUS-01 | BUS | Conflict override is silently accepted, lacks reason/actor, leaves a selected logical conflict open, or carries stale acceptance to a changed collision. | 2 | 3 | 6 | Require nonblank reason; atomically persist accepted conflicts and audit; keep reviewed but unselected candidate conflicts open; exclude unrelated tenant acceptance; reopen changed natural keys. | Dev + test owner / Story 14.4 |
 | R14-TECH-01 | TECH | Epic 14 activates the wrong module or exposes Epic 15 nav, tables, categories, public feed, recurrence, resolver, or time reports. | 2 | 3 | 6 | Prove `resources` active with E14 surfaces and `scheduling` pending with empty live surfaces; run manifest-derived and deferred scans. | Dev + test owner / Story 14.1 and every Epic 14 PR |
 | R14-OPS-01 | OPS | Required DB/RLS evidence skips when local Supabase is unavailable and produces a false-green gate. | 2 | 3 | 6 | Set `SUPABASE_TEST_REQUIRED=1`, report executed/skipped counts, reconcile discovery with execution, and treat explicit skips as gaps. | Story author + reviewer / every story gate |
 
@@ -147,7 +147,7 @@ Priorities describe release criticality, not execution timing. Every row is an a
 | 14.3-INT-003 | Create atomically commits server-derived conflicts with booking, assignees, idempotency outcome and one audit event. | Command integration | R14-DATA-03 | Transferred P0 conflict portion of 14.2-INT-001; exact post-state. |
 | 14.3-INT-006 | Conflict committed after preview is detected inside authoritative save against current rows. | Command integration | R14-DATA-02 | Transferred P0 14.2-INT-008; client preview is not authority. |
 | 14.2-RLS-001 | Cross-tenant booking, assignee, and conflict reads/writes fail. | RLS integration | R14-SEC-01 | Direct and command paths. |
-| 14.4-INT-002 | Nonblank `Boka ändå` atomically commits accepted conflicts, actor/reason, and audit. | Command integration | R14-BUS-01 | Transactional override. |
+| 14.4-INT-002 | Explicit review plus nonblank reason atomically accepts selected candidate-related whole logical conflict groups with actor/reason/audit; never unrelated tenant conflicts. | Command integration | R14-BUS-01 | Contract D selective transactional override, including aggregate associations. |
 
 ### P1 — High (66 checks)
 
@@ -215,12 +215,16 @@ Priorities describe release criticality, not execution timing. Every row is an a
 | 14.4-COMP-004 | Conflict panel exposes type/person/window/context/timeline without color-only status. | Component | Accessibility | Accessible semantics. |
 | 14.4-INT-001 | Conflict save without explicit proof returns BOOKING_CONFLICT_UNACKNOWLEDGED. | Command integration | R14-BUS-01 | Authority cannot be bypassed. |
 | 14.4-INT-003 | Blank reason, forged IDs, stale preview, or unauthorized override changes nothing. | Command integration | R14-BUS-01/SEC-02 | Parameterized negatives. |
-| 14.4-INT-004 | Unaccepted detected conflicts stay open; open count excludes accepted/resolved. | Command integration | R14-BUS-01 | State semantics. |
+| 14.4-INT-004 | Reviewed but unselected candidate conflicts stay open; open count excludes accepted/resolved; unrelated conflicts do not inherit acceptance. | Command integration | R14-BUS-01 | Contract D distinguishes review from acceptance. |
 | 14.4-INT-005 | Changed collision natural key reopens detection. | Command integration | R14-BUS-01 | Acceptance is not blanket. |
 | 14.4-E2E-002 | Conflict count after reload reflects persisted open conflicts only. | E2E | R14-BUS-01 | Accepted excluded. |
 | 14.4-E2E-003 | Dirty Escape/back/close warns; cancel retains and confirm discards intentionally. | E2E | R14-OPS-02 | Focus returns predictably. |
-| 14.4-E2E-006 | Approved entry points prefill context without adding E15 Planering/nav. | E2E | R14-TECH-01 | Scope boundary. |
+| 14.4-E2E-006 | Current toolbar/job/customer entries prefill context without E15 Planering/nav. Only empty-slot click/drag portion transfers to Story 15.1 actual Schema/Resurser hosts. | E2E | R14-TECH-01 | Contract D: both actual click and drag must pass before applicable calendar entry-point exposure and 15.1 completion; prefill-only evidence is insufficient. |
 | 14.4-E2E-007 | Keyboard use, focus, live regions, and touch targets meet approved requirements. | E2E | Accessibility | Automated bounds plus semantics. |
+
+### Contract D cross-epic acceptance transfer — 2026-10-07
+
+The 77 named checks and prior evidence are retained; no check is deleted or credited executed by this amendment. `14.4-E2E-006` has explicit ownership portions: Story 14.4 proves its current toolbar/job/customer entries; **Story 15.1: The Five Scheduling Views** owns its original empty-slot click/drag portion in the actual `Schema` and `Resurser` calendar hosts. Both real click and drag must open the same editor with selected interval/person context (Resurser: person/start/end) before those calendar entry points are exposed and before 15.1 completion. Preserve keyboard/dialog parity. Record this portion separately as transferred/pending until actual browser evidence passes; a component or prefill-seam test in 14.4 cannot satisfy it. Story 14.4/Epic 14 may claim only retained acceptance, never execution of the pending transferred portion. No other 14.4 acceptance, Contract C transfer or mandatory gate changes.
 
 ### P2 — Medium (2 scenarios)
 

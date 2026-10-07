@@ -1539,7 +1539,7 @@ AC sketch: one pure engine (`src/features/scheduling/conflicts.ts`) — no I/O, 
 
 #### Story 14.4: Booking Editor with Live Conflict Warnings and Audited Override
 
-AC sketch: side-sheet editor (desktop) / full-screen (phone) with multi-assignee picker + availability hints, work role, time, optional connections, description; live inline `ConflictPanel` per violation with mini-timeline; saving with conflicts requires explicit `Boka ändå` + required reason → persists `booking_conflicts` rows in state `accepted` (unacknowledged detected conflicts persist as `open`) in the same transaction plus audit event; persistent `Konflikter (n)` chip counts open conflicts; entry points: toolbar, empty-slot click/drag, pre-connected from job/customer; dirty-state guard; the connected phone shape works at 360×640, retains suitable unsent form state after a request failure, offers explicit retry, and shows saved only after server confirmation (ADR-B009).
+AC sketch: side-sheet editor (desktop) / full-screen (phone) with multi-assignee picker + availability hints, work role, time, optional connections, description; live inline `ConflictPanel` per violation with mini-timeline; saving with conflicts requires explicit review/acknowledgment of the current candidate warning set via `Boka ändå` + required nonblank reason → selected reviewed candidate-related logical conflicts become `accepted`, other reviewed candidate conflicts remain `open`, and unrelated tenant conflicts cannot be accepted, in the same transaction plus audit event; persistent `Konflikter (n)` chip counts open conflicts; entry points: current toolbar and pre-connected job/customer, with a reusable person/time-prefill seam; only empty-slot click/drag transfers to Story 15.1 under [owner-approved Contract D](../../docs/decisions/epic-14-story-ownership-contract-d-2026-10-07.md); dirty-state guard; the connected phone shape works at 360×640, retains suitable unsent form state after a request failure, offers explicit retry, and shows saved only after server confirmation (ADR-B009).
 
 ## Epic 15 [Wave B1b]: Scheduling Views, Time Reporting, and Calendar Feeds
 
@@ -1549,7 +1549,7 @@ AC sketch: side-sheet editor (desktop) / full-screen (phone) with multi-assignee
 
 #### Story 15.1: The Five Scheduling Views
 
-AC sketch: `Planering` nav lands (manifest change in this PR); `Schema` (time-grid day/week, month density), `Resurser` (person-row timeline, empty-slot create, needs-reassignment lane), `Team` (week board grouped by arbetsroll — named teams only if the oracle demands, UXB-A9 `[oracle-check]`), `Beläggning` (capacity matrix, number + color never color alone, >100% links to bookings, capacity rules per architecture §10.5A), `Min kalender` (agenda phone-first); all five are projections of one booking/filter model (AC-B1b-2); shared toolbar with per-user per-view filter/period persistence; `BookingBlock` contract with drag parity (keyboard/dialog equivalents).
+AC sketch: `Planering` nav lands (manifest change in this PR); `Schema` (time-grid day/week, month density), `Resurser` (person-row timeline, empty-slot create, needs-reassignment lane), `Team` (week board grouped by arbetsroll — named teams only if the oracle demands, UXB-A9 `[oracle-check]`), `Beläggning` (capacity matrix, number + color never color alone, >100% links to bookings, capacity rules per architecture §10.5A), `Min kalender` (agenda phone-first); all five are projections of one booking/filter model (AC-B1b-2); shared toolbar with per-user per-view filter/period persistence; `BookingBlock` contract with drag parity (keyboard/dialog equivalents). **Contract D transfer:** Story 15.1 owns `14.4-E2E-006 (empty-slot click/drag portion)` in the actual `Schema` and `Resurser` hosts: click and drag open the same 14.4 editor with selected interval/person context, including person/start/end in Resurser. Actual browser click/drag evidence must pass before the applicable calendar entry points are exposed and before 15.1 completion; a 14.4 prefill-seam test is not that evidence. All other 14.4 acceptance remains there.
 
 #### Story 15.2: Recurring Bookings — Series, Materialized Occurrences, Exceptions
 
@@ -1851,9 +1851,3 @@ Judgment calls made in this non-interactive run. None re-litigates a ratified de
 7. **Second-tenant proof scheduling:** AC-PH-3 (end-to-end second-tenant provisioning) should be scheduled as a verification run after Epic 12 completes and re-run at phase close.
 
 — End of Phase B epic breakdown. Downstream: sprint planning (`/bmad-sprint-planning`), then `/auto-bmad epic --epic 10`, per the ratified document plan (session §7).
-
-
-
-
-
-

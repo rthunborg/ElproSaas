@@ -693,3 +693,40 @@ No new deferred items harvested.
 1. Owner-run Ubuntu24.04 systemctl disable --now systemd-timesyncd.service then readback disabled/inactive/dead/MainPID0. Exact commands/rollback in story14-3-time-owner-intervention-proposal.md. This is not an auto-review or UAC refusal.
 
 **Next:** Return service readback; agent runs bounded clock verification then, if stable, guarded DB readiness and delegate restoration/patch verification/follow-up. Human review: /bmad-checkpoint-preview codex/epic14-resume. Project context refresh recommended after epic completion.
+
+## Report — 2026-10-07T11:18:18Z (halted â€” Story14.4 intent gap owner decisions)
+
+**Epic:** `14` — 4 stories.
+**Branch:** `codex/epic14-resume` (HEAD `7982e5d`).
+**Pipeline status:** Story14.3 landed; Epic14 halted in Story14.4 planning with intent gap.
+**Continues:** 2026-10-07T09:47:19Z (halted â€” Ubuntu time-sync owner change required)
+
+**Summary:** Owner persistent Ubuntu timesyncd disable confirmed. Bounded disabled-state clock check native0/2734samples/0backward; guarded isolated95migration stack restored and verified. Story14.3 resumed throughHigh builddelegate aftercapacity/clean checkpoints. Current fullnative0:1368total/1367passed/0failed/1intentional skip; focus145/145/0/0; allfourtransferredchecks pass. R2all6independentlayers:one medium verificationgap patched withtwo registered identity-wait races; narrow independentregression/finaltrail pass. Compatible sharp0.35.5 securitypatch highaudit0; allrequiredbuild/lint/unit/TZ/containmentgatespass. Required post-devTEA complete, no newtests/gaps. 14.3phases0-7 landed. New14.4Highrisk[atdd,automate] planblocked beforeimplementation:entrypointhost boundary and selected-vs-all conflictacceptance requireownerdecisions.
+
+**Timing:** started 2026-09-29T08:23:21Z; completed in progress — elapsed 194h 54m (≈16h 50m AI-run, ≈178h 04m human/idle wait); resumed 17×.
+
+**Stories:**
+1. 14.1/14.2 previously landed; sprint review retained for epic batch flip.
+2. 14.3 landed e6274824; authored f20ea393/7f6c691d, build checkpoint526c54b4 andTEAb1eb2474. Two broadroundscomplete;deferred0;followuprecommendationfalse/conditionalPhase7no-pass, review_unverifiedfalse.
+3. 14.4 initialized246c8402; planningHALTblocked(intentgap), checkpoint7982e5d3. No implementation/ATDD/review completed.
+
+**Skipped:** (none)
+
+**Epic gate:** Not reached; mandatory exact empty-chain Epic CI remains unexecuted.
+
+**TEA:** 14.3ATDDpreviouslycompleted; current post-dev automate mapsAC1-12,31anchors,7rows,4transfers,14unitIDs;62/62conflict casespass0skip. No newtests/fixtures/productreruns.14.4riskhighselectsatdd+automate, pendingplan.
+
+**Retrospective:** Not reached; previousEpic13accepted, upstreamstatushas0Epic13openactionitems.
+
+**Overrides:** Existing approvals retained; no hosted/reset/ledger edits. Owner clockservice configchange confirmed, agentboundeddiagnostics only. Isolated lifecycle48fc14f8 Stop accepted native0/stop_requested/verifiedfalse, saved data retained. No automaticreview/UAC rejection.
+
+**Open questions:**
+1. Approve transferring only empty-slot click/drag portion of14.4-E2E-006 toEpic15, mandatorybeforecalendarentry exposure, or authorize a named active-resource slot host now?
+2. Accept selected explicitly reviewed candidate conflicts withreason whileotherreviewed conflictsstayopen (recommended), or acceptallcandidate conflicts? Unrelatedtenant conflicts excluded eitherway.
+
+**Deferred work:** (none)
+
+**⚠️ Needs human:**
+1. Two owner product/scope decisions asked together; no prospective transfer or acceptance policy applied. Spec opened for review.
+
+**Next:** Reply to the two owner questions; builddelegate resumes approved14.4planning after decision record, thenATDD/build. Human review: /bmad-checkpoint-preview codex/epic14-resume. Project context refresh recommended after epic completion.
