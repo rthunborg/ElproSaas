@@ -1,0 +1,10 @@
+{
+  "schema": {
+    "count": 99,
+    "latest": "20261007131222"
+  },
+  "apiHealthStatus": 200,
+  "apiLoopbackPort": 55421,
+  "dbLoopbackPort": 55422,
+  "required": true
+}

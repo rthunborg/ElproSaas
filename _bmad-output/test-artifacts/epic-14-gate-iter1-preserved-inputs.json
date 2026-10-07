@@ -1,0 +1,22 @@
+[
+  {
+    "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/traceability/epic-14-traceability-report.md",
+    "sha256": "a5fc7dbcf84c77943f9c5122c5e2843a9070d61afaea3233a7bf0a21925b311f"
+  },
+  {
+    "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/traceability/epic-14/mapping-input.json",
+    "sha256": "3640cc5f06658c8c2880e4afb5c268cfa91353bcebc5ed6e110794fb00d6f98e"
+  },
+  {
+    "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/traceability/epic-14/coverage-matrix.json",
+    "sha256": "2f4d10bc50dcb6dcc3817d0fdba4d8f9432c36d148604fd0fb3240aefc331373"
+  },
+  {
+    "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/traceability/epic-14/gate-decision.json",
+    "sha256": "5cd00298e7017db7b99d568ea48d19c353dd4d706255de166f75a817e285ff80"
+  },
+  {
+    "path": "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-1-scheduling-activation-person-profiles-and-work-hours.md",
+    "sha256": "da4e6d23f523da9bd2105cf8890495ea2b80d21e82828df50760e9c32855e4d6"
+  }
+]

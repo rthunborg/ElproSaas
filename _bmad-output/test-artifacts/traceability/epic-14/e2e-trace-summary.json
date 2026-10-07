@@ -1,0 +1,242 @@
+{
+  "schema_version": "0.2.0",
+  "snapshot_at": "2026-10-07T15:05:23.841200+00:00",
+  "repo": "ElproSaas",
+  "collection_mode": "contract_static",
+  "collection_status": "COLLECTED",
+  "inventory_basis": "acceptance_criteria",
+  "gate_basis": "priority_thresholds",
+  "source_sha": "0d1ff3a3577f8f4fc742b13cf92fb28ff598eb62",
+  "target": {
+    "type": "epic",
+    "id": "14",
+    "label": "Epic 14 — Resource and Scheduling Foundation"
+  },
+  "decision_mode": "deterministic",
+  "evaluator": "Rasmus / BMad TEA",
+  "confidence": "high",
+  "oracle": {
+    "resolution_mode": "formal_requirements",
+    "confidence": "high",
+    "sources": [
+      "_bmad-output/implementation-artifacts/spec-14-1-scheduling-activation-person-profiles-and-work-hours.md",
+      "_bmad-output/implementation-artifacts/spec-14-2-bookings-and-assignees-schema-and-transactional-commands.md",
+      "_bmad-output/implementation-artifacts/spec-14-3-deterministic-conflict-engine-detection-core.md",
+      "_bmad-output/implementation-artifacts/spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md",
+      "_bmad-output/test-artifacts/test-design-epic-14.md",
+      "docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md",
+      "docs/decisions/epic-14-story-ownership-contract-d-2026-10-07.md"
+    ],
+    "external_pointer_status": "not_used",
+    "synthetic": false
+  },
+  "coverage": {
+    "inventory": {
+      "covered": 34,
+      "total": 36,
+      "pct": 94
+    },
+    "priority_breakdown": {
+      "P0": {
+        "total": 13,
+        "covered": 12,
+        "pct": 92
+      },
+      "P1": {
+        "total": 23,
+        "covered": 22,
+        "pct": 96
+      },
+      "P2": {
+        "total": 0,
+        "covered": 0,
+        "pct": 100
+      },
+      "P3": {
+        "total": 0,
+        "covered": 0,
+        "pct": 100
+      }
+    },
+    "by_level": {
+      "e2e": {
+        "tests": 23,
+        "criteria_covered": 10
+      },
+      "api": {
+        "tests": 224,
+        "criteria_covered": 26
+      },
+      "component": {
+        "tests": 22,
+        "criteria_covered": 3
+      },
+      "unit": {
+        "tests": 23,
+        "criteria_covered": 12
+      },
+      "live": {
+        "tests": 0,
+        "criteria_covered": 0
+      },
+      "other": {
+        "tests": 0,
+        "criteria_covered": 0
+      }
+    }
+  },
+  "tests": {
+    "files": 37,
+    "cases": 292,
+    "skipped_cases": 0,
+    "fixme_cases": 0,
+    "pending_cases": 0
+  },
+  "risk_summary": {
+    "critical_open": 1,
+    "high_open": 1,
+    "medium_open": 0,
+    "low_open": 0
+  },
+  "heuristics": {
+    "endpoint_gaps": 0,
+    "auth_negative_path_status": "partial",
+    "error_path_status": "partial",
+    "ui_journey_status": "not_applicable",
+    "ui_state_status": "not_applicable"
+  },
+  "live_evidence": {
+    "present": false,
+    "results_file": "C:\\DEV\\ElproSaas\\_bmad-output\\test-artifacts\\live-verification-results.json",
+    "freshness": "not_present",
+    "recorded_source_sha": "",
+    "current_source_sha": "0d1ff3a3577f8f4fc742b13cf92fb28ff598eb62",
+    "producer": "",
+    "counted": 0,
+    "stale": 0,
+    "unverifiable": 0,
+    "failed": 0,
+    "contradicted": 0,
+    "blocked": 0,
+    "skipped": 0,
+    "unmatched": 0,
+    "invalid": 0,
+    "requirements_live_only": 0
+  },
+  "blockers": [
+    {
+      "id": "14.1-AC2",
+      "severity": "high",
+      "reason": "Second raw person-profile insert for the same membership must reject with constraint failure and exact unchanged count/state; positive upsert and repeated form updates do not exercise the unique rejection. Actual profile default_work_role_id writer must reject concrete foreign and nonexistent work roles and preserve exact state/audit. Booking work_role_id negatives are a different field/writer."
+    },
+    {
+      "id": "14.1-AC5",
+      "severity": "critical",
+      "reason": "Same-tenant authorized caller supplies a concrete foreign membership or person profile to the actual resource command/checked RPC; assert denial and exact unchanged resource/audit state. Existing foreign-tenant-ID and forged-actor cases do not exercise that parent-reference path. Actual authenticated role-ineligible checked resource RPC denial and positive planner mutation are unexecuted. Generic registered command probe deliberately stops at envelope authorization and never calls the business RPC. Existing user-detail host is admin-only; no planner UI is required. Actual no-membership, invited and disabled callers reading resource rows and invoking checked resource RPCs are unexecuted. Disabled has_tenant_role helper evidence exists; invited/no-member helper tests use is_active_tenant_member, a different predicate."
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "URGENT",
+      "action": "Run a focused resource negative pack through actual checked RPC/command boundaries: concrete foreign membership/profile; no-member/invited/disabled/role-ineligible read and mutation; current planner mutation positive; exact unchanged resource/audit snapshots.",
+      "requirements": [
+        "14.1-AC5",
+        "14.1-RLS-001",
+        "14.1-RLS-002",
+        "14.1-RLS-003"
+      ]
+    },
+    {
+      "priority": "HIGH",
+      "action": "Exercise second raw profile insert rejection and foreign/nonexistent default work-role writer rejection, with exact unchanged count/state/audit.",
+      "requirements": [
+        "14.1-AC2",
+        "14.1-DB-001",
+        "14.1-DB-002"
+      ]
+    },
+    {
+      "priority": "HIGH",
+      "action": "Retain mandatory empty-chain migration+seed+required integration CI before merge. Do not substitute populated local-stack evidence or treat recovery-loader skip as covered.",
+      "requirements": []
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Record contrast/daylight review and cross-rule exploratory charter; obtain approved representative performance thresholds before certification.",
+      "requirements": [
+        "14.NFR-PERF-001",
+        "14.NFR-A11Y-001",
+        "14.EXP-001"
+      ]
+    }
+  ],
+  "links": {
+    "trace_report_path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/traceability/epic-14-traceability-report.md",
+    "trace_report_url": "",
+    "artifact_url": "",
+    "journey_evidence_url": ""
+  },
+  "gate_status": "FAIL",
+  "gate_criteria": {
+    "p0_coverage_required": "100%",
+    "p0_coverage_actual": "92%",
+    "p0_status": "NOT_MET",
+    "p1_coverage_target": "90%",
+    "p1_coverage_minimum": "80%",
+    "p1_coverage_actual": "96%",
+    "p1_status": "MET",
+    "overall_coverage_minimum": "80%",
+    "overall_coverage_actual": "94%",
+    "overall_status": "MET"
+  },
+  "design_scenario_coverage": {
+    "total_requirements": 77,
+    "fully_covered": 69,
+    "partially_covered": 5,
+    "uncovered": 3,
+    "overall_coverage_percentage": 90,
+    "priority_breakdown": {
+      "P0": {
+        "total": 8,
+        "covered": 7,
+        "percentage": 88
+      },
+      "P1": {
+        "total": 66,
+        "covered": 62,
+        "percentage": 94
+      },
+      "P2": {
+        "total": 2,
+        "covered": 0,
+        "percentage": 0
+      },
+      "P3": {
+        "total": 1,
+        "covered": 0,
+        "percentage": 0
+      }
+    }
+  },
+  "new_product_executions": 0,
+  "uncovered_requirements": [
+    "14.1-AC2",
+    "14.1-AC5"
+  ],
+  "partial_design_obligations": [
+    "14.1-RLS-001",
+    "14.1-DB-001",
+    "14.1-DB-002",
+    "14.1-RLS-002",
+    "14.1-RLS-003"
+  ],
+  "receiving_owner_obligations": [
+    {
+      "id": "14.4-E2E-006(empty-slot click/drag portion)",
+      "owner": "15.1",
+      "status": "TRANSFERRED_PENDING",
+      "execution_credit": false,
+      "gate": "before applicable calendar exposure and Story15.1 completion"
+    }
+  ]
+}

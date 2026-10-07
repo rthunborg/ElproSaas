@@ -1,0 +1,92 @@
+{
+  "schema_version": "0.1.0",
+  "evaluated_at": "2026-10-07T15:05:23.841200+00:00",
+  "repo": "ElproSaas",
+  "target": {
+    "type": "epic",
+    "id": "14",
+    "label": "Epic 14 — Resource and Scheduling Foundation"
+  },
+  "collection_status": "COLLECTED",
+  "gate_basis": "priority_thresholds",
+  "gate_status": "FAIL",
+  "rationale": "P0 coverage is 92% (required:100%). One critical acceptance criterion,14.1-AC5, is PARTIAL. The concrete foreign-parent checked-resource path14.1-RLS-001(P0) is unexercised; caller/RPC negatives also remain partial. No waiver is applied.",
+  "p0_status": "NOT_MET",
+  "p1_status": "MET",
+  "overall_status": "MET",
+  "critical_open": 1,
+  "links": {
+    "trace_report_path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/traceability/epic-14-traceability-report.md",
+    "trace_report_url": "",
+    "artifact_url": "",
+    "journey_evidence_url": ""
+  },
+  "coverage": {
+    "inventory": {
+      "covered": 34,
+      "total": 36,
+      "pct": 94
+    },
+    "priority_breakdown": {
+      "P0": {
+        "total": 13,
+        "covered": 12,
+        "pct": 92
+      },
+      "P1": {
+        "total": 23,
+        "covered": 22,
+        "pct": 96
+      },
+      "P2": {
+        "total": 0,
+        "covered": 0,
+        "pct": 100
+      },
+      "P3": {
+        "total": 0,
+        "covered": 0,
+        "pct": 100
+      }
+    },
+    "by_level": {
+      "e2e": {
+        "tests": 23,
+        "criteria_covered": 10
+      },
+      "api": {
+        "tests": 224,
+        "criteria_covered": 26
+      },
+      "component": {
+        "tests": 22,
+        "criteria_covered": 3
+      },
+      "unit": {
+        "tests": 23,
+        "criteria_covered": 12
+      },
+      "live": {
+        "tests": 0,
+        "criteria_covered": 0
+      },
+      "other": {
+        "tests": 0,
+        "criteria_covered": 0
+      }
+    }
+  },
+  "uncovered_requirements": [
+    "14.1-AC2",
+    "14.1-AC5"
+  ],
+  "partial_design_obligations": [
+    "14.1-RLS-001",
+    "14.1-DB-001",
+    "14.1-DB-002",
+    "14.1-RLS-002",
+    "14.1-RLS-003"
+  ],
+  "new_product_executions": 0,
+  "release_authority": false
+}

@@ -1,0 +1,35 @@
+{
+  "detected_stack": "frontend",
+  "execution_mode": "subagent",
+  "total_tests": 5,
+  "api_tests": 5,
+  "e2e_tests": 0,
+  "fixtures_created": 0,
+  "api_test_files": 1,
+  "e2e_test_files": 0,
+  "priority_coverage": {
+    "P1": 4,
+    "P2": 0,
+    "P3": 0,
+    "P0": 1
+  },
+  "knowledge_fragments_used": [
+    "test-levels-framework",
+    "test-priorities-matrix",
+    "data-factories",
+    "selective-testing",
+    "ci-burn-in",
+    "test-quality",
+    "playwright-utils-mandate"
+  ],
+  "subagent_execution": "SUBAGENT (both expected workers completed)",
+  "performance_gain": "not measured",
+  "playwright_utils_deviations": [
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/resources-boundaries.int.test.ts",
+      "line": 10,
+      "reason": "Existing Vitest SQL/checked-RPC integration suite does not run @playwright/test. Established local tenant factories provide actual JWTs. No raw Playwright request, sleeps, or browser mechanisms emitted."
+    }
+  ],
+  "summary": "Exactly five new resource SQL/RPC integration cases; no E2E expansion for database-only scope"
+}

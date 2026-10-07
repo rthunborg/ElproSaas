@@ -1,0 +1,539 @@
+{
+  "sourceFile": "C:/DEV/ElproSaas/tests/integration/commands/resources-boundaries.int.test.ts",
+  "sourceSha256": "2f653b1dd3c63a5776556307cd7d8764b6ed70df10000e13b9b69a8810e340b9",
+  "ids": [
+    "14.1-RLS-001",
+    "14.1-RLS-002",
+    "14.1-RLS-003",
+    "14.1-DB-001",
+    "14.1-DB-002"
+  ],
+  "runs": {
+    "focused": {
+      "mode": "focused",
+      "nativeExitCode": 0,
+      "signal": null,
+      "startedAt": "2026-10-07T15:14:44.977Z",
+      "finishedAt": "2026-10-07T15:14:48.786Z",
+      "required": true,
+      "total": 5,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "totalFiles": 1,
+      "totalSuites": 2,
+      "cases": [
+        {
+          "title": "[P0] 14.1-RLS-001 own-tenant authorized caller cannot use real foreign membership or profile",
+          "status": "passed",
+          "durationMs": 523.581
+        },
+        {
+          "title": "[P1] 14.1-RLS-002 lower roles cannot call any resource writer; projektledare persists audited mutations",
+          "status": "passed",
+          "durationMs": 659.6029000000001
+        },
+        {
+          "title": "[P1] 14.1-RLS-003 no-member invited and disabled callers see no resources and cannot mutate",
+          "status": "passed",
+          "durationMs": 840.3274000000001
+        },
+        {
+          "title": "[P1] 14.1-DB-001 second raw profile insert rejects unique membership with exact no-op state",
+          "status": "passed",
+          "durationMs": 421.9933000000001
+        },
+        {
+          "title": "[P1] 14.1-DB-002 actual profile writers reject foreign and nonexistent default work roles without writes or audit",
+          "status": "passed",
+          "durationMs": 486.0291000000002
+        }
+      ]
+    },
+    "affected": {
+      "mode": "affected",
+      "nativeExitCode": 0,
+      "signal": null,
+      "startedAt": "2026-10-07T15:15:11.583Z",
+      "finishedAt": "2026-10-07T15:15:39.530Z",
+      "required": true,
+      "total": 47,
+      "passed": 47,
+      "failed": 0,
+      "skipped": 0,
+      "totalFiles": 7,
+      "totalSuites": 16,
+      "cases": [
+        {
+          "title": "[P0] 14.1-RLS-001 own-tenant authorized caller cannot use real foreign membership or profile",
+          "status": "passed",
+          "durationMs": 718.1541
+        },
+        {
+          "title": "[P1] 14.1-RLS-002 lower roles cannot call any resource writer; projektledare persists audited mutations",
+          "status": "passed",
+          "durationMs": 715.6265000000001
+        },
+        {
+          "title": "[P1] 14.1-RLS-003 no-member invited and disabled callers see no resources and cannot mutate",
+          "status": "passed",
+          "durationMs": 847.9164000000001
+        },
+        {
+          "title": "[P1] 14.1-DB-001 second raw profile insert rejects unique membership with exact no-op state",
+          "status": "passed",
+          "durationMs": 437.4521
+        },
+        {
+          "title": "[P1] 14.1-DB-002 actual profile writers reject foreign and nonexistent default work roles without writes or audit",
+          "status": "passed",
+          "durationMs": 466.462
+        }
+      ]
+    },
+    "full": {
+      "mode": "full",
+      "nativeExitCode": 0,
+      "signal": null,
+      "startedAt": "2026-10-07T15:15:45.271Z",
+      "finishedAt": "2026-10-07T15:18:25.867Z",
+      "required": true,
+      "total": 1466,
+      "passed": 1465,
+      "failed": 0,
+      "skipped": 1,
+      "totalFiles": 135,
+      "totalSuites": 447,
+      "cases": [
+        {
+          "title": "[P0] 14.1-RLS-001 own-tenant authorized caller cannot use real foreign membership or profile",
+          "status": "passed",
+          "durationMs": 1932.1064
+        },
+        {
+          "title": "[P1] 14.1-RLS-002 lower roles cannot call any resource writer; projektledare persists audited mutations",
+          "status": "passed",
+          "durationMs": 2691.2046000000005
+        },
+        {
+          "title": "[P1] 14.1-RLS-003 no-member invited and disabled callers see no resources and cannot mutate",
+          "status": "passed",
+          "durationMs": 1836.1129999999994
+        },
+        {
+          "title": "[P1] 14.1-DB-001 second raw profile insert rejects unique membership with exact no-op state",
+          "status": "passed",
+          "durationMs": 860.8689000000004
+        },
+        {
+          "title": "[P1] 14.1-DB-002 actual profile writers reject foreign and nonexistent default work roles without writes or audit",
+          "status": "passed",
+          "durationMs": 824.8162999999995
+        }
+      ]
+    }
+  },
+  "sourceChecks": {
+    "runnerDiscoverableIds": true,
+    "focusedCaseCount": 5,
+    "sourceExpectCount": 41,
+    "noCommittedFocus": true,
+    "noExplicitSkipOrTodo": true,
+    "noHardWaits": true,
+    "noMockedDatabase": true,
+    "uniqueViolationAsserted": true
+  },
+  "preserved": [
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/traceability/epic-14-traceability-report.md",
+      "sha256": "a5fc7dbcf84c77943f9c5122c5e2843a9070d61afaea3233a7bf0a21925b311f",
+      "unchanged": true
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/traceability/epic-14/mapping-input.json",
+      "sha256": "3640cc5f06658c8c2880e4afb5c268cfa91353bcebc5ed6e110794fb00d6f98e",
+      "unchanged": true
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/traceability/epic-14/coverage-matrix.json",
+      "sha256": "2f4d10bc50dcb6dcc3817d0fdba4d8f9432c36d148604fd0fb3240aefc331373",
+      "unchanged": true
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/traceability/epic-14/gate-decision.json",
+      "sha256": "5cd00298e7017db7b99d568ea48d19c353dd4d706255de166f75a817e285ff80",
+      "unchanged": true
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-1-scheduling-activation-person-profiles-and-work-hours.md",
+      "sha256": "da4e6d23f523da9bd2105cf8890495ea2b80d21e82828df50760e9c32855e4d6",
+      "unchanged": true
+    }
+  ],
+  "priorSourceFingerprint": "f34ee23dc52a0f92f6de0ea24b0328946c5dbe96d1c6a34986abcef20e94712a",
+  "priorSourceChecks": [
+    {
+      "path": "next.config.ts",
+      "sha256": "139c31a58ffc086652fe1d9816e51249080b89bc38f952b2a0ee7b492e2b2a92",
+      "unchanged": true
+    },
+    {
+      "path": "src/app/(app)/customers/[customerId]/page.tsx",
+      "sha256": "4db8c3f247e6aba0d9b0ba066fbbe74e9c116d943ff32a70f272ea7a3330f916",
+      "unchanged": true
+    },
+    {
+      "path": "src/app/(app)/jobs/[jobId]/page.tsx",
+      "sha256": "fbf3d595a369d7ef9e5c323ffb0bddc57b4da5721d8a977182ea28b7edc8e1f6",
+      "unchanged": true
+    },
+    {
+      "path": "src/app/(app)/jobs/page.tsx",
+      "sha256": "78f2d31a3b6da3893bf154b0bf736b1323c108535c46ba749f31964b26e743ce",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/crm/CustomerDetail.tsx",
+      "sha256": "633969ccd979fdb2a628a511d504853445919bfce50f6fd234f72b913189fce1",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/crm/Dialog.tsx",
+      "sha256": "aeadf776bc44d4fc8f5b0a6f6b315a68d6afebc76ce6a94dcf66a89d6a9366d3",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/jobs/JobDetailView.tsx",
+      "sha256": "2fc2d49b1796009f016383d95b5519c1c5fdadd668068c6390b795a0fa1a4847",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/jobs/JobList.tsx",
+      "sha256": "3ebcb86ddbe104522403df32d3c3a25df2f212847beb27c9fdec5923540e27f4",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/resources/BookingConflictChip.tsx",
+      "sha256": "06e74e77da667e564b06ef7e97ce464fa8c460b00b4b629869c0f2db43970d0f",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/resources/BookingConflictPanel.tsx",
+      "sha256": "5e3e0061a36d53663a087226935db8d75ee9285434a8d40af58637fbbb1a88ad",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/resources/BookingEditor.tsx",
+      "sha256": "0446e8ca8e4fba6272913d7ed3dc2228253817e67f8c7306389af196d154d1a6",
+      "unchanged": true
+    },
+    {
+      "path": "src/components/resources/BookingEntry.tsx",
+      "sha256": "bbea07eb4fac0bf1863300b658590cc578d8c5f641c35d162cf952536dded173",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/resources/booking-action-state.ts",
+      "sha256": "8755bd9c744a65dbef16566a6c69d0a1672a3e86c61bec04b33659833eefd2b0",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/resources/booking-actions.ts",
+      "sha256": "d01bdde7130827f498e92abf765d6bb73ad2699df54f69568a1456701917f8d3",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/resources/booking-editor-input.ts",
+      "sha256": "15b31de28b285983abe2783f8b9117e4d873b6d49a841dba0d3fb134d064127c",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/resources/booking-transport.ts",
+      "sha256": "474b89fbafd3ac9782d338b301fc495a4ae9019619259c36bdb39c84618c5eda",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/resources/booking-types.ts",
+      "sha256": "75173466e2a425f103da1a618b6f38e841b205eae9192333242ca9906e81763e",
+      "unchanged": true
+    },
+    {
+      "path": "src/features/resources/bookings-read.ts",
+      "sha256": "692f762faa50ff3ff14b39d45f0b1d6868cad1be3b3aef37cc3016717fb593e8",
+      "unchanged": true
+    },
+    {
+      "path": "src/server/bookings/candidate-references.ts",
+      "sha256": "604c1899bd723d6643f07594ea1c1e268598051f45d92a87122ed5d2616387c0",
+      "unchanged": true
+    },
+    {
+      "path": "src/server/bookings/conflict-facts.ts",
+      "sha256": "53f1dc70778b24f6adde19099fe3d388695877dea1d6625b224a3e5b04e8afc2",
+      "unchanged": true
+    },
+    {
+      "path": "src/server/bookings/create-identity.ts",
+      "sha256": "dc116dd190936b18b4e92f39b4d9fb21680a78460df67206cf3f9416f052eb94",
+      "unchanged": true
+    },
+    {
+      "path": "src/server/bookings/editor-preview.ts",
+      "sha256": "ebc1311d442a76f12b700848c7b9aa5827209911e22bdd5ab73d90a827a5b1d2",
+      "unchanged": true
+    },
+    {
+      "path": "src/server/bookings/save-with-conflicts.ts",
+      "sha256": "41b57502095284164ea126869b70cc0090f8d5a19110dbbc9a6f55ea935277ae",
+      "unchanged": true
+    },
+    {
+      "path": "src/server/commands/bookings/booking-db.ts",
+      "sha256": "065de3e24baf29513827374d5fc7bc6cef0b376ad54f5da71076a85e6ae0ce75",
+      "unchanged": true
+    },
+    {
+      "path": "src/server/commands/bookings/create-booking.ts",
+      "sha256": "fe416c8f577668a5e46d25ab09a8bad167408464e8a9410d30efa9ecadd6a7a2",
+      "unchanged": true
+    },
+    {
+      "path": "src/server/commands/bookings/update-booking.ts",
+      "sha256": "f9f3d99b17ad17e6616246d4df75fd049a4a0b2624a3b5ab2a9c0766765a8c26",
+      "unchanged": true
+    },
+    {
+      "path": "src/server/commands/bookings/validation.ts",
+      "sha256": "d8334eab3e8b5f8baf134818cd301642165cf6e72c34a0d49974e34fc3448a57",
+      "unchanged": true
+    },
+    {
+      "path": "src/server/commands/command-errors.ts",
+      "sha256": "7468a82c6294f9c0287bfa524a8f053199ac0563ba8fe2c477cb3586021b0df4",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/migrations/20261007120235_booking_editor_audited_override.sql",
+      "sha256": "9d1f90d225b8e48155188e400ec8219571b4688cd750ca805957c92213ec8d65",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/migrations/20261007121034_booking_editor_whole_group_validation.sql",
+      "sha256": "69bf6228788fed83f7c2a17cf3bc4406283c02ad2363a3242e77163b20c03063",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/migrations/20261007121724_booking_editor_group_alias_fix.sql",
+      "sha256": "9fa04470b0fc2fe08f7e835a24fb51eb699410c10213d66345a27698c3393c6c",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/migrations/20261007131222_booking_editor_review_round1_fixes.sql",
+      "sha256": "c9743b6df4e7ee24e9541220dce171bd7865d70f72144a8560eb86e9823066c0",
+      "unchanged": true
+    },
+    {
+      "path": "tests/e2e/booking-editor.e2e.spec.ts",
+      "sha256": "a2036d1034634071f8376995061e60b3add06dd52a2f0165cf54321f47089128",
+      "unchanged": true
+    },
+    {
+      "path": "tests/e2e/support/booking-editor-atdd.ts",
+      "sha256": "56b688acb0e4f752ba2ca2181183420e32fdaa006b3d1b90a80240f0215e308c",
+      "unchanged": true
+    },
+    {
+      "path": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "sha256": "f998e6a977600cbfe60bdfde24fcfdf3bc0dc802af88ffd95f34324408a6b3e2",
+      "unchanged": true
+    },
+    {
+      "path": "tests/integration/commands/booking-editor-review-fixes.int.test.ts",
+      "sha256": "e6ab178f5c79c4f684e8d5fccce069db669d62733f7d5438c722a3c079c30beb",
+      "unchanged": true
+    },
+    {
+      "path": "tests/integration/commands/booking-editor-round2.int.test.ts",
+      "sha256": "800cd980ba04db0b2acb9bca862bb38dd6b05c58691215139a7f20516dde038f",
+      "unchanged": true
+    },
+    {
+      "path": "tests/integration/commands/booking-editor.int.test.ts",
+      "sha256": "6f5997d0e830a3c1bf89afa70265efe259bc97b039e4dc4c9aa8e6684f2b84d5",
+      "unchanged": true
+    },
+    {
+      "path": "tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "sha256": "332a32a25674e1e3e9a4bdbaef580ee90209fd7ee5aedda84c1cfb4d4019377a",
+      "unchanged": true
+    },
+    {
+      "path": "tests/integration/commands/bookings.int.test.ts",
+      "sha256": "cd9d40701a176b71948cd7a4db0cec3bb3974c878b079d8d728eee15e9f8a785",
+      "unchanged": true
+    },
+    {
+      "path": "tests/integration/components/booking-editor.test.ts",
+      "sha256": "9320f5ace1446ba2c5da02621b5022c2995c09115cacc32596612b2a3bc4a062",
+      "unchanged": true
+    },
+    {
+      "path": "tests/integration/features/booking-read-actions.test.ts",
+      "sha256": "635a842dd310eeb98be024e52e1088be02908d24fe0cbdc931805a7a75d6772e",
+      "unchanged": true
+    },
+    {
+      "path": "tests/integration/rls/bookings.rls.test.ts",
+      "sha256": "ce48a522751eafa6c1f880ebaed16ae60ebd54f53a40b1c8220d38a57b5c77a4",
+      "unchanged": true
+    },
+    {
+      "path": "tests/integration/rls/migration-reset.int.test.ts",
+      "sha256": "94a8b50078b5b55e976f9a3ccd46bfc1d98faae79bbd93b0e007be73bb9fbd44",
+      "unchanged": true
+    },
+    {
+      "path": "tests/support/booking-conflict-attestation.ts",
+      "sha256": "614aa5b29780e004d627dab902ed55d6c2d76715de1b1317420dcab77f6a4060",
+      "unchanged": true
+    },
+    {
+      "path": "tests/support/booking-editor-atdd.ts",
+      "sha256": "f956002d233af096bbcbb297b75c99025b063d22e667c9e91fa553523e39ff2c",
+      "unchanged": true
+    },
+    {
+      "path": "tests/support/booking-editor-production.ts",
+      "sha256": "bfd51d321114f0d22c3de3c3ef6a7a244889dc385e1f6e3990c033d7a95fd1db",
+      "unchanged": true
+    },
+    {
+      "path": "tests/support/bookings-atdd.ts",
+      "sha256": "20de5c5f3cca6e42c93c20e4908b6b554eb3235e408d8c4c4ea35da20092286a",
+      "unchanged": true
+    },
+    {
+      "path": "tests/unit/features/resources/booking-attempt-transport.test.ts",
+      "sha256": "c8fc55495e5e1451c4a00a44469103bdc80e906b82dd285fcf4f6808bb563448",
+      "unchanged": true
+    },
+    {
+      "path": "tests/unit/features/resources/booking-editor-input.test.ts",
+      "sha256": "9bbb9d7ad515ff6dea2d4db384cbf50932221af9dd50e294ef47b05c4fee364d",
+      "unchanged": true
+    },
+    {
+      "path": "tests/unit/scope/booking-editor-scope.test.ts",
+      "sha256": "b54041b7dd9d6abac8828843bf1b0971e2f272e5ef272a419ea813ebd5b139a3",
+      "unchanged": true
+    },
+    {
+      "path": "tests/unit/security-headers.test.ts",
+      "sha256": "63f23f136f9bac35333737aae99e697f13b544ac387bf793a315de2b18827ba6",
+      "unchanged": true
+    },
+    {
+      "path": "tests/unit/server/commands/bookings-validation.test.ts",
+      "sha256": "5a2fe7f57af470129f9f41f532484148ce0381e0e3e04ebfe1172e7cff213318",
+      "unchanged": true
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-affected-execution.json",
+      "sha256": "1e1ec8fc164fffeb48b8d7034e2be3a99b4c8c6b0cb2b71784619cdc857847c4"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-affected-output.txt",
+      "sha256": "0b8bfe51c1a47a7376f0163915f0f26590c0e6c7549302a8709c930bf21e7a98"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-affected.json",
+      "sha256": "d383ee5d05879814069a123f2240023dddca42dfa294c21600f0a36ba9a3a3e9"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-api-generation.json",
+      "sha256": "544e144648dacd556d3da190ba37cd94fa5e52f27d3e95a7b9ac14004c22a571"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-artifact-scan.json",
+      "sha256": "400a6df4e4efb15aade26222eacebc870fbcba7886415bfda45514638d08fa9c"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-automation-summary.md",
+      "sha256": "a89bbbb551dc0f71730b19c9ea77e9fb7b034d47499fb8b3c6d7b7bb47d95d19"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-e2e-generation.json",
+      "sha256": "24d0b7a41e7e8fc410a42ffe97ad779830efc309f8492e4caf29d26ffa344dde"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-evidence.mjs",
+      "sha256": "30a05ebef6ffe3a762933c20204c3b592472599b3489272fe3f0f631e9110558"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-focused-execution.json",
+      "sha256": "a9a1a8d2699c5fa14928f925012048b942ade666dd23a3d9897d40ac53822446"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-focused-output.txt",
+      "sha256": "218d0e68ded222430eca98e04a03d1ca3a60302db365a16b995b4ddfce6fae5d"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-focused.json",
+      "sha256": "adacdb2ef1aed356f0d21525c574d0a080529aff18f8bda8560a939f645d1ff1"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-full-execution.json",
+      "sha256": "ecd3d89a6137bf7e54c8fead04bc1cea647f809ee80b521c9b7906d39d26ce47"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-full-output.txt",
+      "sha256": "a82d25503d44a1b62d56016bf39b64563a67a070ecc31ca825f0c4294d4a983e"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-full.json",
+      "sha256": "1d0cbb9ba8a8fc20fdb019191dbc452940dc14e766174dfdbbfc86abe4724dc3"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-generation-summary.json",
+      "sha256": "5b21aac6c013ce44ae1bf884d814189e3a5229b79074e071dab8a0a3f5cec9c1"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-lint-execution.json",
+      "sha256": "1f132dfe54f5bbea4ce6271a67cf84f6ce13d5aa33c738344a7dbb648f48ed3b"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-lint-output.txt",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-local-binding.json",
+      "sha256": "0c80fc23b59fe59577dcd05e851dcce938c3a6d150791a29d2f1a97516023ee0"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-preserved-inputs.json",
+      "sha256": "4c68d5aa68faedf2bb5883fdfabc2dc04b01bd9695347de6de7b3ea927b20f5c"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-run-local.mjs",
+      "sha256": "fe44555530bbd63e4565880606af52f82f68a07ee4b0c611dd22d23b87d6f751"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-run-local.ps1",
+      "sha256": "038144724e37cc849a5c73bfab922bec5e1ca6b58407a479b7ba60c3526dee3c"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-typecheck-execution.json",
+      "sha256": "4d122a9e7f41b2ecc21f2946632c7caf596d3c91309c275f3ba3ebd13dcba6c4"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-typecheck-output.txt",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    }
+  ],
+  "newBrowserExecutions": 0,
+  "newUnitExecutions": 0,
+  "releaseAuthority": false,
+  "gateReevaluationOwner": "root after checkpoint"
+}

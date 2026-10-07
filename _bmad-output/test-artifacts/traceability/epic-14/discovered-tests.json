@@ -1,0 +1,4424 @@
+{
+  "source_sha": "0d1ff3a3577f8f4fc742b13cf92fb28ff598eb62",
+  "collection_mode": "contract_static",
+  "collection_status": "COLLECTED",
+  "inventory": [
+    {
+      "id": "tests/unit/scope/booking-editor-scope.test.ts:[P0] 14.4-GOV-001 active resources command rejects E15 fields while scheduling surfaces remain pending",
+      "title": "[P0] 14.4-GOV-001 active resources command rejects E15 fields while scheduling surfaces remain pending",
+      "file": "tests/unit/scope/booking-editor-scope.test.ts",
+      "line": 13,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/scope/resources-activation.atdd.test.ts:[P0] activates resources with its six tenant tables and leaves scheduling surface-free",
+      "title": "[P0] activates resources with its six tenant tables and leaves scheduling surface-free",
+      "file": "tests/unit/scope/resources-activation.atdd.test.ts",
+      "line": 7,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/server/bookings/conflict-attestation.test.ts:booking proof length prefixes UTF-8 and exact output bytes with domain separation",
+      "title": "booking proof length prefixes UTF-8 and exact output bytes with domain separation",
+      "file": "tests/unit/server/bookings/conflict-attestation.test.ts",
+      "line": 12,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/server/bookings/conflict-attestation.test.ts:booking verifier rejects malformed signatures and a different key",
+      "title": "booking verifier rejects malformed signatures and a different key",
+      "file": "tests/unit/server/bookings/conflict-attestation.test.ts",
+      "line": 23,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/server/bookings/conflict-attestation.test.ts:booking runtime signing configuration has no test fallback",
+      "title": "booking runtime signing configuration has no test fallback",
+      "file": "tests/unit/server/bookings/conflict-attestation.test.ts",
+      "line": 27,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/server/commands/bookings-validation.test.ts:booking validates standalone defaults and update target",
+      "title": "booking validates standalone defaults and update target",
+      "file": "tests/unit/server/commands/bookings-validation.test.ts",
+      "line": 9,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/server/commands/bookings-validation.test.ts:booking canonical instants preserve six fractional digits and sub-millisecond ranges",
+      "title": "booking canonical instants preserve six fractional digits and sub-millisecond ranges",
+      "file": "tests/unit/server/commands/bookings-validation.test.ts",
+      "line": 14,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/server/commands/bookings-validation.test.ts:booking canonicalization normalizes UUIDs, equivalent instants, null links and assignee permutations",
+      "title": "booking canonicalization normalizes UUIDs, equivalent instants, null links and assignee permutations",
+      "file": "tests/unit/server/commands/bookings-validation.test.ts",
+      "line": 31,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/server/commands/bookings-validation.test.ts:booking rejects untrusted authority, malformed links, duplicate assignees and fabricated recurrence",
+      "title": "booking rejects untrusted authority, malformed links, duplicate assignees and fabricated recurrence",
+      "file": "tests/unit/server/commands/bookings-validation.test.ts",
+      "line": 37,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/server/commands/bookings-validation.test.ts:booking rejects invalid and nonpositive explicit-zone time ranges",
+      "title": "booking rejects invalid and nonpositive explicit-zone time ranges",
+      "file": "tests/unit/server/commands/bookings-validation.test.ts",
+      "line": 41,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/server/commands/bookings-validation.test.ts:booking all-day validation uses Stockholm midnight across DST and excludes UTC-midnight mistakes",
+      "title": "booking all-day validation uses Stockholm midnight across DST and excludes UTC-midnight mistakes",
+      "file": "tests/unit/server/commands/bookings-validation.test.ts",
+      "line": 45,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/server/commands/bookings-validation.test.ts:editor command identity includes stable create ID and business decision, excluding receipt transport",
+      "title": "editor command identity includes stable create ID and business decision, excluding receipt transport",
+      "file": "tests/unit/server/commands/bookings-validation.test.ts",
+      "line": 50,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/server/commands/bookings-validation.test.ts:implicit stable create UUID retains tenant-scoped command identity",
+      "title": "implicit stable create UUID retains tenant-scoped command identity",
+      "file": "tests/unit/server/commands/bookings-validation.test.ts",
+      "line": 63,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/booking-attempt-transport.test.ts:Round2 authorization denial retains only a previously unresolved booking attempt",
+      "title": "Round2 authorization denial retains only a previously unresolved booking attempt",
+      "file": "tests/unit/features/resources/booking-attempt-transport.test.ts",
+      "line": 7,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/booking-attempt-transport.test.ts:Round2 synthetic envelope preflight counts UTF-8 bytes and rejects known oversize before submission",
+      "title": "Round2 synthetic envelope preflight counts UTF-8 bytes and rejects known oversize before submission",
+      "file": "tests/unit/features/resources/booking-attempt-transport.test.ts",
+      "line": 15,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/booking-attempt-transport.test.ts:Round2 synthetic encoding guard cannot issue a receipt beyond the existing decoding bound",
+      "title": "Round2 synthetic encoding guard cannot issue a receipt beyond the existing decoding bound",
+      "file": "tests/unit/features/resources/booking-attempt-transport.test.ts",
+      "line": 20,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/booking-editor-input.test.ts:Round1 each untouched endpoint retains fractional precision and the later Stockholm fold instant",
+      "title": "Round1 each untouched endpoint retains fractional precision and the later Stockholm fold instant",
+      "file": "tests/unit/features/resources/booking-editor-input.test.ts",
+      "line": 13,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/booking-editor-input.test.ts:Round1 complete capacity identities larger than description limits remain valid human decisions",
+      "title": "Round1 complete capacity identities larger than description limits remain valid human decisions",
+      "file": "tests/unit/features/resources/booking-editor-input.test.ts",
+      "line": 22,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/booking-editor-input.test.ts:[P1] 14.4-UNIT-INPUT-001 canonical decision orders logical identities and trims reason",
+      "title": "[P1] 14.4-UNIT-INPUT-001 canonical decision orders logical identities and trims reason",
+      "file": "tests/unit/features/resources/booking-editor-input.test.ts",
+      "line": 30,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/booking-editor-input.test.ts:[P1] 14.4-UNIT-INPUT-002 duplicate selected logical identities do not form a valid decision",
+      "title": "[P1] 14.4-UNIT-INPUT-002 duplicate selected logical identities do not form a valid decision",
+      "file": "tests/unit/features/resources/booking-editor-input.test.ts",
+      "line": 38,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/booking-editor-input.test.ts:[P0] 14.4-UNIT-INPUT-003 closed human decision rejects authority and transport fields",
+      "title": "[P0] 14.4-UNIT-INPUT-003 closed human decision rejects authority and transport fields",
+      "file": "tests/unit/features/resources/booking-editor-input.test.ts",
+      "line": 44,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/booking-editor-input.test.ts:[P1] 14.4-UNIT-INPUT-004 current-set review cannot carry a whitespace-only reason",
+      "title": "[P1] 14.4-UNIT-INPUT-004 current-set review cannot carry a whitespace-only reason",
+      "file": "tests/unit/features/resources/booking-editor-input.test.ts",
+      "line": 52,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/booking-editor-input.test.ts:[P1] 14.4-UNIT-INPUT-005 reviewed warning set permits an empty selected subset",
+      "title": "[P1] 14.4-UNIT-INPUT-005 reviewed warning set permits an empty selected subset",
+      "file": "tests/unit/features/resources/booking-editor-input.test.ts",
+      "line": 58,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/booking-editor-input.test.ts:[P1] 14.4-UNIT-INPUT-006 equivalent permutations produce the same canonical business decision",
+      "title": "[P1] 14.4-UNIT-INPUT-006 equivalent permutations produce the same canonical business decision",
+      "file": "tests/unit/features/resources/booking-editor-input.test.ts",
+      "line": 65,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/booking-editor-input.test.ts:[P1] 14.4-UNIT-INPUT-007 untouched displayed minutes preserve exact PostgreSQL microseconds",
+      "title": "[P1] 14.4-UNIT-INPUT-007 untouched displayed minutes preserve exact PostgreSQL microseconds",
+      "file": "tests/unit/features/resources/booking-editor-input.test.ts",
+      "line": 75,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/booking-editor-input.test.ts:[P1] 14.4-UNIT-INPUT-008 changed Stockholm fold input uses the existing earliest-instant policy",
+      "title": "[P1] 14.4-UNIT-INPUT-008 changed Stockholm fold input uses the existing earliest-instant policy",
+      "file": "tests/unit/features/resources/booking-editor-input.test.ts",
+      "line": 83,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/booking-editor-input.test.ts:[P1] 14.4-UNIT-INPUT-009 changed Stockholm gap input uses the existing first-valid-instant policy",
+      "title": "[P1] 14.4-UNIT-INPUT-009 changed Stockholm gap input uses the existing first-valid-instant policy",
+      "file": "tests/unit/features/resources/booking-editor-input.test.ts",
+      "line": 90,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/booking-editor-input.test.ts:[P1] 14.4-UNIT-INPUT-010 changed full-day spring bounds span Stockholm's 23-hour local day",
+      "title": "[P1] 14.4-UNIT-INPUT-010 changed full-day spring bounds span Stockholm's 23-hour local day",
+      "file": "tests/unit/features/resources/booking-editor-input.test.ts",
+      "line": 97,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/booking-editor-input.test.ts:[P1] 14.4-UNIT-INPUT-011 changed full-day autumn bounds span Stockholm's 25-hour local day",
+      "title": "[P1] 14.4-UNIT-INPUT-011 changed full-day autumn bounds span Stockholm's 25-hour local day",
+      "file": "tests/unit/features/resources/booking-editor-input.test.ts",
+      "line": 104,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/capacity-inputs.test.ts:[P0] retains data-driven absences, blocked-time exceptions, and Stockholm calendar reductions for later capacity calculation",
+      "title": "[P0] retains data-driven absences, blocked-time exceptions, and Stockholm calendar reductions for later capacity calculation",
+      "file": "tests/unit/features/resources/capacity-inputs.test.ts",
+      "line": 7,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/capacity-inputs.test.ts:[P0] rejects invalid exception windows and invalid calendar reductions",
+      "title": "[P0] rejects invalid exception windows and invalid calendar reductions",
+      "file": "tests/unit/features/resources/capacity-inputs.test.ts",
+      "line": 23,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/capacity-inputs.test.ts:[P0] rejects malformed persisted exception history without throwing",
+      "title": "[P0] rejects malformed persisted exception history without throwing",
+      "file": "tests/unit/features/resources/capacity-inputs.test.ts",
+      "line": 38,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/capacity-inputs.test.ts:[P0] accepts timed exception history in PostgreSQL's seconds precision",
+      "title": "[P0] accepts timed exception history in PostgreSQL's seconds precision",
+      "file": "tests/unit/features/resources/capacity-inputs.test.ts",
+      "line": 46,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/capacity-inputs.test.ts:[P1] accepts a closed calendar day only when it carries no reduction percentage",
+      "title": "[P1] accepts a closed calendar day only when it carries no reduction percentage",
+      "file": "tests/unit/features/resources/capacity-inputs.test.ts",
+      "line": 53,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/resource-form-inputs.test.ts:[P0] accepts read-model serialized full-day exception history for a subsequent form save",
+      "title": "[P0] accepts read-model serialized full-day exception history for a subsequent form save",
+      "file": "tests/unit/features/resources/resource-form-inputs.test.ts",
+      "line": 6,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/resource-form-inputs.test.ts:[P0] retains malformed persisted exception entries so command validation rejects them",
+      "title": "[P0] retains malformed persisted exception entries so command validation rejects them",
+      "file": "tests/unit/features/resources/resource-form-inputs.test.ts",
+      "line": 12,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/resource-form-inputs.test.ts:[P0] preserves seconds and microseconds when the compact rendered exception is unchanged",
+      "title": "[P0] preserves seconds and microseconds when the compact rendered exception is unchanged",
+      "file": "tests/unit/features/resources/resource-form-inputs.test.ts",
+      "line": 18,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/schedule-form-merge.test.ts:[P0] preserves non-rendered same-day shifts and breaks when editing the compact schedule form",
+      "title": "[P0] preserves non-rendered same-day shifts and breaks when editing the compact schedule form",
+      "file": "tests/unit/features/resources/schedule-form-merge.test.ts",
+      "line": 5,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/schedule-form-merge.test.ts:[P0] treats a fully blank rendered schedule as an explicit clear",
+      "title": "[P0] treats a fully blank rendered schedule as an explicit clear",
+      "file": "tests/unit/features/resources/schedule-form-merge.test.ts",
+      "line": 20,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/schedule-form-merge.test.ts:[P0] retains hidden later shifts when the rendered first shift is cleared during a partial edit",
+      "title": "[P0] retains hidden later shifts when the rendered first shift is cleared during a partial edit",
+      "file": "tests/unit/features/resources/schedule-form-merge.test.ts",
+      "line": 24,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/schedule-form-merge.test.ts:[P0] preserves unchanged PostgreSQL time precision instead of rewriting it to the compact form value",
+      "title": "[P0] preserves unchanged PostgreSQL time precision instead of rewriting it to the compact form value",
+      "file": "tests/unit/features/resources/schedule-form-merge.test.ts",
+      "line": 40,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/schedule-form-merge.test.ts:[P0] fails closed when the stored preservation baseline is malformed",
+      "title": "[P0] fails closed when the stored preservation baseline is malformed",
+      "file": "tests/unit/features/resources/schedule-form-merge.test.ts",
+      "line": 46,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/schedule-read.test.ts:[P0] assigns same-weekday breaks only to their containing split shift in deterministic order",
+      "title": "[P0] assigns same-weekday breaks only to their containing split shift in deterministic order",
+      "file": "tests/unit/features/resources/schedule-read.test.ts",
+      "line": 5,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/work-hours.test.ts:[P0] preserves different daily availability for four-full-day and five-short-day 80-percent templates",
+      "title": "[P0] preserves different daily availability for four-full-day and five-short-day 80-percent templates",
+      "file": "tests/unit/features/resources/work-hours.test.ts",
+      "line": 7,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/work-hours.test.ts:[P0] rejects overlapping or out-of-bound shifts and breaks without deriving hours from employment percentage",
+      "title": "[P0] rejects overlapping or out-of-bound shifts and breaks without deriving hours from employment percentage",
+      "file": "tests/unit/features/resources/work-hours.test.ts",
+      "line": 38,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/work-hours.test.ts:[P0] rejects overlapping breaks inside a single actual shift",
+      "title": "[P0] rejects overlapping breaks inside a single actual shift",
+      "file": "tests/unit/features/resources/work-hours.test.ts",
+      "line": 57,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/resources/work-hours.test.ts:[P0] accepts PostgreSQL time values with seconds and microseconds from the scheduling read model",
+      "title": "[P0] accepts PostgreSQL time values with seconds and microseconds from the scheduling read model",
+      "file": "tests/unit/features/resources/work-hours.test.ts",
+      "line": 73,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/scheduling/capacity.golden.test.ts:[P0] 14.3-UNIT-004 every positive overrun warns regardless of injected threshold",
+      "title": "[P0] 14.3-UNIT-004 every positive overrun warns regardless of injected threshold",
+      "file": "tests/unit/features/scheduling/capacity.golden.test.ts",
+      "line": 7,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/scheduling/capacity.golden.test.ts:[P0] 14.3-UNIT-012 six formula terms isolate each change and layered subtraction once",
+      "title": "[P0] 14.3-UNIT-012 six formula terms isolate each change and layered subtraction once",
+      "file": "tests/unit/features/scheduling/capacity.golden.test.ts",
+      "line": 35,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/scheduling/capacity.golden.test.ts:[P1] 14.3-UNIT-013 overtime is explicitly injected data and never default capacity",
+      "title": "[P1] 14.3-UNIT-013 overtime is explicitly injected data and never default capacity",
+      "file": "tests/unit/features/scheduling/capacity.golden.test.ts",
+      "line": 76,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/scheduling/conflicts.test.ts:[P0] 14.3-UNIT-001 shared assignee emits exact stable pair/person/window",
+      "title": "[P0] 14.3-UNIT-001 shared assignee emits exact stable pair/person/window",
+      "file": "tests/unit/features/scheduling/conflicts.test.ts",
+      "line": 9,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/scheduling/conflicts.test.ts:[P1] 14.3-UNIT-002 adjacent half-open intervals clear, microsecond overlap real",
+      "title": "[P1] 14.3-UNIT-002 adjacent half-open intervals clear, microsecond overlap real",
+      "file": "tests/unit/features/scheduling/conflicts.test.ts",
+      "line": 17,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/scheduling/conflicts.test.ts:[P1] 14.3-UNIT-003 only colliding people appear, permutations have identical bytes",
+      "title": "[P1] 14.3-UNIT-003 only colliding people appear, permutations have identical bytes",
+      "file": "tests/unit/features/scheduling/conflicts.test.ts",
+      "line": 22,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/scheduling/conflicts.test.ts:[P1] 14.3-UNIT-005 outside actual shifts retains partial/whole violating windows",
+      "title": "[P1] 14.3-UNIT-005 outside actual shifts retains partial/whole violating windows",
+      "file": "tests/unit/features/scheduling/conflicts.test.ts",
+      "line": 36,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/scheduling/conflicts.test.ts:[P1] 14.3-UNIT-006 split shifts, break and overlapping absence/blocked emit one identity",
+      "title": "[P1] 14.3-UNIT-006 split shifts, break and overlapping absence/blocked emit one identity",
+      "file": "tests/unit/features/scheduling/conflicts.test.ts",
+      "line": 48,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/scheduling/conflicts.test.ts:[P1] 14.3-UNIT-007 only supplied access window emits exact warning",
+      "title": "[P1] 14.3-UNIT-007 only supplied access window emits exact warning",
+      "file": "tests/unit/features/scheduling/conflicts.test.ts",
+      "line": 59,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/scheduling/conflicts.test.ts:[P1] 14.3-UNIT-008 explicit missing required role warns, matching role clears it",
+      "title": "[P1] 14.3-UNIT-008 explicit missing required role warns, matching role clears it",
+      "file": "tests/unit/features/scheduling/conflicts.test.ts",
+      "line": 70,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/scheduling/conflicts.test.ts:[P1] 14.3-UNIT-011 frozen inputs yield sorted byte-identical output without clock/I/O",
+      "title": "[P1] 14.3-UNIT-011 frozen inputs yield sorted byte-identical output without clock/I/O",
+      "file": "tests/unit/features/scheduling/conflicts.test.ts",
+      "line": 82,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/scheduling/conflicts.test.ts:[P1] 14.3-UNIT-014 named immutable miss/phantom packs protect every corrected defect",
+      "title": "[P1] 14.3-UNIT-014 named immutable miss/phantom packs protect every corrected defect",
+      "file": "tests/unit/features/scheduling/conflicts.test.ts",
+      "line": 105,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/scheduling/dst.golden.test.ts:[P1] 14.3-UNIT-009 spring gap uses first valid instant across all-day/multi-day",
+      "title": "[P1] 14.3-UNIT-009 spring gap uses first valid instant across all-day/multi-day",
+      "file": "tests/unit/features/scheduling/dst.golden.test.ts",
+      "line": 11,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/unit/features/scheduling/dst.golden.test.ts:[P1] 14.3-UNIT-010 fall fold uses earlier instant and retains exact microseconds",
+      "title": "[P1] 14.3-UNIT-010 fall fold uses earlier instant and retains exact microseconds",
+      "file": "tests/unit/features/scheduling/dst.golden.test.ts",
+      "line": 30,
+      "level": "unit",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": null,
+      "execution_evidence": null
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P1] 14.3-INT-001 frozen internal preview and real save use identical normalized conflicts",
+      "title": "[P1] 14.3-INT-001 frozen internal preview and real save use identical normalized conflicts",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 46,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P1] 14.3-INT-002 a stale signed preview writes nothing after a peer booking commits",
+      "title": "[P1] 14.3-INT-002 a stale signed preview writes nothing after a peer booking commits",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 71,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] 14.3-INT-003 fresh actual CREATE commits exact conflicts, assignments, outcome and one target audit",
+      "title": "[P0] 14.3-INT-003 fresh actual CREATE commits exact conflicts, assignments, outcome and one target audit",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 87,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P1] 14.3-INT-004 replace old/new assignees/windows, preserve accepted keys, refresh peers and cancellation",
+      "title": "[P1] 14.3-INT-004 replace old/new assignees/windows, preserve accepted keys, refresh peers and cancellation",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 116,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P1] 14.3-INT-005 CREATE and UPDATE post-conflict/audit faults roll back every durable column",
+      "title": "[P1] 14.3-INT-005 CREATE and UPDATE post-conflict/audit faults roll back every durable column",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 159,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] 14.3-INT-006 stale save requires deliberate renewed review under the original command UUID",
+      "title": "[P0] 14.3-INT-006 stale save requires deliberate renewed review under the original command UUID",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 179,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC10 three explicitly renewed reviews each go stale without target/outcome/audit writes",
+      "title": "[P0] AC10 three explicitly renewed reviews each go stale without target/outcome/audit writes",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 209,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC10 distinct-key concurrent bookings cannot commit a conflict-free write skew",
+      "title": "[P0] AC10 distinct-key concurrent bookings cannot commit a conflict-free write skew",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 232,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC10 schedule holds first gate before row lock; waiting finalize verifies coherent facts",
+      "title": "[P0] AC10 schedule holds first gate before row lock; waiting finalize verifies coherent facts",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 785,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC10 profile holds first gate before row lock; waiting finalize verifies coherent facts",
+      "title": "[P0] AC10 profile holds first gate before row lock; waiting finalize verifies coherent facts",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 785,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC10 calendar holds first gate before row lock; waiting finalize verifies coherent facts",
+      "title": "[P0] AC10 calendar holds first gate before row lock; waiting finalize verifies coherent facts",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 785,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC10 combined_form holds first gate before row lock; waiting finalize verifies coherent facts",
+      "title": "[P0] AC10 combined_form holds first gate before row lock; waiting finalize verifies coherent facts",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 785,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC10 work_role_upsert holds first gate before row lock; waiting finalize verifies coherent facts",
+      "title": "[P0] AC10 work_role_upsert holds first gate before row lock; waiting finalize verifies coherent facts",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 785,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC10 work_role_active holds first gate before row lock; waiting finalize verifies coherent facts",
+      "title": "[P0] AC10 work_role_active holds first gate before row lock; waiting finalize verifies coherent facts",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 785,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC10 membership holds first gate before row lock; waiting finalize verifies coherent facts",
+      "title": "[P0] AC10 membership holds first gate before row lock; waiting finalize verifies coherent facts",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 785,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC10 invitation_acceptance holds first gate before row lock; waiting finalize verifies coherent facts",
+      "title": "[P0] AC10 invitation_acceptance holds first gate before row lock; waiting finalize verifies coherent facts",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 785,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC10 create replay waits for real admin revocation then denies without added writes",
+      "title": "[P0] AC10 create replay waits for real admin revocation then denies without added writes",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 785,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P1] AC10 create authorized historical replay survives assignee deactivation; changed payload conflicts",
+      "title": "[P1] AC10 create authorized historical replay survives assignee deactivation; changed payload conflicts",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC10 update replay waits for real admin revocation then denies without added writes",
+      "title": "[P0] AC10 update replay waits for real admin revocation then denies without added writes",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 785,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P1] AC10 update authorized historical replay survives assignee deactivation; changed payload conflicts",
+      "title": "[P1] AC10 update authorized historical replay survives assignee deactivation; changed payload conflicts",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 finalize rejects missing proof with exact durable no-op and valid control",
+      "title": "[P0] AC11 finalize rejects missing proof with exact durable no-op and valid control",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 finalize rejects forged_signature proof with exact durable no-op and valid control",
+      "title": "[P0] AC11 finalize rejects forged_signature proof with exact durable no-op and valid control",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 finalize rejects malformed_signature proof with exact durable no-op and valid control",
+      "title": "[P0] AC11 finalize rejects malformed_signature proof with exact durable no-op and valid control",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 finalize rejects tenantId proof with exact durable no-op and valid control",
+      "title": "[P0] AC11 finalize rejects tenantId proof with exact durable no-op and valid control",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 finalize rejects actorId proof with exact durable no-op and valid control",
+      "title": "[P0] AC11 finalize rejects actorId proof with exact durable no-op and valid control",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 finalize rejects operation proof with exact durable no-op and valid control",
+      "title": "[P0] AC11 finalize rejects operation proof with exact durable no-op and valid control",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 finalize rejects commandId proof with exact durable no-op and valid control",
+      "title": "[P0] AC11 finalize rejects commandId proof with exact durable no-op and valid control",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 finalize rejects bookingId proof with exact durable no-op and valid control",
+      "title": "[P0] AC11 finalize rejects bookingId proof with exact durable no-op and valid control",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 finalize rejects candidateDigest proof with exact durable no-op and valid control",
+      "title": "[P0] AC11 finalize rejects candidateDigest proof with exact durable no-op and valid control",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 finalize rejects factDigest proof with exact durable no-op and valid control",
+      "title": "[P0] AC11 finalize rejects factDigest proof with exact durable no-op and valid control",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 finalize rejects outputText proof with exact durable no-op and valid control",
+      "title": "[P0] AC11 finalize rejects outputText proof with exact durable no-op and valid control",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 finalize rejects engineVersion proof with exact durable no-op and valid control",
+      "title": "[P0] AC11 finalize rejects engineVersion proof with exact durable no-op and valid control",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 finalize rejects configVersion proof with exact durable no-op and valid control",
+      "title": "[P0] AC11 finalize rejects configVersion proof with exact durable no-op and valid control",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 finalize rejects correlationId proof with exact durable no-op and valid control",
+      "title": "[P0] AC11 finalize rejects correlationId proof with exact durable no-op and valid control",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 finalize rejects keyId proof with exact durable no-op and valid control",
+      "title": "[P0] AC11 finalize rejects keyId proof with exact durable no-op and valid control",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 finalize rejects issuedAt proof with exact durable no-op and valid control",
+      "title": "[P0] AC11 finalize rejects issuedAt proof with exact durable no-op and valid control",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 finalize rejects expiresAt proof with exact durable no-op and valid control",
+      "title": "[P0] AC11 finalize rejects expiresAt proof with exact durable no-op and valid control",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 SQL rejects correctly signed duplicate_natural_key output/claims past HMAC verification",
+      "title": "[P0] AC11 SQL rejects correctly signed duplicate_natural_key output/claims past HMAC verification",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 SQL rejects correctly signed foreign_person output/claims past HMAC verification",
+      "title": "[P0] AC11 SQL rejects correctly signed foreign_person output/claims past HMAC verification",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 SQL rejects correctly signed foreign_booking output/claims past HMAC verification",
+      "title": "[P0] AC11 SQL rejects correctly signed foreign_booking output/claims past HMAC verification",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 SQL rejects correctly signed invalid_type output/claims past HMAC verification",
+      "title": "[P0] AC11 SQL rejects correctly signed invalid_type output/claims past HMAC verification",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 SQL rejects correctly signed reversed_interval output/claims past HMAC verification",
+      "title": "[P0] AC11 SQL rejects correctly signed reversed_interval output/claims past HMAC verification",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 SQL rejects correctly signed out_of_range output/claims past HMAC verification",
+      "title": "[P0] AC11 SQL rejects correctly signed out_of_range output/claims past HMAC verification",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 SQL rejects correctly signed accepted_metadata output/claims past HMAC verification",
+      "title": "[P0] AC11 SQL rejects correctly signed accepted_metadata output/claims past HMAC verification",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 SQL rejects correctly signed unsupported_version output/claims past HMAC verification",
+      "title": "[P0] AC11 SQL rejects correctly signed unsupported_version output/claims past HMAC verification",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 SQL rejects correctly signed expired_signed output/claims past HMAC verification",
+      "title": "[P0] AC11 SQL rejects correctly signed expired_signed output/claims past HMAC verification",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 checked snapshot/finalize deny Montör and cross-tenant/actor callers",
+      "title": "[P0] AC11 checked snapshot/finalize deny Montör and cross-tenant/actor callers",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 fresh legacy RPC/private helper/direct DML cannot bypass detection",
+      "title": "[P0] AC11 fresh legacy RPC/private helper/direct DML cannot bypass detection",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 own-assignment conflict read scope survives authoritative peer refresh",
+      "title": "[P0] AC11 own-assignment conflict read scope survives authoritative peer refresh",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 Node/Postgres proof framing matches exact UTF-8 and microsecond claims",
+      "title": "[P0] AC11 Node/Postgres proof framing matches exact UTF-8 and microsecond claims",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 540,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC10 invitation expiry is checked after a gate/row wait at the current database instant",
+      "title": "[P0] AC10 invitation expiry is checked after a gate/row wait at the current database instant",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 559,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC10 invitation expiry is checked after the operation-row lock wait before activation",
+      "title": "[P0] AC10 invitation expiry is checked after the operation-row lock wait before activation",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 591,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC10 invitation rechecks current confirmed Auth identity after the operation-row wait: confirmation revoked",
+      "title": "[P0] AC10 invitation rechecks current confirmed Auth identity after the operation-row wait: confirmation revoked",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 785,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC10 invitation rechecks current confirmed Auth identity after the operation-row wait: confirmed email changed",
+      "title": "[P0] AC10 invitation rechecks current confirmed Auth identity after the operation-row wait: confirmed email changed",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 785,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC8 every participant in four-booking daily capacity is retrievable and refreshed independently",
+      "title": "[P0] AC8 every participant in four-booking daily capacity is retrievable and refreshed independently",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 685,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC2 persisted dated absence and blocked time produce independent literal UTC warnings",
+      "title": "[P0] AC2 persisted dated absence and blocked time produce independent literal UTC warnings",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 729,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 correctly signed otherwise valid expired proof isolates database clock and maximum lifetime",
+      "title": "[P0] AC11 correctly signed otherwise valid expired proof isolates database clock and maximum lifetime",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 756,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 correctly signed otherwise valid future proof isolates database clock and maximum lifetime",
+      "title": "[P0] AC11 correctly signed otherwise valid future proof isolates database clock and maximum lifetime",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 756,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 correctly signed otherwise valid oversized proof isolates database clock and maximum lifetime",
+      "title": "[P0] AC11 correctly signed otherwise valid oversized proof isolates database clock and maximum lifetime",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 756,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC11 previous incomplete normalization version cannot authorize a fresh commit",
+      "title": "[P0] AC11 previous incomplete normalization version cannot authorize a fresh commit",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 771,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC10 1 deliberately reviewed signed expiries during gate waits preserve the same command UUID",
+      "title": "[P0] AC10 1 deliberately reviewed signed expiries during gate waits preserve the same command UUID",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 785,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-conflicts.int.test.ts:[P0] AC10 3 deliberately reviewed signed expiries during gate waits preserve the same command UUID",
+      "title": "[P0] AC10 3 deliberately reviewed signed expiries during gate waits preserve the same command UUID",
+      "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 785,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor-review-fixes.int.test.ts:Round1 genuine capacity group with 95 peers saves and accepts every exact association; signed partial map denied",
+      "title": "Round1 genuine capacity group with 95 peers saves and accepts every exact association; signed partial map denied",
+      "file": "tests/integration/commands/booking-editor-review-fixes.int.test.ts",
+      "line": 12,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor-review-fixes.int.test.ts:Round1 authorized picker and warning resolve the existing same-tenant staff email identity",
+      "title": "Round1 authorized picker and warning resolve the existing same-tenant staff email identity",
+      "file": "tests/integration/commands/booking-editor-review-fixes.int.test.ts",
+      "line": 47,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor-round2.int.test.ts:Round2 fresh preview denies archived-profile but existing assignment retains its checked exception",
+      "title": "Round2 fresh preview denies archived-profile but existing assignment retains its checked exception",
+      "file": "tests/integration/commands/booking-editor-round2.int.test.ts",
+      "line": 8,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor-round2.int.test.ts:Round2 fresh preview denies disabled-membership but existing assignment retains its checked exception",
+      "title": "Round2 fresh preview denies disabled-membership but existing assignment retains its checked exception",
+      "file": "tests/integration/commands/booking-editor-round2.int.test.ts",
+      "line": 8,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor-round2.int.test.ts:Round2 actual warnings distinguish collision UUIDs sharing the first eight characters",
+      "title": "Round2 actual warnings distinguish collision UUIDs sharing the first eight characters",
+      "file": "tests/integration/commands/booking-editor-round2.int.test.ts",
+      "line": 25,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-001-preview stable create UUID and candidate-only complete warnings",
+      "title": "[P0] 14.4-INT-001-preview stable create UUID and candidate-only complete warnings",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 65,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-001-receipt domain is distinct and binds actor candidate full groups facts versions validity",
+      "title": "[P0] 14.4-INT-001-receipt domain is distinct and binds actor candidate full groups facts versions validity",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 92,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-001-create warns without acknowledgment and writes nothing",
+      "title": "[P0] 14.4-INT-001-create warns without acknowledgment and writes nothing",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 115,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-001-update warns without acknowledgment and writes nothing",
+      "title": "[P0] 14.4-INT-001-update warns without acknowledgment and writes nothing",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 115,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-001-reason \"\" selection=false is a durable no-op",
+      "title": "[P0] 14.4-INT-001-reason \"\" selection=false is a durable no-op",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 132,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-001-reason \" \\t\\n \" selection=false is a durable no-op",
+      "title": "[P0] 14.4-INT-001-reason \" \\t\\n \" selection=false is a durable no-op",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 132,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-001-reason \"\" selection=true is a durable no-op",
+      "title": "[P0] 14.4-INT-001-reason \"\" selection=true is a durable no-op",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 132,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-001-reason \" \\t\\n \" selection=true is a durable no-op",
+      "title": "[P0] 14.4-INT-001-reason \" \\t\\n \" selection=true is a durable no-op",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 132,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-001-partial-review subset acknowledgment is not current whole-set review",
+      "title": "[P0] 14.4-INT-001-partial-review subset acknowledgment is not current whole-set review",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 146,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-002 selected aggregate candidate third accepts all v1/v2 keys once",
+      "title": "[P0] 14.4-INT-002 selected aggregate candidate third accepts all v1/v2 keys once",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 160,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-004 empty selection saves current reviewed warnings open with one audit",
+      "title": "[P0] 14.4-INT-004 empty selection saves current reviewed warnings open with one audit",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 201,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-forged-receipt cannot alter booking outcomes acceptance or audit",
+      "title": "[P0] 14.4-INT-003-forged-receipt cannot alter booking outcomes acceptance or audit",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 254,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-partial-logical-group cannot alter booking outcomes acceptance or audit",
+      "title": "[P0] 14.4-INT-003-partial-logical-group cannot alter booking outcomes acceptance or audit",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 254,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-unrelated-logical-group cannot alter booking outcomes acceptance or audit",
+      "title": "[P0] 14.4-INT-003-unrelated-logical-group cannot alter booking outcomes acceptance or audit",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 254,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-wrong-tenant cannot alter booking outcomes acceptance or audit",
+      "title": "[P0] 14.4-INT-003-wrong-tenant cannot alter booking outcomes acceptance or audit",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 254,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-wrong-actor cannot alter booking outcomes acceptance or audit",
+      "title": "[P0] 14.4-INT-003-wrong-actor cannot alter booking outcomes acceptance or audit",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 254,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-wrong-candidate cannot alter booking outcomes acceptance or audit",
+      "title": "[P0] 14.4-INT-003-wrong-candidate cannot alter booking outcomes acceptance or audit",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 254,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-wrong-target cannot alter booking outcomes acceptance or audit",
+      "title": "[P0] 14.4-INT-003-wrong-target cannot alter booking outcomes acceptance or audit",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 254,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-wrong-operation cannot alter booking outcomes acceptance or audit",
+      "title": "[P0] 14.4-INT-003-wrong-operation cannot alter booking outcomes acceptance or audit",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 254,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-different-preview cannot alter booking outcomes acceptance or audit",
+      "title": "[P0] 14.4-INT-003-different-preview cannot alter booking outcomes acceptance or audit",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 254,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-client-detector-fields cannot alter booking outcomes acceptance or audit",
+      "title": "[P0] 14.4-INT-003-client-detector-fields cannot alter booking outcomes acceptance or audit",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 254,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-unknown-select cannot accept a made-up logical identity",
+      "title": "[P0] 14.4-INT-003-unknown-select cannot accept a made-up logical identity",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 241,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-detectorProofAsReceipt is denied below wrapper",
+      "title": "[P0] 14.4-INT-003-detectorProofAsReceipt is denied below wrapper",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 254,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-receiptAsDetectorProof is denied below wrapper",
+      "title": "[P0] 14.4-INT-003-receiptAsDetectorProof is denied below wrapper",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 254,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-stale-candidate-time requires renewed review",
+      "title": "[P0] 14.4-INT-003-stale-candidate-time requires renewed review",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 270,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-stale-candidate-assignees requires renewed review",
+      "title": "[P0] 14.4-INT-003-stale-candidate-assignees requires renewed review",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 270,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-stale-candidate-connections requires renewed review",
+      "title": "[P0] 14.4-INT-003-stale-candidate-connections requires renewed review",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 270,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-stale-candidate-status requires renewed review",
+      "title": "[P0] 14.4-INT-003-stale-candidate-status requires renewed review",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 270,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-current-facts-schedule has one finalize no silent redetection",
+      "title": "[P0] 14.4-INT-003-current-facts-schedule has one finalize no silent redetection",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 284,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-current-facts-concurrent-booking has one finalize no silent redetection",
+      "title": "[P0] 14.4-INT-003-current-facts-concurrent-booking has one finalize no silent redetection",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 284,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-expiry fresh expired current review is exact no-op",
+      "title": "[P0] 14.4-INT-003-expiry fresh expired current review is exact no-op",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 307,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-concurrent editors reviewed same facts commit one and force other review",
+      "title": "[P0] 14.4-INT-003-concurrent editors reviewed same facts commit one and force other review",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 319,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-clean-review newly appearing warning cannot be saved by retained retry",
+      "title": "[P0] 14.4-INT-003-clean-review newly appearing warning cannot be saved by retained retry",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 342,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-002-rollback-create-after_acceptance restores exact state and retries once",
+      "title": "[P0] 14.4-INT-002-rollback-create-after_acceptance restores exact state and retries once",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 363,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-002-rollback-create-before_audit restores exact state and retries once",
+      "title": "[P0] 14.4-INT-002-rollback-create-before_audit restores exact state and retries once",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 363,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-002-rollback-update-after_acceptance restores exact state and retries once",
+      "title": "[P0] 14.4-INT-002-rollback-update-after_acceptance restores exact state and retries once",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 363,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-002-rollback-update-before_audit restores exact state and retries once",
+      "title": "[P0] 14.4-INT-002-rollback-update-before_audit restores exact state and retries once",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 363,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-005 unchanged accepted identity survives description edit and empty selection",
+      "title": "[P0] 14.4-INT-005 unchanged accepted identity survives description edit and empty selection",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 387,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-005 changed complete collision key reopens all rows",
+      "title": "[P0] 14.4-INT-005 changed complete collision key reopens all rows",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 417,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-002-replay-create lost-response equal retry excludes transport facts drift expiry",
+      "title": "[P0] 14.4-INT-002-replay-create lost-response equal retry excludes transport facts drift expiry",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 439,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-replay-create-selection conflicts without any second write",
+      "title": "[P0] 14.4-INT-003-replay-create-selection conflicts without any second write",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 465,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-replay-create-reason conflicts without any second write",
+      "title": "[P0] 14.4-INT-003-replay-create-reason conflicts without any second write",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 465,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-002-replay-update lost-response equal retry excludes transport facts drift expiry",
+      "title": "[P0] 14.4-INT-002-replay-update lost-response equal retry excludes transport facts drift expiry",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 439,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-replay-update-selection conflicts without any second write",
+      "title": "[P0] 14.4-INT-003-replay-update-selection conflicts without any second write",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 465,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-replay-update-reason conflicts without any second write",
+      "title": "[P0] 14.4-INT-003-replay-update-reason conflicts without any second write",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 465,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P1] 14.4-INT-002-replay-normalized reason trim and reordered logical IDs return historical result",
+      "title": "[P1] 14.4-INT-002-replay-normalized reason trim and reordered logical IDs return historical result",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 483,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-AC7-revoked-create replay denies both command and direct checked RPC",
+      "title": "[P0] 14.4-AC7-revoked-create replay denies both command and direct checked RPC",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 503,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-AC7-revoked-update replay denies both command and direct checked RPC",
+      "title": "[P0] 14.4-AC7-revoked-update replay denies both command and direct checked RPC",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 503,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-AC7-direct all fresh current obsolete finalize paths enforce human review",
+      "title": "[P0] 14.4-AC7-direct all fresh current obsolete finalize paths enforce human review",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 531,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-AC7-acl checked receipt RPC is authenticated private helpers remain uncallable",
+      "title": "[P0] 14.4-AC7-acl checked receipt RPC is authenticated private helpers remain uncallable",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 552,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-INT-003-direct actor timestamp status cannot be client-authored",
+      "title": "[P0] 14.4-INT-003-direct actor timestamp status cannot be client-authored",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 574,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-AC7-montor own visibility excludes coworkers preview save override",
+      "title": "[P0] 14.4-AC7-montor own visibility excludes coworkers preview save override",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 585,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-AC7-cross-tenant-assignee generic denial exact two-tenant no-op",
+      "title": "[P0] 14.4-AC7-cross-tenant-assignee generic denial exact two-tenant no-op",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 613,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-AC7-cross-tenant-job generic denial exact two-tenant no-op",
+      "title": "[P0] 14.4-AC7-cross-tenant-job generic denial exact two-tenant no-op",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 613,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-AC7-cross-tenant-customer generic denial exact two-tenant no-op",
+      "title": "[P0] 14.4-AC7-cross-tenant-customer generic denial exact two-tenant no-op",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 613,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-AC7-cross-tenant-facility generic denial exact two-tenant no-op",
+      "title": "[P0] 14.4-AC7-cross-tenant-facility generic denial exact two-tenant no-op",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 613,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-AC7-cross-tenant-contact generic denial exact two-tenant no-op",
+      "title": "[P0] 14.4-AC7-cross-tenant-contact generic denial exact two-tenant no-op",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 613,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/booking-editor.int.test.ts:[P0] 14.4-AC7-cross-tenant-booking generic denial exact two-tenant no-op",
+      "title": "[P0] 14.4-AC7-cross-tenant-booking generic denial exact two-tenant no-op",
+      "file": "tests/integration/commands/booking-editor.int.test.ts",
+      "line": 613,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings-replay-authority.int.test.ts:[P0] 14.4 preserves explicitly absent-review legacy create/update outcomes without borrowing them for override",
+      "title": "[P0] 14.4 preserves explicitly absent-review legacy create/update outcomes without borrowing them for override",
+      "file": "tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "line": 24,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings-replay-authority.int.test.ts:[P1] 14.2-INT-003 UPDATE replay rejects stale caller after 'role downgraded and secondary roles r…'",
+      "title": "[P1] 14.2-INT-003 UPDATE replay rejects stale caller after 'role downgraded and secondary roles r…'",
+      "file": "tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings-replay-authority.int.test.ts:[P1] 14.2-INT-003 UPDATE replay rejects stale caller after 'membership invited'",
+      "title": "[P1] 14.2-INT-003 UPDATE replay rejects stale caller after 'membership invited'",
+      "file": "tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings-replay-authority.int.test.ts:[P1] 14.2-INT-003 UPDATE replay rejects stale caller after 'membership disabled'",
+      "title": "[P1] 14.2-INT-003 UPDATE replay rejects stale caller after 'membership disabled'",
+      "file": "tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings-replay-authority.int.test.ts:[P1] 14.2-INT-003 'create' replay rejects 'primary and secondary roles' revoked during lock wait",
+      "title": "[P1] 14.2-INT-003 'create' replay rejects 'primary and secondary roles' revoked during lock wait",
+      "file": "tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings-replay-authority.int.test.ts:[P1] 14.2-INT-003 'update' replay rejects 'primary and secondary roles' revoked during lock wait",
+      "title": "[P1] 14.2-INT-003 'update' replay rejects 'primary and secondary roles' revoked during lock wait",
+      "file": "tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings-replay-authority.int.test.ts:[P1] 14.2-INT-003 'create' replay rejects 'secondary-only planner' revoked during lock wait",
+      "title": "[P1] 14.2-INT-003 'create' replay rejects 'secondary-only planner' revoked during lock wait",
+      "file": "tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings-replay-authority.int.test.ts:[P1] 14.2-INT-003 'update' replay rejects 'secondary-only planner' revoked during lock wait",
+      "title": "[P1] 14.2-INT-003 'update' replay rejects 'secondary-only planner' revoked during lock wait",
+      "file": "tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings-replay-authority.int.test.ts:[P1] 14.2-INT-003 'create' replay rejects 'disabled membership' revoked during lock wait",
+      "title": "[P1] 14.2-INT-003 'create' replay rejects 'disabled membership' revoked during lock wait",
+      "file": "tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings-replay-authority.int.test.ts:[P1] 14.2-INT-003 'update' replay rejects 'disabled membership' revoked during lock wait",
+      "title": "[P1] 14.2-INT-003 'update' replay rejects 'disabled membership' revoked during lock wait",
+      "file": "tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings-replay-authority.int.test.ts:[P1] 14.2-INT-008 'create' checked RPC rejects out-of-range clock fields",
+      "title": "[P1] 14.2-INT-008 'create' checked RPC rejects out-of-range clock fields",
+      "file": "tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings-replay-authority.int.test.ts:[P1] 14.2-INT-008 'update' checked RPC rejects out-of-range clock fields",
+      "title": "[P1] 14.2-INT-008 'update' checked RPC rejects out-of-range clock fields",
+      "file": "tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "line": null,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings.int.test.ts:[P1] 14.2-INT-003 six-digit timestamp replay agrees across envelope and checked RPC",
+      "title": "[P1] 14.2-INT-003 six-digit timestamp replay agrees across envelope and checked RPC",
+      "file": "tests/integration/commands/bookings.int.test.ts",
+      "line": 19,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings.int.test.ts:[P1] 14.2-INT-005 overlapping same-key updates commit one outcome and one audit",
+      "title": "[P1] 14.2-INT-005 overlapping same-key updates commit one outcome and one audit",
+      "file": "tests/integration/commands/bookings.int.test.ts",
+      "line": 53,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings.int.test.ts:[P0] 14.2-INT-001 actual envelope commits exact booking, assignees, durable outcome and one audit",
+      "title": "[P0] 14.2-INT-001 actual envelope commits exact booking, assignees, durable outcome and one audit",
+      "file": "tests/integration/commands/bookings.int.test.ts",
+      "line": 122,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings.int.test.ts:[P1] 14.2-INT-002 update replaces mutable fields and exact assignees with immutable identity/history",
+      "title": "[P1] 14.2-INT-002 update replaces mutable fields and exact assignees with immutable identity/history",
+      "file": "tests/integration/commands/bookings.int.test.ts",
+      "line": 155,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings.int.test.ts:[P1] 14.2-INT-003 canonical replay survives subsequent updates and assignee deactivation",
+      "title": "[P1] 14.2-INT-003 canonical replay survives subsequent updates and assignee deactivation",
+      "file": "tests/integration/commands/bookings.int.test.ts",
+      "line": 188,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings.int.test.ts:[P1] 14.2-INT-004 changed canonical scoped key returns generic conflict without any durable change",
+      "title": "[P1] 14.2-INT-004 changed canonical scoped key returns generic conflict without any durable change",
+      "file": "tests/integration/commands/bookings.int.test.ts",
+      "line": 214,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings.int.test.ts:[P1] 14.2-INT-005 concurrent identical creates persist one booking and one attributable audit",
+      "title": "[P1] 14.2-INT-005 concurrent identical creates persist one booking and one attributable audit",
+      "file": "tests/integration/commands/bookings.int.test.ts",
+      "line": 238,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings.int.test.ts:[P1] 14.2-INT-006 booking preparation and audit faults roll back create and update snapshots",
+      "title": "[P1] 14.2-INT-006 booking preparation and audit faults roll back create and update snapshots",
+      "file": "tests/integration/commands/bookings.int.test.ts",
+      "line": 256,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings.int.test.ts:[P1] 14.2-INT-007 assignee preparation fault restores all business, outcomes and audit rows",
+      "title": "[P1] 14.2-INT-007 assignee preparation fault restores all business, outcomes and audit rows",
+      "file": "tests/integration/commands/bookings.int.test.ts",
+      "line": 273,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings.int.test.ts:[P1] 14.2-DB-001 standalone booking preserves independent null links and reserved recurrence storage",
+      "title": "[P1] 14.2-DB-001 standalone booking preserves independent null links and reserved recurrence storage",
+      "file": "tests/integration/commands/bookings.int.test.ts",
+      "line": 288,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings.int.test.ts:[P1] 14.2-DB-002 each nullable link accepts coherent own parents and rejects foreign/mismatched links atomically",
+      "title": "[P1] 14.2-DB-002 each nullable link accepts coherent own parents and rejects foreign/mismatched links atomically",
+      "file": "tests/integration/commands/bookings.int.test.ts",
+      "line": 307,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings.int.test.ts:[P1] 14.2-DB-003 zero/negative booking and conflict windows plus incoherent workflow metadata are constrained",
+      "title": "[P1] 14.2-DB-003 zero/negative booking and conflict windows plus incoherent workflow metadata are constrained",
+      "file": "tests/integration/commands/bookings.int.test.ts",
+      "line": 345,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings.int.test.ts:[P1] 14.2-DB-004 UTC timed/all-day bounds round-trip Stockholm spring 23h and fall 25h days",
+      "title": "[P1] 14.2-DB-004 UTC timed/all-day bounds round-trip Stockholm spring 23h and fall 25h days",
+      "file": "tests/integration/commands/bookings.int.test.ts",
+      "line": 366,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings.int.test.ts:[P1] 14.2-DB-005 assignee uniqueness, minimum set and composite child references cannot be bypassed",
+      "title": "[P1] 14.2-DB-005 assignee uniqueness, minimum set and composite child references cannot be bypassed",
+      "file": "tests/integration/commands/bookings.int.test.ts",
+      "line": 397,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings.int.test.ts:[P1] 14.2-INT-009 existing Phase A basic job ID/links remain intact on booking create and update",
+      "title": "[P1] 14.2-INT-009 existing Phase A basic job ID/links remain intact on booking create and update",
+      "file": "tests/integration/commands/bookings.int.test.ts",
+      "line": 418,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/bookings.int.test.ts:[P1] 14.2-INT-010 disabled/archive assignment history survives; new assignment and lock race are rejected",
+      "title": "[P1] 14.2-INT-010 disabled/archive assignment history survives; new assignment and lock race are rejected",
+      "file": "tests/integration/commands/bookings.int.test.ts",
+      "line": 449,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/resources.int.test.ts:[P0] creates one profile, saves a schedule, and rejects overlap without partial rows",
+      "title": "[P0] creates one profile, saves a schedule, and rejects overlap without partial rows",
+      "file": "tests/integration/commands/resources.int.test.ts",
+      "line": 6,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/resources.int.test.ts:[P0] rejects forged tenants and invalid reductions without calendar writes",
+      "title": "[P0] rejects forged tenants and invalid reductions without calendar writes",
+      "file": "tests/integration/commands/resources.int.test.ts",
+      "line": 23,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/resources.int.test.ts:[P0] saves the browser form's profile, schedule, exception, and calendar input in one transaction",
+      "title": "[P0] saves the browser form's profile, schedule, exception, and calendar input in one transaction",
+      "file": "tests/integration/commands/resources.int.test.ts",
+      "line": 33,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/resources.int.test.ts:[P0] composite form explicitly clears schedule, rendered exception, and calendar input",
+      "title": "[P0] composite form explicitly clears schedule, rendered exception, and calendar input",
+      "file": "tests/integration/commands/resources.int.test.ts",
+      "line": 56,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/resources.int.test.ts:[P0] composite form RPC rejects foreign tenants and forged actors without writes",
+      "title": "[P0] composite form RPC rejects foreign tenants and forged actors without writes",
+      "file": "tests/integration/commands/resources.int.test.ts",
+      "line": 81,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/commands/resources.int.test.ts:[P0] anonymous callers cannot invoke any resource mutation RPC",
+      "title": "[P0] anonymous callers cannot invoke any resource mutation RPC",
+      "file": "tests/integration/commands/resources.int.test.ts",
+      "line": 100,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/components/booking-editor.test.ts:Round2 archived current work role remains explicit with no active alternatives",
+      "title": "Round2 archived current work role remains explicit with no active alternatives",
+      "file": "tests/integration/components/booking-editor.test.ts",
+      "line": 26,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/components/booking-editor.test.ts:Round1 failed host authority renders safe retry without booking controls or data",
+      "title": "Round1 failed host authority renders safe retry without booking controls or data",
+      "file": "tests/integration/components/booking-editor.test.ts",
+      "line": 32,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/components/booking-editor.test.ts:Round1 current archived references are visibly selected but unavailable for new selection",
+      "title": "Round1 current archived references are visibly selected but unavailable for new selection",
+      "file": "tests/integration/components/booking-editor.test.ts",
+      "line": 38,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/components/booking-editor.test.ts:reopening a summary projects only valid command facts and exact microseconds",
+      "title": "reopening a summary projects only valid command facts and exact microseconds",
+      "file": "tests/integration/components/booking-editor.test.ts",
+      "line": 45,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/components/booking-editor.test.ts:existing assignment remains visible when its person is absent from new-booking options",
+      "title": "existing assignment remains visible when its person is absent from new-booking options",
+      "file": "tests/integration/components/booking-editor.test.ts",
+      "line": 51,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/components/booking-editor.test.ts:[P1] 14.4-COMP-001 renders a named modal sheet with approved controls and no recurrence",
+      "title": "[P1] 14.4-COMP-001 renders a named modal sheet with approved controls and no recurrence",
+      "file": "tests/integration/components/booking-editor.test.ts",
+      "line": 59,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/components/booking-editor.test.ts:[P1] 14.4-COMP-002 binds approved fields and multi-person draft with availability and role filter",
+      "title": "[P1] 14.4-COMP-002 binds approved fields and multi-person draft with availability and role filter",
+      "file": "tests/integration/components/booking-editor.test.ts",
+      "line": 71,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/components/booking-editor.test.ts:[P1] 14.4-COMP-002 standalone draft renders all four optional connection pickers without required",
+      "title": "[P1] 14.4-COMP-002 standalone draft renders all four optional connection pickers without required",
+      "file": "tests/integration/components/booking-editor.test.ts",
+      "line": 86,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/components/booking-editor.test.ts:[P1] 14.4-COMP-002 reusable person/start/end prefill is rendered without a calendar host",
+      "title": "[P1] 14.4-COMP-002 reusable person/start/end prefill is rendered without a calendar host",
+      "file": "tests/integration/components/booking-editor.test.ts",
+      "line": 96,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/components/booking-editor.test.ts:[P1] 14.4-COMP-004 warning explains rule/person/window/collision and accessible timeline without color",
+      "title": "[P1] 14.4-COMP-004 warning explains rule/person/window/collision and accessible timeline without color",
+      "file": "tests/integration/components/booking-editor.test.ts",
+      "line": 107,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/components/booking-editor.test.ts:[P1] 14.4-COMP-004 failed preview visibly remains unknown with an explicit retry",
+      "title": "[P1] 14.4-COMP-004 failed preview visibly remains unknown with an explicit retry",
+      "file": "tests/integration/components/booking-editor.test.ts",
+      "line": 119,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/components/booking-editor.test.ts:[P1] 14.4-COMP-003 latest response wins when an older success arrives last",
+      "title": "[P1] 14.4-COMP-003 latest response wins when an older success arrives last",
+      "file": "tests/integration/components/booking-editor.test.ts",
+      "line": 130,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/components/booking-editor.test.ts:[P1] 14.4-COMP-003 obsolete failed response cannot replace newest warning set",
+      "title": "[P1] 14.4-COMP-003 obsolete failed response cannot replace newest warning set",
+      "file": "tests/integration/components/booking-editor.test.ts",
+      "line": 143,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/components/booking-editor.test.ts:[P1] 14.4-COMP-003 changed candidate immediately retires old warnings and explicit review while pending",
+      "title": "[P1] 14.4-COMP-003 changed candidate immediately retires old warnings and explicit review while pending",
+      "file": "tests/integration/components/booking-editor.test.ts",
+      "line": 153,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/features/booking-read-actions.test.ts:Round2 known oversized input returns a pre-execution failure without command/authority reads",
+      "title": "Round2 known oversized input returns a pre-execution failure without command/authority reads",
+      "file": "tests/integration/features/booking-read-actions.test.ts",
+      "line": 61,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/features/booking-read-actions.test.ts:CRM host access alone cannot query bookings or editor pickers",
+      "title": "CRM host access alone cannot query bookings or editor pickers",
+      "file": "tests/integration/features/booking-read-actions.test.ts",
+      "line": 65,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/features/booking-read-actions.test.ts:Montör cannot mint preview or read tenant-wide picker; visible bookings retain own assignees",
+      "title": "Montör cannot mint preview or read tenant-wide picker; visible bookings retain own assignees",
+      "file": "tests/integration/features/booking-read-actions.test.ts",
+      "line": 71,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/features/booking-read-actions.test.ts:pickers have current tenant filters and display-only projections, including checked active people",
+      "title": "pickers have current tenant filters and display-only projections, including checked active people",
+      "file": "tests/integration/features/booking-read-actions.test.ts",
+      "line": 81,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/features/booking-read-actions.test.ts:host defaults preserve PostgreSQL microseconds and expose only scoped rows",
+      "title": "host defaults preserve PostgreSQL microseconds and expose only scoped rows",
+      "file": "tests/integration/features/booking-read-actions.test.ts",
+      "line": 94,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/features/booking-read-actions.test.ts:read failure never reports an empty conflict-free state as known",
+      "title": "read failure never reports an empty conflict-free state as known",
+      "file": "tests/integration/features/booking-read-actions.test.ts",
+      "line": 101,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/features/booking-read-actions.test.ts:preview uses current authority and stable proposed UUID, stripping internal proof fields",
+      "title": "preview uses current authority and stable proposed UUID, stripping internal proof fields",
+      "file": "tests/integration/features/booking-read-actions.test.ts",
+      "line": 107,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/features/booking-read-actions.test.ts:preview denies hidden update targets and requires stable create identity",
+      "title": "preview denies hidden update targets and requires stable create identity",
+      "file": "tests/integration/features/booking-read-actions.test.ts",
+      "line": 117,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/features/booking-read-actions.test.ts:stale preview exposes only a typed safe retry state",
+      "title": "stale preview exposes only a typed safe retry state",
+      "file": "tests/integration/features/booking-read-actions.test.ts",
+      "line": 123,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/features/booking-read-actions.test.ts:failed save retains error and cannot revalidate hosts",
+      "title": "failed save retains error and cannot revalidate hosts",
+      "file": "tests/integration/features/booking-read-actions.test.ts",
+      "line": 127,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/features/booking-read-actions.test.ts:only confirmed success revalidates current jobs and customer hosts",
+      "title": "only confirmed success revalidates current jobs and customer hosts",
+      "file": "tests/integration/features/booking-read-actions.test.ts",
+      "line": 133,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/features/booking-read-actions.test.ts:confirmed update clears former connected host summaries as well",
+      "title": "confirmed update clears former connected host summaries as well",
+      "file": "tests/integration/features/booking-read-actions.test.ts",
+      "line": 138,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/features/booking-read-actions.test.ts:open counts verify whole aggregate identities while preserving unrelated/person groups",
+      "title": "open counts verify whole aggregate identities while preserving unrelated/person groups",
+      "file": "tests/integration/features/booking-read-actions.test.ts",
+      "line": 144,
+      "level": "component",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/rls/bookings.rls.test.ts:[P0] 14.4 checked editor RPCs have closed anon ACL and current manager gate",
+      "title": "[P0] 14.4 checked editor RPCs have closed anon ACL and current manager gate",
+      "file": "tests/integration/rls/bookings.rls.test.ts",
+      "line": 17,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/rls/bookings.rls.test.ts:[P1] 14.2-RLS-002 secondary Montor grants own reads and revocation removes them",
+      "title": "[P1] 14.2-RLS-002 secondary Montor grants own reads and revocation removes them",
+      "file": "tests/integration/rls/bookings.rls.test.ts",
+      "line": 38,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/rls/bookings.rls.test.ts:[P0] 14.2-RLS-001 foreign booking/assignee/conflict reads and every write path expose no state",
+      "title": "[P0] 14.2-RLS-001 foreign booking/assignee/conflict reads and every write path expose no state",
+      "file": "tests/integration/rls/bookings.rls.test.ts",
+      "line": 69,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/rls/bookings.rls.test.ts:[P1] 14.2-RLS-002 Montor reads own/shared bookings, own assignment rows and own-participation visible conflicts only",
+      "title": "[P1] 14.2-RLS-002 Montor reads own/shared bookings, own assignment rows and own-participation visible conflicts only",
+      "file": "tests/integration/rls/bookings.rls.test.ts",
+      "line": 115,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/rls/bookings.rls.test.ts:[P1] 14.2-RLS-003 Montor cannot create/update via envelope, checked RPC or direct own-table DML",
+      "title": "[P1] 14.2-RLS-003 Montor cannot create/update via envelope, checked RPC or direct own-table DML",
+      "file": "tests/integration/rls/bookings.rls.test.ts",
+      "line": 143,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/rls/bookings.rls.test.ts:[P1] 14.2-RLS-004 admin/planner checked paths succeed but every outer wrapper independently rechecks authority",
+      "title": "[P1] 14.2-RLS-004 admin/planner checked paths succeed but every outer wrapper independently rechecks authority",
+      "file": "tests/integration/rls/bookings.rls.test.ts",
+      "line": 163,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/rls/resources.rls.test.ts:[P0] enrolls every resource table in the manifest-derived H4 inventory",
+      "title": "[P0] enrolls every resource table in the manifest-derived H4 inventory",
+      "file": "tests/integration/rls/resources.rls.test.ts",
+      "line": 7,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/integration/rls/resources.rls.test.ts:[P0] tenant B cannot read or mutate tenant A resource rows",
+      "title": "[P0] tenant B cannot read or mutate tenant A resource rows",
+      "file": "tests/integration/rls/resources.rls.test.ts",
+      "line": 10,
+      "level": "api",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "passed",
+      "execution_evidence": "story14-4-r2-full-int.json"
+    },
+    {
+      "id": "tests/e2e/booking-editor.e2e.spec.ts:Round2 archived role clears explicitly and failed options retry retains the mounted draft",
+      "title": "Round2 archived role clears explicitly and failed options retry retains the mounted draft",
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 84,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "expected",
+      "execution_evidence": "story14-4-r2-booking-browser-diagnostic.json"
+    },
+    {
+      "id": "tests/e2e/booking-editor.e2e.spec.ts:Round2 facility-only contact choice and same-customer facility change retain compatible links",
+      "title": "Round2 facility-only contact choice and same-customer facility change retain compatible links",
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 104,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "expected",
+      "execution_evidence": "story14-4-r2-booking-browser-diagnostic.json"
+    },
+    {
+      "id": "tests/e2e/booking-editor.e2e.spec.ts:Round2 authorization-denied retry preserves a lost committed attempt until authority returns",
+      "title": "Round2 authorization-denied retry preserves a lost committed attempt until authority returns",
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 120,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "expected",
+      "execution_evidence": "story14-4-r2-booking-browser-diagnostic.json"
+    },
+    {
+      "id": "tests/e2e/booking-editor.e2e.spec.ts:Round2 genuine 1000-group issued review exceeds 1 MiB and saves through actual bounded HTTP action",
+      "title": "Round2 genuine 1000-group issued review exceeds 1 MiB and saves through actual bounded HTTP action",
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 135,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "expected",
+      "execution_evidence": "story14-4-r2-large-http-final.json"
+    },
+    {
+      "id": "tests/e2e/booking-editor.e2e.spec.ts:Round1 endpoint-only mounted edits preserve the other PostgreSQL instant exactly",
+      "title": "Round1 endpoint-only mounted edits preserve the other PostgreSQL instant exactly",
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 151,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "expected",
+      "execution_evidence": "story14-4-r2-booking-browser-diagnostic.json"
+    },
+    {
+      "id": "tests/e2e/booking-editor.e2e.spec.ts:Round1 compatible customer contact retains facility; archived current links remain visible and deliberately clearable",
+      "title": "Round1 compatible customer contact retains facility; archived current links remain visible and deliberately clearable",
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 169,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "expected",
+      "execution_evidence": "story14-4-r2-booking-browser-diagnostic.json"
+    },
+    {
+      "id": "tests/e2e/booking-editor.e2e.spec.ts:[P0] E2E-006 toolbar creates a standalone booking through the desktop sheet",
+      "title": "[P0] E2E-006 toolbar creates a standalone booking through the desktop sheet",
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 203,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "expected",
+      "execution_evidence": "story14-4-r2-booking-browser-diagnostic.json"
+    },
+    {
+      "id": "tests/e2e/booking-editor.e2e.spec.ts:[P0] E2E-006 job entry persists preconnection then reopens and edits",
+      "title": "[P0] E2E-006 job entry persists preconnection then reopens and edits",
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 231,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "expected",
+      "execution_evidence": "story14-4-r2-booking-browser-diagnostic.json"
+    },
+    {
+      "id": "tests/e2e/booking-editor.e2e.spec.ts:[P0] E2E-006 customer entry persists preconnection then reopens and edits",
+      "title": "[P0] E2E-006 customer entry persists preconnection then reopens and edits",
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 231,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "expected",
+      "execution_evidence": "story14-4-r2-booking-browser-diagnostic.json"
+    },
+    {
+      "id": "tests/e2e/booking-editor.e2e.spec.ts:[P1] E2E-001/007 360x640 fullscreen editor scrolls without overflow and keeps actions reachable",
+      "title": "[P1] E2E-001/007 360x640 fullscreen editor scrolls without overflow and keeps actions reachable",
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 283,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "expected",
+      "execution_evidence": "story14-4-r2-booking-browser-diagnostic.json"
+    },
+    {
+      "id": "tests/e2e/booking-editor.e2e.spec.ts:[P1] E2E-002 reload chip counts persisted OPEN logical conflicts only",
+      "title": "[P1] E2E-002 reload chip counts persisted OPEN logical conflicts only",
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 310,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "expected",
+      "execution_evidence": "story14-4-r2-booking-browser-diagnostic.json"
+    },
+    {
+      "id": "tests/e2e/booking-editor.e2e.spec.ts:[P1] E2E-003/007 dirty Escape cancel retains draft and discard restores entry focus",
+      "title": "[P1] E2E-003/007 dirty Escape cancel retains draft and discard restores entry focus",
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 328,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "expected",
+      "execution_evidence": "story14-4-r2-booking-browser-diagnostic.json"
+    },
+    {
+      "id": "tests/e2e/booking-editor.e2e.spec.ts:[P1] E2E-003/007 dirty close cancel retains draft and discard restores entry focus",
+      "title": "[P1] E2E-003/007 dirty close cancel retains draft and discard restores entry focus",
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 328,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "expected",
+      "execution_evidence": "story14-4-r2-booking-browser-diagnostic.json"
+    },
+    {
+      "id": "tests/e2e/booking-editor.e2e.spec.ts:[P1] E2E-003/007 dirty back cancel retains draft and discard restores entry focus",
+      "title": "[P1] E2E-003/007 dirty back cancel retains draft and discard restores entry focus",
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 328,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "expected",
+      "execution_evidence": "story14-4-r2-booking-browser-diagnostic.json"
+    },
+    {
+      "id": "tests/e2e/booking-editor.e2e.spec.ts:[P1] E2E-003 in-flight save blocks Escape close and back until confirmed",
+      "title": "[P1] E2E-003 in-flight save blocks Escape close and back until confirmed",
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 355,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "expected",
+      "execution_evidence": "story14-4-r2-booking-browser-diagnostic.json"
+    },
+    {
+      "id": "tests/e2e/booking-editor.e2e.spec.ts:[P0] E2E-004/005 phone failure keeps unsent draft and explicit retry confirms one durable save",
+      "title": "[P0] E2E-004/005 phone failure keeps unsent draft and explicit retry confirms one durable save",
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 391,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "expected",
+      "execution_evidence": "story14-4-r2-booking-browser-diagnostic.json"
+    },
+    {
+      "id": "tests/e2e/booking-editor.e2e.spec.ts:[P0] E2E-005 phone lost committed response replays one booking assignments conflicts and attributable audit",
+      "title": "[P0] E2E-005 phone lost committed response replays one booking assignments conflicts and attributable audit",
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 420,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "expected",
+      "execution_evidence": "story14-4-r2-booking-browser-diagnostic.json"
+    },
+    {
+      "id": "tests/e2e/booking-editor.e2e.spec.ts:[P1] AC2/ E2E-007 latest warning wins and preview failure remains visibly unknown",
+      "title": "[P1] AC2/ E2E-007 latest warning wins and preview failure remains visibly unknown",
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 473,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "expected",
+      "execution_evidence": "story14-4-r2-booking-browser-diagnostic.json"
+    },
+    {
+      "id": "tests/e2e/booking-editor.e2e.spec.ts:[P1] E2E-007 keyboard focus remains in sheet and warnings announce explanatory timeline",
+      "title": "[P1] E2E-007 keyboard focus remains in sheet and warnings announce explanatory timeline",
+      "file": "tests/e2e/booking-editor.e2e.spec.ts",
+      "line": 511,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "expected",
+      "execution_evidence": "story14-4-r2-booking-browser-diagnostic.json"
+    },
+    {
+      "id": "tests/e2e/resources-person-profile.e2e.spec.ts:[P0] admin persists a same-tenant role and schedule inputs in the existing user-detail route, then reloads server state",
+      "title": "[P0] admin persists a same-tenant role and schedule inputs in the existing user-detail route, then reloads server state",
+      "file": "tests/e2e/resources-person-profile.e2e.spec.ts",
+      "line": 32,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "author-recorded passed",
+      "execution_evidence": "spec-14-1 canonical result: guarded browser4/4"
+    },
+    {
+      "id": "tests/e2e/resources-person-profile.e2e.spec.ts:[P1] admin sees a deactivated profile as Inaktiverad without booking or reassignment affordances",
+      "title": "[P1] admin sees a deactivated profile as Inaktiverad without booking or reassignment affordances",
+      "file": "tests/e2e/resources-person-profile.e2e.spec.ts",
+      "line": 89,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "author-recorded passed",
+      "execution_evidence": "spec-14-1 canonical result: guarded browser4/4"
+    },
+    {
+      "id": "tests/e2e/resources-person-profile.e2e.spec.ts:[P0] at 360×640 a server-observable transient save failure retains unsent input and succeeds only after retry",
+      "title": "[P0] at 360×640 a server-observable transient save failure retains unsent input and succeeds only after retry",
+      "file": "tests/e2e/resources-person-profile.e2e.spec.ts",
+      "line": 100,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "author-recorded passed",
+      "execution_evidence": "spec-14-1 canonical result: guarded browser4/4"
+    },
+    {
+      "id": "tests/e2e/resources-person-profile.e2e.spec.ts:[P0] compact form preserves precise read-model values and a hidden split shift during partial edits",
+      "title": "[P0] compact form preserves precise read-model values and a hidden split shift during partial edits",
+      "file": "tests/e2e/resources-person-profile.e2e.spec.ts",
+      "line": 119,
+      "level": "e2e",
+      "status": "active",
+      "skipped": false,
+      "pending": false,
+      "fixme": false,
+      "recorded_execution": "author-recorded passed",
+      "execution_evidence": "spec-14-1 canonical result: guarded browser4/4"
+    }
+  ],
+  "declarations": {
+    "tests/e2e/booking-editor.e2e.spec.ts": [
+      [
+        "Round2 archived role clears explicitly and failed options retry retains the mounted draft",
+        84
+      ],
+      [
+        "Round2 facility-only contact choice and same-customer facility change retain compatible links",
+        104
+      ],
+      [
+        "Round2 authorization-denied retry preserves a lost committed attempt until authority returns",
+        120
+      ],
+      [
+        "Round2 genuine 1000-group issued review exceeds 1 MiB and saves through actual bounded HTTP action",
+        135
+      ],
+      [
+        "Round1 endpoint-only mounted edits preserve the other PostgreSQL instant exactly",
+        151
+      ],
+      [
+        "Round1 compatible customer contact retains facility; archived current links remain visible and deliberately clearable",
+        169
+      ],
+      [
+        "[P0] E2E-006 toolbar creates a standalone booking through the desktop sheet",
+        203
+      ],
+      [
+        "[P0] E2E-006 ",
+        231
+      ],
+      [
+        "[P1] E2E-001/007 360x640 fullscreen editor scrolls without overflow and keeps actions reachable",
+        283
+      ],
+      [
+        "[P1] E2E-002 reload chip counts persisted OPEN logical conflicts only",
+        310
+      ],
+      [
+        "[P1] E2E-003/007 dirty ",
+        328
+      ],
+      [
+        "[P1] E2E-003 in-flight save blocks Escape close and back until confirmed",
+        355
+      ],
+      [
+        "[P0] E2E-004/005 phone failure keeps unsent draft and explicit retry confirms one durable save",
+        391
+      ],
+      [
+        "[P0] E2E-005 phone lost committed response replays one booking assignments conflicts and attributable audit",
+        420
+      ],
+      [
+        "[P1] AC2/ E2E-007 latest warning wins and preview failure remains visibly unknown",
+        473
+      ],
+      [
+        "[P1] E2E-007 keyboard focus remains in sheet and warnings announce explanatory timeline",
+        511
+      ]
+    ],
+    "tests/e2e/resources-person-profile.e2e.spec.ts": [
+      [
+        "[P0] admin persists a same-tenant role and schedule inputs in the existing user-detail route, then reloads server state",
+        32
+      ],
+      [
+        "[P1] admin sees a deactivated profile as Inaktiverad without booking or reassignment affordances",
+        89
+      ],
+      [
+        "[P0] at 360×640 a server-observable transient save failure retains unsent input and succeeds only after retry",
+        100
+      ],
+      [
+        "[P0] compact form preserves precise read-model values and a hidden split shift during partial edits",
+        119
+      ]
+    ],
+    "tests/unit/scope/booking-editor-scope.test.ts": [
+      [
+        "[P0] 14.4-GOV-001 active resources command rejects E15 fields while scheduling surfaces remain pending",
+        13
+      ]
+    ],
+    "tests/unit/scope/resources-activation.atdd.test.ts": [
+      [
+        "[P0] activates resources with its six tenant tables and leaves scheduling surface-free",
+        7
+      ]
+    ],
+    "tests/unit/server/bookings/conflict-attestation.test.ts": [
+      [
+        "booking proof length prefixes UTF-8 and exact output bytes with domain separation",
+        12
+      ],
+      [
+        "booking verifier rejects malformed signatures and a different key",
+        23
+      ],
+      [
+        "booking runtime signing configuration has no test fallback",
+        27
+      ]
+    ],
+    "tests/unit/server/commands/bookings-validation.test.ts": [
+      [
+        "booking validates standalone defaults and update target",
+        9
+      ],
+      [
+        "booking canonical instants preserve six fractional digits and sub-millisecond ranges",
+        14
+      ],
+      [
+        "booking canonicalization normalizes UUIDs, equivalent instants, null links and assignee permutations",
+        31
+      ],
+      [
+        "booking rejects untrusted authority, malformed links, duplicate assignees and fabricated recurrence",
+        37
+      ],
+      [
+        "booking rejects invalid and nonpositive explicit-zone time ranges",
+        41
+      ],
+      [
+        "booking all-day validation uses Stockholm midnight across DST and excludes UTC-midnight mistakes",
+        45
+      ],
+      [
+        "editor command identity includes stable create ID and business decision, excluding receipt transport",
+        50
+      ],
+      [
+        "implicit stable create UUID retains tenant-scoped command identity",
+        63
+      ]
+    ],
+    "tests/unit/features/resources/booking-attempt-transport.test.ts": [
+      [
+        "Round2 authorization denial retains only a previously unresolved booking attempt",
+        7
+      ],
+      [
+        "Round2 synthetic envelope preflight counts UTF-8 bytes and rejects known oversize before submission",
+        15
+      ],
+      [
+        "Round2 synthetic encoding guard cannot issue a receipt beyond the existing decoding bound",
+        20
+      ]
+    ],
+    "tests/unit/features/resources/booking-editor-input.test.ts": [
+      [
+        "Round1 each untouched endpoint retains fractional precision and the later Stockholm fold instant",
+        13
+      ],
+      [
+        "Round1 complete capacity identities larger than description limits remain valid human decisions",
+        22
+      ],
+      [
+        "[P1] 14.4-UNIT-INPUT-001 canonical decision orders logical identities and trims reason",
+        30
+      ],
+      [
+        "[P1] 14.4-UNIT-INPUT-002 duplicate selected logical identities do not form a valid decision",
+        38
+      ],
+      [
+        "[P0] 14.4-UNIT-INPUT-003 closed human decision rejects authority and transport fields",
+        44
+      ],
+      [
+        "[P1] 14.4-UNIT-INPUT-004 current-set review cannot carry a whitespace-only reason",
+        52
+      ],
+      [
+        "[P1] 14.4-UNIT-INPUT-005 reviewed warning set permits an empty selected subset",
+        58
+      ],
+      [
+        "[P1] 14.4-UNIT-INPUT-006 equivalent permutations produce the same canonical business decision",
+        65
+      ],
+      [
+        "[P1] 14.4-UNIT-INPUT-007 untouched displayed minutes preserve exact PostgreSQL microseconds",
+        75
+      ],
+      [
+        "[P1] 14.4-UNIT-INPUT-008 changed Stockholm fold input uses the existing earliest-instant policy",
+        83
+      ],
+      [
+        "[P1] 14.4-UNIT-INPUT-009 changed Stockholm gap input uses the existing first-valid-instant policy",
+        90
+      ],
+      [
+        "[P1] 14.4-UNIT-INPUT-010 changed full-day spring bounds span Stockholm's 23-hour local day",
+        97
+      ],
+      [
+        "[P1] 14.4-UNIT-INPUT-011 changed full-day autumn bounds span Stockholm's 25-hour local day",
+        104
+      ]
+    ],
+    "tests/unit/features/resources/capacity-inputs.test.ts": [
+      [
+        "[P0] retains data-driven absences, blocked-time exceptions, and Stockholm calendar reductions for later capacity calculation",
+        7
+      ],
+      [
+        "[P0] rejects invalid exception windows and invalid calendar reductions",
+        23
+      ],
+      [
+        "[P0] rejects malformed persisted exception history without throwing",
+        38
+      ],
+      [
+        "[P0] accepts timed exception history in PostgreSQL's seconds precision",
+        46
+      ],
+      [
+        "[P1] accepts a closed calendar day only when it carries no reduction percentage",
+        53
+      ]
+    ],
+    "tests/unit/features/resources/resource-form-inputs.test.ts": [
+      [
+        "[P0] accepts read-model serialized full-day exception history for a subsequent form save",
+        6
+      ],
+      [
+        "[P0] retains malformed persisted exception entries so command validation rejects them",
+        12
+      ],
+      [
+        "[P0] preserves seconds and microseconds when the compact rendered exception is unchanged",
+        18
+      ]
+    ],
+    "tests/unit/features/resources/schedule-form-merge.test.ts": [
+      [
+        "[P0] preserves non-rendered same-day shifts and breaks when editing the compact schedule form",
+        5
+      ],
+      [
+        "[P0] treats a fully blank rendered schedule as an explicit clear",
+        20
+      ],
+      [
+        "[P0] retains hidden later shifts when the rendered first shift is cleared during a partial edit",
+        24
+      ],
+      [
+        "[P0] preserves unchanged PostgreSQL time precision instead of rewriting it to the compact form value",
+        40
+      ],
+      [
+        "[P0] fails closed when the stored preservation baseline is malformed",
+        46
+      ]
+    ],
+    "tests/unit/features/resources/schedule-read.test.ts": [
+      [
+        "[P0] assigns same-weekday breaks only to their containing split shift in deterministic order",
+        5
+      ]
+    ],
+    "tests/unit/features/resources/work-hours.test.ts": [
+      [
+        "[P0] preserves different daily availability for four-full-day and five-short-day 80-percent templates",
+        7
+      ],
+      [
+        "[P0] rejects overlapping or out-of-bound shifts and breaks without deriving hours from employment percentage",
+        38
+      ],
+      [
+        "[P0] rejects overlapping breaks inside a single actual shift",
+        57
+      ],
+      [
+        "[P0] accepts PostgreSQL time values with seconds and microseconds from the scheduling read model",
+        73
+      ]
+    ],
+    "tests/unit/features/scheduling/capacity.golden.test.ts": [
+      [
+        "[P0] 14.3-UNIT-004 every positive overrun warns regardless of injected threshold",
+        7
+      ],
+      [
+        "[P0] 14.3-UNIT-012 six formula terms isolate each change and layered subtraction once",
+        35
+      ],
+      [
+        "[P1] 14.3-UNIT-013 overtime is explicitly injected data and never default capacity",
+        76
+      ]
+    ],
+    "tests/unit/features/scheduling/conflicts.test.ts": [
+      [
+        "[P0] 14.3-UNIT-001 shared assignee emits exact stable pair/person/window",
+        9
+      ],
+      [
+        "[P1] 14.3-UNIT-002 adjacent half-open intervals clear, microsecond overlap real",
+        17
+      ],
+      [
+        "[P1] 14.3-UNIT-003 only colliding people appear, permutations have identical bytes",
+        22
+      ],
+      [
+        "[P1] 14.3-UNIT-005 outside actual shifts retains partial/whole violating windows",
+        36
+      ],
+      [
+        "[P1] 14.3-UNIT-006 split shifts, break and overlapping absence/blocked emit one identity",
+        48
+      ],
+      [
+        "[P1] 14.3-UNIT-007 only supplied access window emits exact warning",
+        59
+      ],
+      [
+        "[P1] 14.3-UNIT-008 explicit missing required role warns, matching role clears it",
+        70
+      ],
+      [
+        "[P1] 14.3-UNIT-011 frozen inputs yield sorted byte-identical output without clock/I/O",
+        82
+      ],
+      [
+        "[P1] 14.3-UNIT-014 named immutable miss/phantom packs protect every corrected defect",
+        105
+      ]
+    ],
+    "tests/unit/features/scheduling/dst.golden.test.ts": [
+      [
+        "[P1] 14.3-UNIT-009 spring gap uses first valid instant across all-day/multi-day",
+        11
+      ],
+      [
+        "[P1] 14.3-UNIT-010 fall fold uses earlier instant and retains exact microseconds",
+        30
+      ]
+    ],
+    "tests/integration/commands/booking-conflicts.int.test.ts": [
+      [
+        "[P1] 14.3-INT-001 frozen internal preview and real save use identical normalized conflicts",
+        46
+      ],
+      [
+        "[P1] 14.3-INT-002 a stale signed preview writes nothing after a peer booking commits",
+        71
+      ],
+      [
+        "[P0] 14.3-INT-003 fresh actual CREATE commits exact conflicts, assignments, outcome and one target audit",
+        87
+      ],
+      [
+        "[P1] 14.3-INT-004 replace old/new assignees/windows, preserve accepted keys, refresh peers and cancellation",
+        116
+      ],
+      [
+        "[P1] 14.3-INT-005 CREATE and UPDATE post-conflict/audit faults roll back every durable column",
+        159
+      ],
+      [
+        "[P0] 14.3-INT-006 stale save requires deliberate renewed review under the original command UUID",
+        179
+      ],
+      [
+        "[P0] AC10 three explicitly renewed reviews each go stale without target/outcome/audit writes",
+        209
+      ],
+      [
+        "[P0] AC10 distinct-key concurrent bookings cannot commit a conflict-free write skew",
+        232
+      ],
+      [
+        "[P0] AC11 Node/Postgres proof framing matches exact UTF-8 and microsecond claims",
+        540
+      ],
+      [
+        "[P0] AC10 invitation expiry is checked after a gate/row wait at the current database instant",
+        559
+      ],
+      [
+        "[P0] AC10 invitation expiry is checked after the operation-row lock wait before activation",
+        591
+      ],
+      [
+        "[P0] AC8 every participant in four-booking daily capacity is retrievable and refreshed independently",
+        685
+      ],
+      [
+        "[P0] AC2 persisted dated absence and blocked time produce independent literal UTC warnings",
+        729
+      ],
+      [
+        "[P0] AC11 previous incomplete normalization version cannot authorize a fresh commit",
+        771
+      ]
+    ],
+    "tests/integration/commands/booking-editor-review-fixes.int.test.ts": [
+      [
+        "Round1 genuine capacity group with 95 peers saves and accepts every exact association; signed partial map denied",
+        12
+      ],
+      [
+        "Round1 authorized picker and warning resolve the existing same-tenant staff email identity",
+        47
+      ]
+    ],
+    "tests/integration/commands/booking-editor-round2.int.test.ts": [
+      [
+        "Round2 fresh preview denies ",
+        8
+      ],
+      [
+        "Round2 actual warnings distinguish collision UUIDs sharing the first eight characters",
+        25
+      ]
+    ],
+    "tests/integration/commands/booking-editor.int.test.ts": [
+      [
+        "[P0] 14.4-INT-001-preview stable create UUID and candidate-only complete warnings",
+        65
+      ],
+      [
+        "[P0] 14.4-INT-001-receipt domain is distinct and binds actor candidate full groups facts versions validity",
+        92
+      ],
+      [
+        "[P0] 14.4-INT-001-",
+        115
+      ],
+      [
+        "[P0] 14.4-INT-001-reason ",
+        132
+      ],
+      [
+        "[P0] 14.4-INT-001-partial-review subset acknowledgment is not current whole-set review",
+        146
+      ],
+      [
+        "[P0] 14.4-INT-002 selected aggregate candidate third accepts all v1/v2 keys once",
+        160
+      ],
+      [
+        "[P0] 14.4-INT-004 empty selection saves current reviewed warnings open with one audit",
+        201
+      ],
+      [
+        "[P0] 14.4-INT-003-",
+        219
+      ],
+      [
+        "[P0] 14.4-INT-003-unknown-select cannot accept a made-up logical identity",
+        241
+      ],
+      [
+        "[P0] 14.4-INT-003-",
+        254
+      ],
+      [
+        "[P0] 14.4-INT-003-stale-candidate-",
+        270
+      ],
+      [
+        "[P0] 14.4-INT-003-current-facts-",
+        284
+      ],
+      [
+        "[P0] 14.4-INT-003-expiry fresh expired current review is exact no-op",
+        307
+      ],
+      [
+        "[P0] 14.4-INT-003-concurrent editors reviewed same facts commit one and force other review",
+        319
+      ],
+      [
+        "[P0] 14.4-INT-003-clean-review newly appearing warning cannot be saved by retained retry",
+        342
+      ],
+      [
+        "[P0] 14.4-INT-002-rollback-",
+        363
+      ],
+      [
+        "[P0] 14.4-INT-005 unchanged accepted identity survives description edit and empty selection",
+        387
+      ],
+      [
+        "[P0] 14.4-INT-005 changed complete collision key reopens all rows",
+        417
+      ],
+      [
+        "[P0] 14.4-INT-002-replay-",
+        439
+      ],
+      [
+        "[P0] 14.4-INT-003-replay-",
+        465
+      ],
+      [
+        "[P1] 14.4-INT-002-replay-normalized reason trim and reordered logical IDs return historical result",
+        483
+      ],
+      [
+        "[P0] 14.4-AC7-revoked-",
+        503
+      ],
+      [
+        "[P0] 14.4-AC7-direct all fresh current obsolete finalize paths enforce human review",
+        531
+      ],
+      [
+        "[P0] 14.4-AC7-acl checked receipt RPC is authenticated private helpers remain uncallable",
+        552
+      ],
+      [
+        "[P0] 14.4-INT-003-direct actor timestamp status cannot be client-authored",
+        574
+      ],
+      [
+        "[P0] 14.4-AC7-montor own visibility excludes coworkers preview save override",
+        585
+      ],
+      [
+        "[P0] 14.4-AC7-cross-tenant-",
+        613
+      ]
+    ],
+    "tests/integration/commands/bookings-replay-authority.int.test.ts": [
+      [
+        "[P0] 14.4 preserves explicitly absent-review legacy create/update outcomes without borrowing them for override",
+        24
+      ]
+    ],
+    "tests/integration/commands/bookings.int.test.ts": [
+      [
+        "[P1] 14.2-INT-003 six-digit timestamp replay agrees across envelope and checked RPC",
+        19
+      ],
+      [
+        "[P1] 14.2-INT-005 overlapping same-key updates commit one outcome and one audit",
+        53
+      ],
+      [
+        "[P0] 14.2-INT-001 actual envelope commits exact booking, assignees, durable outcome and one audit",
+        122
+      ],
+      [
+        "[P1] 14.2-INT-002 update replaces mutable fields and exact assignees with immutable identity/history",
+        155
+      ],
+      [
+        "[P1] 14.2-INT-003 canonical replay survives subsequent updates and assignee deactivation",
+        188
+      ],
+      [
+        "[P1] 14.2-INT-004 changed canonical scoped key returns generic conflict without any durable change",
+        214
+      ],
+      [
+        "[P1] 14.2-INT-005 concurrent identical creates persist one booking and one attributable audit",
+        238
+      ],
+      [
+        "[P1] 14.2-INT-006 booking preparation and audit faults roll back create and update snapshots",
+        256
+      ],
+      [
+        "[P1] 14.2-INT-007 assignee preparation fault restores all business, outcomes and audit rows",
+        273
+      ],
+      [
+        "[P1] 14.2-DB-001 standalone booking preserves independent null links and reserved recurrence storage",
+        288
+      ],
+      [
+        "[P1] 14.2-DB-002 each nullable link accepts coherent own parents and rejects foreign/mismatched links atomically",
+        307
+      ],
+      [
+        "[P1] 14.2-DB-003 zero/negative booking and conflict windows plus incoherent workflow metadata are constrained",
+        345
+      ],
+      [
+        "[P1] 14.2-DB-004 UTC timed/all-day bounds round-trip Stockholm spring 23h and fall 25h days",
+        366
+      ],
+      [
+        "[P1] 14.2-DB-005 assignee uniqueness, minimum set and composite child references cannot be bypassed",
+        397
+      ],
+      [
+        "[P1] 14.2-INT-009 existing Phase A basic job ID/links remain intact on booking create and update",
+        418
+      ],
+      [
+        "[P1] 14.2-INT-010 disabled/archive assignment history survives; new assignment and lock race are rejected",
+        449
+      ]
+    ],
+    "tests/integration/commands/resources.int.test.ts": [
+      [
+        "[P0] creates one profile, saves a schedule, and rejects overlap without partial rows",
+        6
+      ],
+      [
+        "[P0] rejects forged tenants and invalid reductions without calendar writes",
+        23
+      ],
+      [
+        "[P0] saves the browser form's profile, schedule, exception, and calendar input in one transaction",
+        33
+      ],
+      [
+        "[P0] composite form explicitly clears schedule, rendered exception, and calendar input",
+        56
+      ],
+      [
+        "[P0] composite form RPC rejects foreign tenants and forged actors without writes",
+        81
+      ],
+      [
+        "[P0] anonymous callers cannot invoke any resource mutation RPC",
+        100
+      ]
+    ],
+    "tests/integration/components/booking-editor.test.ts": [
+      [
+        "Round2 archived current work role remains explicit with no active alternatives",
+        26
+      ],
+      [
+        "Round1 failed host authority renders safe retry without booking controls or data",
+        32
+      ],
+      [
+        "Round1 current archived references are visibly selected but unavailable for new selection",
+        38
+      ],
+      [
+        "reopening a summary projects only valid command facts and exact microseconds",
+        45
+      ],
+      [
+        "existing assignment remains visible when its person is absent from new-booking options",
+        51
+      ],
+      [
+        "[P1] 14.4-COMP-001 renders a named modal sheet with approved controls and no recurrence",
+        59
+      ],
+      [
+        "[P1] 14.4-COMP-002 binds approved fields and multi-person draft with availability and role filter",
+        71
+      ],
+      [
+        "[P1] 14.4-COMP-002 standalone draft renders all four optional connection pickers without required",
+        86
+      ],
+      [
+        "[P1] 14.4-COMP-002 reusable person/start/end prefill is rendered without a calendar host",
+        96
+      ],
+      [
+        "[P1] 14.4-COMP-004 warning explains rule/person/window/collision and accessible timeline without color",
+        107
+      ],
+      [
+        "[P1] 14.4-COMP-004 failed preview visibly remains unknown with an explicit retry",
+        119
+      ],
+      [
+        "[P1] 14.4-COMP-003 latest response wins when an older success arrives last",
+        130
+      ],
+      [
+        "[P1] 14.4-COMP-003 obsolete failed response cannot replace newest warning set",
+        143
+      ],
+      [
+        "[P1] 14.4-COMP-003 changed candidate immediately retires old warnings and explicit review while pending",
+        153
+      ]
+    ],
+    "tests/integration/features/booking-read-actions.test.ts": [
+      [
+        "Round2 known oversized input returns a pre-execution failure without command/authority reads",
+        61
+      ],
+      [
+        "CRM host access alone cannot query bookings or editor pickers",
+        65
+      ],
+      [
+        "Montör cannot mint preview or read tenant-wide picker; visible bookings retain own assignees",
+        71
+      ],
+      [
+        "pickers have current tenant filters and display-only projections, including checked active people",
+        81
+      ],
+      [
+        "host defaults preserve PostgreSQL microseconds and expose only scoped rows",
+        94
+      ],
+      [
+        "read failure never reports an empty conflict-free state as known",
+        101
+      ],
+      [
+        "preview uses current authority and stable proposed UUID, stripping internal proof fields",
+        107
+      ],
+      [
+        "preview denies hidden update targets and requires stable create identity",
+        117
+      ],
+      [
+        "stale preview exposes only a typed safe retry state",
+        123
+      ],
+      [
+        "failed save retains error and cannot revalidate hosts",
+        127
+      ],
+      [
+        "only confirmed success revalidates current jobs and customer hosts",
+        133
+      ],
+      [
+        "confirmed update clears former connected host summaries as well",
+        138
+      ],
+      [
+        "open counts verify whole aggregate identities while preserving unrelated/person groups",
+        144
+      ]
+    ],
+    "tests/integration/rls/bookings.rls.test.ts": [
+      [
+        "[P0] 14.4 checked editor RPCs have closed anon ACL and current manager gate",
+        17
+      ],
+      [
+        "[P1] 14.2-RLS-002 secondary Montor grants own reads and revocation removes them",
+        38
+      ],
+      [
+        "[P0] 14.2-RLS-001 foreign booking/assignee/conflict reads and every write path expose no state",
+        69
+      ],
+      [
+        "[P1] 14.2-RLS-002 Montor reads own/shared bookings, own assignment rows and own-participation visible conflicts only",
+        115
+      ],
+      [
+        "[P1] 14.2-RLS-003 Montor cannot create/update via envelope, checked RPC or direct own-table DML",
+        143
+      ],
+      [
+        "[P1] 14.2-RLS-004 admin/planner checked paths succeed but every outer wrapper independently rechecks authority",
+        163
+      ]
+    ],
+    "tests/integration/rls/resources.rls.test.ts": [
+      [
+        "[P0] enrolls every resource table in the manifest-derived H4 inventory",
+        7
+      ],
+      [
+        "[P0] tenant B cannot read or mutate tenant A resource rows",
+        10
+      ]
+    ]
+  },
+  "liveManifestHeader": {
+    "present": false,
+    "results_file": "C:\\DEV\\ElproSaas\\_bmad-output\\test-artifacts\\live-verification-results.json",
+    "source_sha": "",
+    "observed_at": "",
+    "producer": "",
+    "read_error": "",
+    "current_source_sha": "0d1ff3a3577f8f4fc742b13cf92fb28ff598eb62"
+  },
+  "liveRecords": [],
+  "new_product_executions": 0
+}
