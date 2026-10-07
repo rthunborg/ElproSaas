@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/epic14-resume
 status: in-progress
-updated_at: "2026-10-07T11:58:35Z"
+updated_at: "2026-10-07T13:40:46Z"
 started_at: "2026-10-07T11:04:30Z"
 completed_at: null
-active_seconds: 2713
-timing_anchor: 1791374315
+active_seconds: 8844
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: true
 git_mode: remote
@@ -36,13 +36,13 @@ tea_selected: [atdd, automate]
 tea_rationale: Scheduling/concurrency and transactional conflict persistence with audited authorization overrides.
 epic_story_count: 4
 stories_after_in_epic: 0
-completed_phases: [0, 1, 2, 3, 4]
+completed_phases: [0, 1, 2, 3, 4, 5]
 spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md"
 spec_approved: true
 build:
-  status: ready-for-dev
+  status: done
   blocking_condition: null
-  followup_review_recommended: false
+  followup_review_recommended: true
   review_loop_iteration: 0
   deferred_count: 0
   warnings: [oversized]
@@ -56,7 +56,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [5ce4d6b5]
+commits: [5ce4d6b5, b94be3d3, 4383b99b]
 phase8_steps:
   trace_gate: null
   nfr: null
