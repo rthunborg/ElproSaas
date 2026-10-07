@@ -66,6 +66,7 @@ context: ['docs/process/review-order.md']
 
 - 2026-10-07 implementation: preserved frozen intent. Root clarified that the approved checkpoint/audit repair includes selecting latest completed/partial progress while excluding failure-only rows; completed null still clears progress. No RPC validator or migration was changed. Independent review remains pending.
 - 2026-10-07 Round 1 fix: preserve the unread tuple after pre-execution cancellation/deadline, classify composed `TimeoutError` as deadline, and prove route RPC timing across partial/terminal invocations. Frozen intent and the RPC validator remain unchanged.
+- 2026-10-07 necessary CI follow-up: scoped dependency remediation for PR 83 audit failure, with installed Next lint/image compatibility evidence. Runner code and frozen intent remain unchanged; focused dependency review is pending.
 
 ## Design Notes
 
@@ -96,10 +97,40 @@ The initial test run passed 54/55: the existing exact-record assertion detected 
 
 Evidence limits: route query/RPC tests use synthetic in-memory rows and explicitly enforce the latest RPC's cursor-only-for-partial contract; the installed-client transport test replaces fetch. Clock/backoff tests use injected time, with focused real timer cancellation/transport deadline probes. No database, RLS integration, browser, hosted deployment, external gateway, nonempty workload, SLO or external root-cause recovery was tested. Historical incident records, migrations, email release closure and completed foundation specs were preserved. Root owns independent review and any Git publication or separately authorized hosted rollout.
 
+## Dependency CI Follow-up
+
+The parent authorized this necessary follow-up for PR 83 after CI run `37606280766` failed its high-severity audit. The full current HEAD baseline for this delta is `e8eb3e349bc23dc574087e3498b4e2f9574e5b8a`; the previously approved runner intent and its two completed review rounds remain intact. Owned changes are only `pnpm-workspace.yaml`, `pnpm-lock.yaml`, one Next lint package patch, two dependency compatibility test files and this non-frozen evidence/trail. No application code, schema, environment, release, infrastructure or audit policy changed.
+
+### Dependency rationale and source evidence
+
+- GitHub's [braces advisory GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) lists versions through 3.0.3 as affected and no patched version. The sole installed path was Next's ESLint plugin → fast-glob → micromatch → braces. The version-scoped `@next/eslint-plugin-next@16.3.6>fast-glob` override aliases that consumer to `tinyglobby@0.2.17`; the installed lockfile removes the obsolete fast-glob/micromatch/braces graph. A minimal package patch sets `expandDirectories: false` and derives `absolute` from `isAbsolute(rootDir)`, preserving the helper's root-directory behavior under tinyglobby's defaults. The exact patch and physical installed-helper/rule tests were ported from approved source commit `079e10531fe0751ffee666e9ef945b4c87b1453b` in the `epic14-scheduling` worktree, without its app/schema/other tests. The local fixture cleanup additionally verifies its absolute temp parent and generated prefix before deleting only that fixture.
+- GitHub's [source-map-js advisory GHSA-68fv-2mgg-jv7q](https://github.com/advisories/GHSA-68fv-2mgg-jv7q) identifies 1.2.2 as patched. Pinning exactly 1.2.2 replaces 1.2.1 in the Tailwind node and PostCSS paths without changing their parent versions or application styling.
+- GitHub's [Sharp/librsvg advisory GHSA-wq5f-xc86-pv6w](https://github.com/advisories/GHSA-wq5f-xc86-pv6w) and [published Sharp 0.35.5 release](https://github.com/lovell/sharp/releases/tag/v0.35.5) support the narrow native dependency update. The existing override already used the 0.35 family and resolved 0.35.4; it now pins exactly 0.35.5. Installed Next-local Sharp reports `sharp=0.35.5`, `rsvg=2.63.2`, `vips=8.18.7`. Native platform packages and libvips snapshots update with Sharp; no unrelated versions changed. Installed `next/dist/server/image-optimizer` still calls the same Sharp constructor, rotation, resize and encoder APIs. Actual optimizer fixtures verify PNG→WebP output with dimensions and pixel tolerance, and trusted synthetic SVG→PNG output through librsvg with exact pixels.
+
+These primary advisory/release pages were fetched on 2026-10-07. No audit waiver, suppression, package audit exemption or threshold change was introduced.
+
+### Executed follow-up gates
+
+All commands first selected `C:/Users/Rasmus/.codex/worktrees/runner-cursor-resilience/ElproSaas`. Escalated host permissions were needed for this worktree/cache ACL; no managed resource was launched.
+
+| Command | Native result and evidence |
+| --- | --- |
+| `pnpm install --no-frozen-lockfile` | 0; scoped resolution installed; 1 download, +4/-20 packages. Existing ESLint 9.39.4 deprecation warning retained. |
+| `pnpm install --frozen-lockfile` | 0; up to date, resolution skipped. |
+| `pnpm audit --audit-level=high` | 0; 2 moderate findings remain. No high/critical finding or waiver; this is not a zero-vulnerability claim. |
+| `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/dependencies/next-lint-root-globs.test.ts tests/unit/dependencies/next-image-optimizer.test.ts` | 0; 4 executed, 4 passed, 0 failed/skipped/cancelled. Actual installed Next helper/rule and optimizer/native decoder; no replacements of their implementations. |
+| `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/server/jobs/*.test.ts` | 0; one post-resolution run, 58 executed, 58 passed, 0 failed/skipped/cancelled. |
+| `node node_modules/typescript/bin/tsc --noEmit --incremental false` | 0. |
+| `pnpm lint` | 0; 0 errors, 13 warnings in unchanged files. No warning in either new compatibility file. |
+| `node scripts/verify/check-service-role-containment.mjs` | 0; existing containment guard passed. |
+| `node scripts/verify/check-review-order.mjs _bmad-output/implementation-artifacts/spec-runner-cursor-resilience.md` | 0; one authored section, 20 verified references, zero errors. |
+
+Limits: physical lint fixtures and trusted synthetic image buffers exercise the real installed Windows native libraries and Next utility paths. They do not exercise a full production build, Linux native execution, browser image requests, hosted deployment or adversarial payload exploitation. Earlier runner tests retain their synthetic query/RPC/fetch and clock limits. Lower-severity audit findings, the pre-existing deferred failed-plus-cursor execution mismatch and unconfirmed historical external timeout causation remain explicitly recorded. Root owns focused High dependency review as Round 3 and Git/PR operations. This handoff is in-review.
+
 ## Suggested Review Order
 
 Author: cursor-resilience implementation author (`cursor_author`).
-Refreshed against the final uncommitted implementation worktree at baseline `aa60da251308a7fadd58c2a81ac24b2bfd058d98`, after the Round 1 patch batch, executed verification and completed Round 2 focused review. No code changed after the verified patch; the existing stops and evidence limits remain current.
+Refreshed against the dependency-follow-up working tree based on HEAD `e8eb3e349bc23dc574087e3498b4e2f9574e5b8a`, retaining the runner baseline `aa60da251308a7fadd58c2a81ac24b2bfd058d98` and completed Round 1/2 fixes/review. Focused High Round 3 dependency review completed without consequential findings. Code, dependencies, verified stops and recorded evidence limits remain unchanged after review.
 
 ### Authenticate and recover authoritative progress
 
@@ -137,7 +168,16 @@ The route fake models filtered checkpoint selection and the existing atomic RPC 
 - `tests/unit/server/jobs/route.test.ts:466` — `production composed budget timeout`: timeout AC persists deadline and preserves the unread tuple.
 - `tests/unit/server/jobs/runner.test.ts:606` — `partial continuation retains failure evidence`: resumable state retains the earlier failure.
 
-Evidence: 58/58 targeted jobs tests after the Round 1 fix, zero failed/skipped; targeted ESLint, TypeScript, containment and the 16-reference review-order check passed with native 0. Limits: synthetic rows/RPC/fetch and injected clocks, plus a focused real composed timeout; no local integration or hosted recovery claim. The historical failed-plus-cursor execution mismatch remains deferred, and hosted rollout remains separately authorized.
+### Restore the audit gate while preserving Next consumers
+
+The version-scoped lint alias removes the unpatched braces path; the small consumer patch preserves root expansion/absolute-path semantics. Exact source-map-js and Sharp pins take the published patched versions, with real installed lint and optimizer fixtures proving the exercised API boundaries. See Dependency CI Follow-up for advisory links, provenance, commands and remaining moderate findings.
+
+- `pnpm-workspace.yaml:4` — `sharp: 0.35.5`: narrow native pin beside the source-map fix.
+- `patches/@next__eslint-plugin-next@16.3.6.patch:11` — `expandDirectories: false`: preserves root-only glob results with the alias.
+- `tests/unit/dependencies/next-lint-root-globs.test.ts:55` — `patched Next no-html-link-for-pages`: actual rule still diagnoses page-route anchors.
+- `tests/unit/dependencies/next-image-optimizer.test.ts:30` — `installed Next optimizer decodes a synthetic SVG`: actual native SVG decoding preserves output dimensions and pixels.
+
+Evidence: 58/58 jobs tests plus 4/4 installed dependency fixtures, zero failed/skipped; frozen install, unsuppressed high-level audit, full lint, TypeScript, containment and the refreshed 20-reference review-order checker native 0. Limits: synthetic rows/RPC/fetch and injected clocks, plus a focused real composed timeout; trusted image/lint fixtures run on Windows native libraries. No local integration, Linux native, full production build or hosted recovery claim. Two moderate audit findings and 13 lint warnings remain; the historical failed-plus-cursor execution mismatch remains deferred, and hosted rollout remains separately authorized.
 
 
 ### Review Findings
@@ -154,4 +194,9 @@ Post-fix evidence: targeted jobs command native 0 with 58 executed/58 passed/0 f
 **Round 2 of 3 — focused accepted-fix verification**
 
 Reused independent High blind reviewer confirmed both accepted fixes resolved: interrupted lookup retains the same tuple across off-schedule resumption, and composed budget timeout records deadline while caller cancellation records cancelled. Reused independent High verification reviewer confirmed route RPC timestamp assertions cover partial and terminal elapsed timing and the second invocation resumes the interrupted checkpoint. Neither reviewer found a consequential regression; these were readonly focused checks, with no test rerun or broad pass. No open review findings remain. Latest author execution: 58/58 targeted jobs tests, zero failures/skips/cancellations; ESLint, TypeScript noEmit with incremental disabled, service-role containment and 16-reference review-order checker native 0. Historical external timeout causation remains unconfirmed. No hosted recovery or full-invocation SLO claim; tests are synthetic/mocked.
+
+
+**Round 3 of 3 — dependency CI security follow-up only**
+
+Independent High reviewer found no concrete consequential defect in the dependency delta against e8eb3e349bc23dc574087e3498b4e2f9574e5b8a. Confirmed the version-scoped lint alias removes the braces chain, exact patched source-map-js and Sharp resolutions remain in the lockfile, no audit waiver exists, and all four actual installed Next consumer compatibility tests are included by the default unit-test glob and loader. This was readonly focused review; it did not repeat the runner review or tests. Evidence remains Windows fixtures, with no Linux native, production build, hosted or adversarial-payload claim. No open findings remain. This completes the final automatic round; further review is limited to newly changed-line regressions or unresolved consequential findings.
 
