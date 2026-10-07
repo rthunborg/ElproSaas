@@ -35,7 +35,7 @@ tea_selected: [atdd, automate]
 tea_rationale: Required capability and quote-amount entitlement gates are authorization-sensitive
 epic_story_count: 2
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2]
+completed_phases: [0, 1, 2, 3]
 spec_path: null
 spec_approved: false
 build:
@@ -94,4 +94,7 @@ constraints:
   - "No bookings/scheduling/person/migration/permission-matrix changes; use existing integrated contracts"
   - "Dedicated guarded mutable test resources; preserve independent review and merge approval gates"
 set:
-  _append: "{\"commits\": [\"e0fb33c5\"]}"
+  spec_path: "C:/Users/Rasmus/.codex/worktrees/story19-1-dashboard/ElproSaas/_bmad-output/implementation-artifacts/spec-19-1-dashboard-framework-and-quote-pipeline.md"
+  spec_approved: true
+  _append: "{\"commits\": [\"659139d4\"]}"
+  build: "{\"status\": \"ready-for-dev\"}"
