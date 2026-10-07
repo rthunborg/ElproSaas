@@ -9,32 +9,33 @@ spec_folder: null
 story_id: null
 branch: codex/19-1-widget-registry-and-dashboard-framework
 status: in-progress
-updated_at: "2026-10-07T14:07:05Z"
+updated_at: "2026-10-07T14:15:08Z"
 started_at: "2026-10-07T14:07:05Z"
 completed_at: null
-active_seconds: 0
+active_seconds: 481
 timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: tea_triage
-selected_role: test-risk-triage
-selected_profile: light
+selected_phase: tea_epic
+selected_role: tea-delegate
+selected_profile: standard
 selected_model: gpt-6.1-sol
-selected_effort: low
+selected_effort: high
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: Ordinary task uses Low effort
+escalation_reason: "Automatic sensitive-task escalation: permissions, tenant-isolation"
 routing_ledger:
   - "{\"effort\":\"low\",\"escalation_reason\":\"Ordinary task uses Low effort\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: permissions, tenant-isolation\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_epic\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: high
 tea_selected: [atdd, automate]
 tea_rationale: Required capability and quote-amount entitlement gates are authorization-sensitive
 epic_story_count: 2
 stories_after_in_epic: 1
-completed_phases: [0, 1]
+completed_phases: [0, 1, 2]
 spec_path: null
 spec_approved: false
 build:
@@ -92,3 +93,5 @@ constraints:
   - "Only dashboard framework and live quote pipeline; no 19.2 widgets, E20 or Epic19 completion"
   - "No bookings/scheduling/person/migration/permission-matrix changes; use existing integrated contracts"
   - "Dedicated guarded mutable test resources; preserve independent review and merge approval gates"
+set:
+  _append: "{\"commits\": [\"e0fb33c5\"]}"
