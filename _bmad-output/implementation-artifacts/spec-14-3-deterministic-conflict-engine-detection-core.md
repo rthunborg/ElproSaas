@@ -2,7 +2,7 @@
 title: 'Story 14.3: Deterministic Conflict Engine (Detection Core)'
 type: 'feature'
 created: '2026-10-06'
-status: 'blocked'
+status: 'in-progress'
 baseline_revision: 'a9e2838e80afbd9718c6d907c5518a152b286b1f'
 review_loop_iteration: 0
 followup_review_recommended: true
