@@ -17,13 +17,23 @@ function MaskedValue() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (timer.current !== null) clearTimeout(timer.current); }, []);
   const stop = () => { if (timer.current !== null) clearTimeout(timer.current); timer.current = null; };
-  return <span className="relative inline-flex">
+  useEffect(() => {
+    if (!open) return;
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (timer.current !== null) clearTimeout(timer.current);
+      timer.current = null;
+      setOpen(false);
+    };
+    document.addEventListener("keydown", dismiss);
+    return () => document.removeEventListener("keydown", dismiss);
+  }, [open]);
+  return <span className="relative inline-flex" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
     <button type="button" aria-label="Dolt för din roll" aria-describedby={open ? id : undefined} aria-expanded={open}
-      title="Din roll ser inte belopp" onClick={() => setOpen(true)} onKeyDown={event => { if (event.key === "Escape") setOpen(false); }}
+      title="Din roll ser inte belopp" onClick={() => setOpen(true)}
       onBlur={() => { stop(); setOpen(false); }}
       onPointerDown={() => { stop(); timer.current = setTimeout(() => setOpen(true), 450); }}
       onPointerUp={stop} onPointerCancel={stop} onPointerLeave={stop}
-      onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}
       onFocus={() => setOpen(true)}
       className="inline-flex min-h-11 items-center gap-2 rounded text-base focus-visible:outline-2 focus-visible:outline-offset-2">
       <span aria-hidden="true">🔒</span><span>Dold</span><span className="sr-only">Dolt för din roll</span>

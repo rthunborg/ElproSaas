@@ -29,6 +29,8 @@ const BASE_URL = `http://127.0.0.1:${PORT}`;
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: "**/*.e2e.spec.ts",
+  // Required dashboard-e2e CI partition supplies its dedicated fixtures and read proxy.
+  testIgnore: "**/dashboard/dashboard-pipeline.e2e.spec.ts",
   fullyParallel: false,
   workers: 1,
   forbidOnly: !!process.env.CI,

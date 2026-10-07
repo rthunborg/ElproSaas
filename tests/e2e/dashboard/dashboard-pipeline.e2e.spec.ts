@@ -7,7 +7,8 @@
  * Browser time is bounded against the real server completion instant; deterministic
  * period/completion-clock coverage is in unit tests. No production fault switch.
  */
-import { test, expect, type Locator, type Page, type Response } from "@playwright/test";
+import { test, expect } from "./guarded-test";
+import type { Locator, Page } from "@playwright/test";
 import { armReadPlan, releaseRead } from "./read-plan";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -66,19 +67,40 @@ async function mutations(tenantId: string) {
   return adminQuery<{ table_name: string; rows: string }>(
     "select 'events' as table_name,coalesce(jsonb_agg(to_jsonb(e) order by e.id),'[]'::jsonb)::text as rows from public.quote_events e where tenant_id=$1 union all select 'acceptances',coalesce(jsonb_agg(to_jsonb(a) order by a.id),'[]'::jsonb)::text from public.quote_acceptances a where tenant_id=$1 union all select 'follow_ups',coalesce(jsonb_agg(to_jsonb(f) order by f.id),'[]'::jsonb)::text from public.quote_follow_ups f where tenant_id=$1 order by table_name", [tenantId]);
 }
-function observePayloads(page: Page) {
-  const bodies: Promise<{ type: string; text: string }>[] = [];
-  const listener = (response: Response) => {
-    const type = response.headers()["content-type"] ?? "";
-    if (new URL(response.url()).origin === new URL(page.url()).origin &&
-        new URL(response.url()).pathname === "/dashboard" &&
-        /text\/html|text\/x-component|application\/json/.test(type))
-      bodies.push(response.text().then(text => ({ type, text })));
-  };
-  page.on("response", listener); // before tested navigation/refresh
-  return { bodies, close: () => page.off("response", listener) };
+type PausedResponse = { requestId: string; responseStatusCode?: number;
+  responseHeaders?: { name: string; value: string }[] };
+/** Read real server bytes before the client can cancel/discard a consumed streamed response. */
+async function observePayloads(page: Page) {
+  const bodies: Promise<{ type: string; text: string; captureError: boolean }>[] = [];
+  const session = await page.context().newCDPSession(page);
+  const baseURL = test.info().project.use.baseURL;
+  if (!baseURL) throw new Error("Payload observation requires the configured application origin");
+  session.on("Fetch.requestPaused", (paused: PausedResponse) => {
+    bodies.push((async () => {
+      const type = paused.responseHeaders?.find(header => header.name.toLowerCase() === "content-type")?.value ?? "";
+      let text = "";
+      let captureError = paused.responseStatusCode !== 200;
+      try {
+        const body = await session.send("Fetch.getResponseBody", { requestId: paused.requestId });
+        text = body.base64Encoded ? Buffer.from(body.body, "base64").toString("utf8") : body.body;
+      } catch { captureError = true; }
+      finally {
+        // Resume the original response without substituting bytes, headers, status or cookies.
+        try { await session.send("Fetch.continueResponse", { requestId: paused.requestId }); }
+        catch { captureError = true; }
+      }
+      return { type, text, captureError };
+    })());
+  });
+  await session.send("Fetch.enable", { patterns: [{
+    urlPattern: new URL("/dashboard", baseURL).href + "*", requestStage: "Response",
+  }] });
+  return { bodies, close: async () => {
+    await Promise.all(bodies);
+    await session.send("Fetch.disable");
+    await session.detach();
+  } };
 }
-
 test.describe("19.1-E2E-001 current roles and live card set", () => {
   for (const role of ["tenant_admin", "projektledare", "saljare", "multi-role"] as const) {
     // Contract: new card absent; uses EXISTING per-run role fixtures.
@@ -144,12 +166,17 @@ test.describe("19.1 actual source consistency and money delivery", () => {
     const data = scenario("seller-sentinel");
     expect((await source(data)).acceptedValueOre).toBe(data.acceptedSentinelOre);
     expect(data.acceptedSentinelOre).toBeGreaterThan(0);
-    await login(page, data.user);
-    const observed = observePayloads(page);
+    const observed = await observePayloads(page);
     try {
+      await login(page, data.user);
+      const initialNavigationResponses = observed.bodies.length;
       const response = await page.goto("/dashboard");
       expect(response?.status()).toBe(200);
-      const initialHtml = await response!.text();
+      const initialBodies = await Promise.all(observed.bodies);
+      expect(initialBodies.every(body => !body.captureError), "Initial server bodies must be captured").toBe(true);
+      const htmlBodies = initialBodies.filter(body => body.type.includes("text/html"));
+      expect(htmlBodies.length, "Explicit HTML navigation must supply an observed document body").toBeGreaterThan(0);
+      const initialHtml = htmlBodies.at(-1)!.text;
       await expect(card(page).getByText("Dold", { exact: true })).toBeVisible();
       await expect(card(page).getByText("Dolt för din roll", { exact: true })).toBeAttached();
       for (const html of [initialHtml, await page.content()]) {
@@ -164,8 +191,11 @@ test.describe("19.1 actual source consistency and money delivery", () => {
         .getByRole("link", { name: "Dashboard", exact: true }).click();
       await expect(card(page).getByText("Dold", { exact: true })).toBeVisible();
       const delivered = await Promise.all(observed.bodies);
-      expect(delivered.some(body => body.type.includes("text/x-component"))).toBe(true);
+      expect(delivered.slice(initialNavigationResponses).some(body => body.type.includes("text/x-component"))).toBe(true);
+      console.info("19.1 seller payload evidence", { initialNavigationResponses, htmlResponses: htmlBodies.length,
+        observedDashboardResponses: delivered.length, laterRscResponses: delivered.slice(initialNavigationResponses).filter(body => body.type.includes("text/x-component")).length });
       for (const body of delivered) {
+        expect(body.captureError, "Every required dashboard response must be captured").toBe(false);
         expect(body.text).not.toContain(String(data.acceptedSentinelOre));
         expect(body.text).not.toContain(formatOreAsKronor(data.acceptedSentinelOre));
         expect(body.text).not.toMatch(/(?:\\?")acceptedValueOre(?:\\?")\s*:/);
@@ -175,7 +205,7 @@ test.describe("19.1 actual source consistency and money delivery", () => {
       await expect(mask).toBeFocused();
       await mask.hover();
       await expect(page.getByRole("tooltip", { name: "Din roll ser inte belopp", exact: true })).toBeVisible();
-    } finally { observed.close(); }
+    } finally { await observed.close(); }
   });
   // Contract: equivalent entitled synthetic membership and new card required.
   test("[P0] 19.1-E2E-003 entitled control shows actual accepted sentinel [AC4]", async ({ page }) => {
@@ -267,7 +297,7 @@ test.describe("19.1 real server-failure recovery and current authority", () => {
         await adminQuery("update public.tenant_memberships set role=$3 where tenant_id=$1 and id=$2", [data.tenantId, memberships[0].id, role]);
         await adminQuery("delete from public.membership_roles where tenant_id=$1 and membership_id=$2", [data.tenantId, memberships[0].id]);
         await adminQuery("insert into public.membership_roles (tenant_id,membership_id,role) values ($1,$2,$3)", [data.tenantId, memberships[0].id, role]);
-        const observed = observePayloads(page);
+        const observed = await observePayloads(page);
         try {
           await card(page).getByRole("button", { name: "Försök igen", exact: true }).click();
           if (revoked === "quote") {
@@ -280,12 +310,13 @@ test.describe("19.1 real server-failure recovery and current authority", () => {
           const delivered = await Promise.all(observed.bodies);
           expect(delivered.length).toBeGreaterThan(0);
           for (const body of delivered) {
+            expect(body.captureError, "Every required dashboard response must be captured").toBe(false);
             expect(body.text).not.toContain(String(data.acceptedSentinelOre));
             expect(body.text).not.toContain(formatOreAsKronor(data.acceptedSentinelOre));
           }
           expect(await page.content()).not.toContain(formatOreAsKronor(data.acceptedSentinelOre));
           await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
-        } finally { observed.close(); }
+        } finally { await observed.close(); }
       } finally {
         await adminQuery("update public.tenant_memberships set role=$3 where tenant_id=$1 and id=$2", [data.tenantId, memberships[0].id, memberships[0].role]);
         await adminQuery("delete from public.membership_roles where tenant_id=$1 and membership_id=$2", [data.tenantId, memberships[0].id]);
@@ -343,6 +374,35 @@ test.describe("19.1 onboarding composition and accessible responsive layout", ()
     await expect(page).toHaveURL(/\/quotes$/);
     await expect(page.getByRole("heading", { name: "Offerter", exact: true })).toBeVisible();
   });
+  test("[P1] 19.1-E2E-009 tooltip retains real pointer passage into its explanation [AC4,9]", async ({ page }) => {
+    await login(page, fixture().roleAware.saljare);
+    const mask = card(page).getByRole("button", { name: "Dolt för din roll", exact: true });
+    await hydrated(mask);
+    await mask.hover();
+    const tooltip = page.getByRole("tooltip", { name: "Din roll ser inte belopp", exact: true });
+    await expect(tooltip).toBeVisible();
+    const from = (await mask.boundingBox())!;
+    const to = (await tooltip.boundingBox())!;
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    await page.mouse.move(to.x + Math.min(from.width / 2, to.width / 2), to.y + to.height / 2, { steps: 12 });
+    await expect(tooltip).toBeVisible();
+    await page.mouse.move(0, 0, { steps: 12 });
+    await expect(tooltip).toHaveCount(0);
+  });
+  test("[P1] 19.1-E2E-009 hover tooltip dismisses Escape while focus remains elsewhere [AC4,9]", async ({ page }) => {
+    await login(page, fixture().roleAware.saljare);
+    const elsewhere = card(page).getByRole("link", { name: "Visa offerter", exact: true });
+    const mask = card(page).getByRole("button", { name: "Dolt för din roll", exact: true });
+    await hydrated(mask);
+    await elsewhere.focus();
+    await expect(elsewhere).toBeFocused();
+    await mask.hover();
+    await expect(elsewhere).toBeFocused();
+    await expect(page.getByRole("tooltip")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+    await expect(elsewhere).toBeFocused();
+  });
   // Contract: new mask absent; clock controls gesture duration, not server read clock.
   test("[P1] 19.1-E2E-009 mobile long press shows role explanation [AC4,9]", async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 640 });
@@ -367,6 +427,26 @@ test.describe("19.1 onboarding composition and accessible responsive layout", ()
       await login(page, fixture().roleAware.saljare);
       await expect(card(page)).toBeVisible();
       await expect(card(page).getByRole("link", { name: "Visa offerter", exact: true })).toBeVisible();
+      const header = page.getByRole("banner");
+      const controls = [header.getByRole("button", { name: /^Notiser/ }),
+        header.getByRole("button", { name: "Profil", exact: true }),
+        header.getByRole("button", { name: "Logga ut", exact: true })];
+      if (viewport.name === "mobile") controls.push(header.getByRole("button", { name: "Öppna meny", exact: true }));
+      for (const control of [...controls, header.getByTestId("tenant-context")]) {
+        await expect(control).toBeVisible();
+        const bounds = await control.boundingBox();
+        expect(bounds!.width).toBeGreaterThan(0);
+        expect(bounds!.x).toBeGreaterThanOrEqual(0);
+        expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width);
+      }
+      const profile = header.getByRole("button", { name: "Profil", exact: true });
+      await profile.click();
+      const preferences = header.getByRole("link", { name: "Notisinställningar", exact: true });
+      await expect(preferences).toBeVisible();
+      const menuBounds = (await preferences.boundingBox())!;
+      expect(menuBounds.x).toBeGreaterThanOrEqual(0);
+      expect(menuBounds.x + menuBounds.width).toBeLessThanOrEqual(viewport.width);
+      await profile.click();
       const box = await card(page).boundingBox();
       expect(box).not.toBeNull();
       expect(box!.x).toBeGreaterThanOrEqual(0);

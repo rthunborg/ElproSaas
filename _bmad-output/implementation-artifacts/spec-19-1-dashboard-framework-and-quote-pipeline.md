@@ -4,7 +4,7 @@ type: 'feature'
 story_id: '19.1'
 sprint_key: '19-1-widget-registry-and-dashboard-framework'
 created: '2026-10-07'
-status: 'in-progress'
+status: 'done'
 phase: 'Phase B / Legacy Parity Release'
 baseline_revision: 'b8ccf1575ae94b33487470a08899f10022a8c3dc'
 baseline_ref: 'origin/main'
@@ -279,48 +279,68 @@ The root owns the resource guard lifecycle and uses its exact latest trusted con
 
 ## Suggested Review Order
 
-Author: Story 19.1 implementation delegate (gpt-6.1-sol / High).
-Refreshed against the uncommitted Story 19.1 working tree based on `b8ccf1575ae94b33487470a08899f10022a8c3dc`, 2026-10-07. See Implementation Snapshot and Verification above for current evidence and limits.
+Author: original Story 19.1 implementation delegate (gpt-6.1-sol / High), with the verification/fix delegate (gpt-6.1-sol / High) owning the guarded-browser, payload-capture, query-fault, responsive-header and Round 1 corrections.
+Refreshed against HEAD `798f1f601663f355ca9622716ef4713bb5ee9d80` plus the final uncommitted Round 1 working tree, 2026-10-07. Review the full original implementation from `b8ccf1575ae94b33487470a08899f10022a8c3dc`; original recorded rationale is retained. Current evidence appears in Round 1 Patch Verification below.
 
-### Operational entry, preserved onboarding and honest states
+### Operational entry and usable explanations
 
-I retained the existing onboarding branch conditions and placed the one full-width operational card below the existing heading/copy. Loading/retry clear numeric content and completion time; the local mask implements the approved UX without a new shared primitive.
+The original author retained the heading/copy and onboarding branches, placing the full-width card beneath them; live verification required a reserved phone header correction retaining controls and tenant identity. Round 1 anchors the profile menu left on phones and right on desktop, treats mask trigger/explanation as one hover region, and listens for Escape while open because hover need not move keyboard focus.
 
-- `src/app/(app)/dashboard/page.tsx:14` — `DashboardPage`: preserves the operational entry and onboarding branches.
-- `src/components/dashboard/QuotePipelineWidget.tsx:36` — `QuotePipelineWidget`: separates loading, empty, loaded and unavailable presentation.
-- `src/components/dashboard/QuotePipelineWidget.tsx:14` — `MaskedValue`: explains withheld money through keyboard, hover and touch.
-- `src/components/dashboard/DashboardRetry.tsx:9` — `DashboardRetry`: refreshes current authority without keeping local values.
+- `src/app/(app)/dashboard/page.tsx:14` — `DashboardPage`: preserves entry and onboarding branches.
+- `src/components/app-shell/AppShell.tsx:241` — `min-h-14`: wraps phone controls without losing identity.
+- `src/components/app-shell/AppShell.tsx:279` — `sm:left-auto sm:right-0`: keeps the opened profile link within the viewport.
+- `src/components/dashboard/QuotePipelineWidget.tsx:31` — `onMouseEnter`: retains hover across trigger and explanation.
+- `src/components/dashboard/QuotePipelineWidget.tsx:28` — `document.addEventListener`: dismisses open explanations with Escape regardless of focus.
 
 ### Actual registration and the server trust boundary
 
-The coordinator reserved and approved precisely the quotes widget enrollment; dashboard activation history and permission grants stay unchanged. The registry carries actual loader/component functions, while the request adapter resolves current authority and emits only the browser allowlist.
+The coordinator reserved exactly the quotes widget enrollment; dashboard activation history and permission grants stay unchanged. The registry carries actual loader/component functions, while request authority and an explicit browser allowlist prevent roles, follow-ups, raw rows or withheld money from crossing the client boundary.
 
 - `src/scope/manifest.ts:153` — `quote-pipeline`: enrolls the active quotes producer's sole widget.
-- `src/scope/widget-registry.ts:10` — `WIDGET_REGISTRY`: registers the actual loader and presentation.
+- `src/scope/widget-registry.ts:10` — `WIDGET_REGISTRY`: registers actual loader and presentation functions.
 - `src/scope/manifest-schema.ts:316` — `options.widgetRegistry`: validates equality, ownership and capability coherence.
-- `src/server/read-models/dashboard.ts:54` — `browserPipeline`: withholds money and removes server-only fields before serialization.
+- `src/server/read-models/dashboard.ts:54` — `browserPipeline`: projects money and server-only fields before serialization.
 
-### Shared source semantics and explicit unavailable results
+### Shared source semantics and honest failure results
 
-The spec required a result-bearing entry because the old empty fallback cannot identify failed reads. Both exported paths share the original query core; strict result reads reject malformed clocks/money and return no descriptor on any stage/page/batch failure.
+The spec required a result-bearing entry because the old empty fallback cannot identify failed reads; both exported paths share the original query core. Strict reads reject malformed clocks/money and return no descriptor on stage/page/batch faults, while the original local mask and route refresh avoid retained values and a new shared primitive.
 
 - `src/server/read-models/dashboard.ts:33` — `readDashboard`: resolves authority before eligible loaders.
-- `src/server/read-models/quote-pipeline.ts:289` — `readQuotePipelineResult`: returns projected success only after completed reads.
+- `src/server/read-models/quote-pipeline.ts:289` — `readQuotePipelineResult`: returns success only after completed reads.
 - `src/server/read-models/quote-pipeline.ts:303` — `readQuotePipeline`: preserves the compatibility descriptor/fallback.
-- `tests/unit/server/read-models/quote-pipeline-result.test.ts:360` — `19.1-UNIT-012`: verifies compatible success/fallback versus explicit failure.
+- `src/components/dashboard/QuotePipelineWidget.tsx:46` — `QuotePipelineWidget`: distinguishes loading, empty, loaded and unavailable presentation.
+- `src/components/dashboard/DashboardRetry.tsx:9` — `DashboardRetry`: refreshes current authority without retaining local values.
 
-### Acceptance evidence and the remaining live boundary
+### Required CI partition and contained test transport
 
-Executed units cover actual registry negatives (AC1), server role/DTO/revocation boundaries (AC2/4/7), source/date/money and staged faults (AC3/5/6), and SSR masking/state isolation (AC4–9). Live database, hydration, layout and onboarding/retry browser assertions are enabled but not executed; the new proxy preserves the actual production result path.
+Round 1 separates the newly enabled dashboard cases from the ordinary suite because they require their own seeded fixture and actual server-read proxy; the new unconditional CI job owns an isolated stack and both servers. The proxy rejects non-origin-form targets before forwarding; its HTTP400 faults avoid SDK retries consuming multiple planned steps, and page-owned response-stage capture reads actual server bytes then resumes unchanged, failing closed on missing bodies.
 
-- `tests/unit/scope/widget-registry.test.ts:50` — `19.1-UNIT-001`: checks actual registration/active-manifest equality.
-- `tests/unit/server/read-models/dashboard.test.ts:216` — `19.1-UNIT-004`: inspects the actual browser DTO allowlist and withheld amount absence.
-- `tests/unit/components/dashboard/widget-state.test.ts:134` — `failure has accessible`: proves local SSR error/retry without values or success time.
-- `tests/e2e/dashboard/server-read-proxy.mjs:51` — `http.createServer`: contains planned actual-server read failures and holds.
+- `playwright.config.ts:33` — `testIgnore`: excludes exactly the dashboard spec from ordinary collection.
+- `.github/workflows/ci.yml:447` — `dashboard-e2e`: adds the required isolated CI gate.
+- `tests/e2e/dashboard/playwright.ci.config.ts:26` — `webServer`: supplies proxy and production app startup for CI.
+- `tests/e2e/dashboard/server-read-proxy.mjs:58` — `resolveProxyTarget`: denies invalid targets before plans or upstream requests.
+- `tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts:84` — `Fetch.getResponseBody`: observes actual bytes before unchanged continuation.
 
-Evidence: final focused 88/0/0 and full unit 2,036 passed/0 failed/1 existing skip; typecheck, lint, build, install/audit/lockfile and both containment gates passed. Limits: injected query transport and synthetic malformed-money fixtures do not prove RLS; SSR does not prove hydration/focus/layout. Required integration and 48 browser cases have 0 executions due the root guard actor blocker. Browser fixture setup/proxy timing and seeded source integrity remain to be exercised; no implementation review or completion is claimed.
+### Acceptance evidence and operational limits
 
-## Auto Run Result
+Registry negatives cover AC1; DTO/RLS/revocation assertions cover AC2/4/5/7. Reader-result units exercise clock/money validation and every stage/page/batch failure (AC3/5/6), live RLS adds source/batch evidence, and 50 dashboard browser cases plus six existing regressions cover secrecy, failure/retry, onboarding and accessible responsive behavior (AC2–9).
+
+- `tests/unit/scope/widget-registry.test.ts:50` — `19.1-UNIT-001`: checks actual registration against the active manifest.
+- `tests/unit/server/read-models/dashboard.test.ts:216` — `19.1-UNIT-004`: asserts DTO allowlist and withheld amount absence.
+- `tests/integration/rls/dashboard-pipeline.rls.test.ts:185` — `19.1-INT-004`: exercises seller authority against forged caller properties.
+- `tests/unit/server/read-models/quote-pipeline-result.test.ts:360` — `19.1-UNIT-012`: distinguishes explicit failure from compatible fallback.
+- `tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts:165` — `19.1-E2E-003`: checks observed HTML/RSC/DOM for withheld values.
+- `tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts:387` — `steps: 12`: exercises actual pointer passage into the explanation.
+- `tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts:392` — `hover tooltip dismisses Escape`: proves dismissal while focus remains elsewhere.
+- `tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts:446` — `menuBounds`: checks the opened profile link on phone/tablet/desktop.
+- `tests/unit/e2e/server-read-proxy.test.ts:19` — `before any forwarding`: exercises the actual handler with zero upstream calls for denied targets.
+
+Evidence: Round 1 final browser 56 passed/0 failed/0 skipped (51.6s), full units 2,048 passed/0 failed/one existing Linux-xattrs skip; prior required RLS 27 passed/0 failed/0 skipped remains applicable because reader/DB source did not change. Seller capture again observed seven responses (one initial navigation, one HTML, five later RSC). Production build, typecheck, full lint (0 errors/13 existing warnings), source/bundle containment, lockfile and diff checks passed. Fresh real-fixture collection proved root 178 cases with zero dashboard cases and official CI configuration 56 cases (50 dashboard); all four pre-existing CI jobs remained structurally identical.
+
+Limits: local execution consumed the official CI configuration through an ignored wrapper removing only its webServer startup; root-owned services supplied the matching build and browser. The remote GitHub job and its automatic fresh server startup have not run because this batch cannot push. Injected query faults and synthetic money fixtures supplement live RLS; the Linux-xattrs skip is not coverage. Three payload-observation cases pause response bodies and do not prove streaming/loading, which separate unpaused hold/release cases exercise. Local fixtures do not establish hosted/demo behavior. Round 1 review and independent narrow trail reconciliation completed; configured root follow-up remains pending. Story 19.2 and full Epic 19 remain incomplete.
+## Historical Auto Run Result
+
+Historical halted invocation; superseded by the current Auto Run Result and Round 1 Patch Verification below. This result is preserved as provenance, not the current verification gate.
 
 Status: blocked
 Blocking condition: implementation verification failed
@@ -333,3 +353,146 @@ Completion hook: blocked/incomplete result preserved; no completed-trail reconci
 
 - 2026-10-07: The owner explicitly requested continuation of Story 19.1. Root reported a fresh trusted resource-guard actor hook and an active Compose registration; the prior HOOK_CONTEXT_UNAVAILABLE actor-hook blocker is resolved. Restore in-progress solely to resume the implementation-verification gate.
 - Runtime readiness, required DB/RLS and browser execution remain pending. Preserve the prior halted result as historical evidence; no new implementation, verification, review or completion is claimed by this metadata-only restoration. Baseline and frozen intent remain unchanged.
+
+## Live Verification Invocation
+
+- Resume HEAD: 798f1f601663f355ca9622716ef4713bb5ee9d80. Per coordinator instruction, retain the full original implementation baseline b8ccf1575ae94b33487470a08899f10022a8c3dc for independent review; do not limit review to resume metadata.
+- Implementation verification continuation: gpt-6.1-sol / high, selected before context-free dispatch because authority, tenant and money boundaries remain within scope. Root reports isolated platform readiness and 80 applied migrations; required test execution is still to be established in this invocation.
+
+## Live Verification Execution
+
+Continuation author: gpt-6.1-sol / High. HEAD `798f1f601663f355ca9622716ef4713bb5ee9d80`, plus test-only working-tree changes. No permission, schema, money-rule or batch-size amendment has been made in this continuation; the coordinator subsequently reserved the narrow responsive header fix recorded below.
+
+- Root supplied isolated runtime readiness: 80/80 migrations and seed verified, Auth/Storage/REST 200. Historical blocked result above is retained as provenance; its hook-context blocker no longer describes this invocation.
+- Required command: private test environment in the same process, `SUPABASE_TEST_REQUIRED=1`, `pnpm exec vitest run tests/integration/rls/dashboard-pipeline.rls.test.ts tests/integration/rls/quote-pipeline-read-model.rls.test.ts tests/integration/rls/role-aware-phase-a-surface.atdd.int.test.ts`. Outcome: 27 executed; 25 passed, 2 failed, 0 skipped. Failures: existing E10 multi-ID batch completeness and new 19.1-INT-005 real later-page/batch case.
+- Bounded synthetic diagnosis: raw RLS quote_acceptances queries return 200 with 50/90 IDs and gateway 502 with 100/102 IDs. The new result entry correctly returns unavailable while the legacy entry falls back to zero; batch success is not claimed. Root owns runtime parity diagnosis/remediation; no product workaround or schema/grant repair was applied.
+- Production build with private isolated app environment and proxy public URL `http://127.0.0.1:37921` passed; `/dashboard` remains dynamic. Built-bundle containment passed. Bounded guarded app3201/login and proxy37921/Auth health checks returned 200. Root restarted the app to consume the completed build.
+- Coordinator/root explicitly reserved new `tests/e2e/dashboard/guarded-test.ts` and import-only amendments to the dashboard spec, existing role-aware browser spec and first-admin checklist spec. The fixture connects the guard-owned loopback Chrome via CDP only when the dedicated environment is supplied, retains Playwright fresh contexts, and never closes the root browser. Standard configured CI behavior remains the base fixture. No assertions or skip markers changed. Typecheck and focused ESLint passed; diff whitespace check passed.
+- Browser attempt: private ignored Node launcher, root-owned Chrome CDP37922, production app3201, dedicated config with no webServer, `SUPABASE_TEST_REQUIRED=1`. Collected 54 (48 dashboard + 6 existing regression cases); interrupted after the first two existing role tests failed login before dashboard assertions. This interrupted attempt supplies no positive AC browser coverage.
+- Fresh bounded Auth diagnosis: server sign-in succeeded but browser Auth token request failed transport. Expected token OPTIONS preflight returned 204 with no Access-Control-Allow-Origin/Headers/Methods through proxy37921. Synthetic fixture and owned browser context were cleaned. Root holds runtime/browser lifecycle and is correcting the isolated runtime before a fresh global setup/run.
+
+Verification is in progress; runtime remediation, green batch/browser evidence, independent High implementation review and final author-trail reconciliation remain required. Story19.2 and full Epic19 remain pending.
+### Corrected runtime and first complete browser run
+
+- Root supplied a newly admitted buffered/CORS-enabled isolated runtime, preserving the original volumes/config. Fresh readiness again verified 80/80 migrations and seed plus Auth/Storage/REST 200; direct and proxied token OPTIONS included exact app origin, POST and the five required Auth headers. No product/grant workaround was introduced.
+- Required integration rerun passed **27/27, 0 failed, 0 skipped** in 17.73 seconds, including old E10 and new 19.1-INT-005 real page/batch completeness.
+- Fresh-global-setup browser run executed **54: 44 passed, 10 failed, 0 skipped** in 3.5 minutes. All six existing role/onboarding regressions passed. Five failures came from test transport protocol/synchronization; five came from existing whole-page mobile header overflow. No failed assertion was removed or relaxed.
+- Installed PostgREST SDK defaults retry idempotent 503 reads. Root authorized a nonretryable HTTP400 synthetic query fault so each private plan step represents one completed logical production read. The actual reader, failure result and retry controls remain exercised. Proxy restart is root-owned; the app has no fault switch.
+- Seller payload capture now waits for and inspects the actual initial login RSC before a new HTML navigation, then asserts the explicit HTML, DOM and subsequent RSC. Observer capture rejection is recorded and asserted false; missing required bodies cannot pass secrecy checks.
+- Coordinator/root reserved `src/components/app-shell/AppShell.tsx` after verifying it did not overlap the concurrent PR86 changes. Only four responsive class strings changed: below-sm header wraps into two rows, its control row takes the available width, and tenant identity flexes/truncates within the remaining space. Notifications, profile, sign-out, menu and tenant identity stay rendered; desktop stays a single row. Existing 360/tablet/desktop checks now additionally assert these controls/identity are visible and in bounds.
+- Syntax check, focused ESLint, direct `node node_modules/typescript/bin/tsc --noEmit` and diff whitespace check passed after this fix batch. Final app build/browser evidence is pending root app Stop, bounded rebuild and root restart. No completion/review claim is made yet.
+## Final Verification Handoff
+
+Author verification gate: **passed; ready for independent implementation review**. Story completion remains pending that review and final-trail reconciliation. Tested revision/worktree: HEAD `798f1f601663f355ca9622716ef4713bb5ee9d80` plus the final uncommitted source/test corrections; full review baseline remains `b8ccf1575ae94b33487470a08899f10022a8c3dc`.
+
+| Executed check | Final outcome |
+| --- | --- |
+| Private test environment + `SUPABASE_TEST_REQUIRED=1`; required dashboard-pipeline, quote-pipeline-read-model and role-aware integration/RLS suites | 27 passed, 0 failed, 0 skipped; 17.73s. No DB/application source changed afterwards |
+| `node --experimental-strip-types --import ./tests/support/register.mjs --test 'tests/unit/**/*.test.ts'` | 2,037 total; 2,036 passed, 0 failed, 1 pre-existing Linux-xattrs skip |
+| `node node_modules/typescript/bin/tsc --noEmit` | Passed after final test-only capture changes; equivalent project TypeScript gate |
+| `node node_modules/eslint/bin/eslint.js` | Passed; 0 errors, 13 existing warnings. Final capture file additionally passed focused ESLint |
+| Private app environment + public proxy URL37921; `node node_modules/next/dist/bin/next build` | Passed after responsive source fix; dashboard remains dynamic. Root restarted app from matching artifact |
+| `node scripts/verify/check-service-role-containment.mjs` / `check-bundle-containment.mjs` / `check-lockfiles.mjs` | All passed against final source/production build |
+| Ignored private Node browser launcher; dedicated config, root-owned Chrome CDP37922 and production app3201; affected payload/revocation grep | 3 passed, 0 failed, 0 skipped; 11.8s |
+| Same launcher/config/resources; final full browser suite with fresh global setup | 54 passed, 0 failed, 0 skipped; 48.3s. Includes 48 dashboard and 6 unchanged existing role/onboarding regressions |
+| Seller actual-response secrecy evidence | 7 dashboard responses observed: 1 initial navigation, 1 HTML, 5 later RSC; body capture, amount/property absence and DOM/mask assertions passed |
+| `git diff --check` | Passed |
+
+The last capture correction uses page-owned CDP Fetch response-stage observation, not response mocking or replacement: `Fetch.getResponseBody` reads the server bytes, `Fetch.continueResponse` resumes them without overridden status/headers/body, and required capture failures fail assertions. It applies only to seller secrecy and the two role-revocation cases; retry/loading hold-release checks remain unpaused. This fixes the observed CDP transport limitation where consumed/canceled streamed RSC responses were no longer retrievable or never reported finished. See the [Chrome Fetch protocol](https://chromedevtools.github.io/devtools-protocol/tot/Fetch/) and the concrete helper review stop.
+
+The author has no active DB/browser consumers. Root owns lifecycle Stop requests and preserves runtime/profile/data state; no resources were raw-launched, adopted, reset or deleted by this delegate. No deployment, demo data change, new dependency, schema/grant/money rule or later widget was introduced. Current uncommitted continuation files are the spec, four responsive class strings in AppShell, the strict browser/proxy fixture corrections, the guarded browser fixture, and coordinator-approved import-only amendments to two existing regressions.
+## Review Routing
+
+### 2026-10-07 — Round 1 of 3
+
+- Complete configured roster: blind-hunter, edge-case-hunter, verification-gap, intent-alignment, auto-bmad-security, auto-bmad-cross-model. All use gpt-6.1-sol / high because the full diff includes tenant authority and money withholding; selected before dispatch. External reviewer resolved at runtime with cli_delegate.py --layer-argv, this worktree/config and --codex-effort high; confirmed model, approval_policy=never, read-only sandbox and worktree root.
+- Parent and delegate consume two of five concurrency slots, so launch three internal reviewers first and the other two when slots free; external bounded CLI runs concurrently. Retain every layer and defer collection/triage until the complete roster has launched. Review baseline remains b8ccf1575ae94b33487470a08899f10022a8c3dc.
+
+## Review Triage Log
+
+### 2026-10-07 — Review pass
+
+**Round 1 of 3**
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 5: (high 1, medium 4, low 0)
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - High CI partition: ordinary config excludes exactly the dashboard spec; required dashboard-e2e job uses dedicated setup/teardown, proxy and production app. Fresh real-fixture collection: root 178/zero dashboard, official CI 56/50 dashboard. Final local guarded execution of that CI config:56 passed/0 failed/0 skipped; remote CI startup remains unexecuted.
+  - Medium profile menu: phone left anchor and desktop right anchor preserve controls/context. Opened link bounds passed at 360, tablet and desktop in the final browser suite.
+  - Medium tooltip pointer retention: one trigger/explanation hover region with no layout gap. Actual 12-step pointer passage passed, followed by outside-pointer dismissal.
+  - Medium unfocused Escape: open-state document key listener preserves focus. Final browser test asserted elsewhere focus before/after hover and Escape dismissal; focused1-case verification also passed.
+  - Medium test-proxy boundary: strict target resolver is used before any forwarding/plans. Twelve focused unit cases passed, including actual-handler zero-forward negatives; live ordinary request 200 and external absolute/network-path/same-origin absolute requests400.
+- Independent High triage verified concrete callers and no downstream enforcement; the CI claim from four layers was deduplicated as one claim/action. Intent auditor found no material divergence. No intent/spec amendment is required.
+- All six configured layers completed against full original baseline b8ccf1575ae94b33487470a08899f10022a8c3dc. Host capacity allowed two simultaneous internal reviewers; bounded batches retained every layer before triage.
+- External result: High Sol 6.1, approval never, read-only sandbox, exact worktree root. Complete final UTF-8 artifact 681 bytes; full diff SHA256 8E8BB58D6A1DF798B4923180FED0A2699BEA8E2FF4BDA5362A05E39A008A29BC. Original Codex success is evidenced by conditional display invocation; Windows forward-slash display failed, canonical backslash display exited 0. Redundant same-diff provider retry was cancelled after this completed artifact was validated; transport failure is separate from the completed review round.
+- Fix route selected before dispatch: gpt-6.1-sol / high for the actual proxy boundary and full mixed batch. Coordinator reserves playwright.config.ts and .github/workflows/ci.yml only for a required isolated dashboard CI partition; preserve existing jobs/assertions/gates and E14 exclusions.
+
+## Round 1 Patch Verification
+
+Author: same High verification/fix delegate; full baseline and frozen intent unchanged. The coordinator reserved root `playwright.config.ts` and `.github/workflows/ci.yml` only for the required isolated CI partition, plus new `tests/e2e/dashboard/playwright.ci.config.ts` and `tests/unit/e2e/server-read-proxy.test.ts`. AppShell ownership remains limited to responsive controls/menu positioning; QuotePipelineWidget changes are mask interaction only. Existing CI jobs, browser assertions, skip markers, permission matrix and database/application reader source are preserved.
+
+| Executed check | Round 1 outcome |
+| --- | --- |
+| `node --experimental-strip-types --import ./tests/support/register.mjs --test 'tests/unit/**/*.test.ts'` | 2,049 total;2,048 passed,0 failed,1 existing Linux-xattrs skip. Sequential after the completed build |
+| Focused `tests/unit/e2e/server-read-proxy.test.ts` | 12 passed,0 failed,0 skipped; real handler refuses denied targets before upstream request |
+| TypeScript, full ESLint, production build, source/bundle containment, lockfiles, diff whitespace | Passed; lint 0 errors/13 existing warnings; dashboard dynamic. Root started matching production artifact |
+| Workflow YAML parse and comparison to HEAD | Valid; all 4 existing jobs structurally unchanged; new required dashboard job depends on verify and requires isolated services |
+| Fresh dedicated global setup + ordinary and official-CI Playwright `--list`, paired teardown | Ordinary 178 cases/37 files/zero dashboard; official CI 56 cases/3 files/50 dashboard. Setup actually executed against isolated DB |
+| Bounded live proxy boundary probe | Ordinary Auth health forwarding200; external absolute, network-path and same-origin absolute request targets 400 |
+| Official CI config via ignored guarded wrapper, fresh setup, Chrome CDP37922/app3201/proxy37921 | 56 passed,0 failed,0 skipped;51.6s. Attempts 39.70s within 300s budget |
+| Seller actual-response secrecy evidence | Seven observed dashboard bodies: 1 initial navigation,1 HTML,5 later RSC; required capture/property/sentinel/DOM assertions passed |
+| Earlier required integration/RLS evidence | 27 passed,0 failed,0 skipped remains applicable; this batch changed no database/reader/authority source |
+
+An initial browser pass was 55 passed/1 failed/0 skipped: the newly added Escape case set focus before hydration, and failed the pre-Escape focus assertion. Moving focus after hydration and asserting it before hover corrected the fixture; focused 1 passed/0 failed/0 skipped, followed by the final 56-case result above. A unit run concurrent with build hit one transient bundle-file access failure; the recorded full unit result is the subsequent sequential run against the completed artifact. No assertion was removed or weakened.
+
+Local guarded execution imported the official CI config and omitted only its webServer startup, retaining exact collection, fixture setup/teardown, reporters and duration budget; the root supplied the matching guarded services. The ignored collection launcher performed fresh fixture startup/teardown but `--list` does not start webServers. No remote GitHub CI execution or automatic CI server-start result is claimed. Dependencies/lockfile remain unchanged, so prior frozen-install/audit evidence remains historical and applicable.
+
+No active DB/browser consumers remain. Root owns lifecycle requests and preserves runtime/profile/data. Round 1 remains the single completed broad review (five patches:one High, four Medium); followup_review_recommended remains true for the root's configured follow-up. No broad Round 2 review, commit, push, deployment or full-epic completion occurred in this fix lane.
+## Auto Run Result
+
+Status: done — Phase 5 implementation, Round 1 patch batch and independent narrow trail review complete.
+blocking_condition: none
+trail_narrow_check_status: passed — independent reviewer verified all 28 stops, rationale, evidence and limits with no consequential mismatch. Completion-hook author reconciliation is complete.
+Review breakdown: patch 5 (High 1 / Medium 4 / Low 0); defer 0; reject 0; followup_review_recommended: true; severity score 12 (High present).
+Implementation: Story 19.1 delivers the operational dashboard framework and full-width quote-pipeline widget while preserving onboarding. The manifest-coherent registry contains actual loader/presentation functions; the dashboard server resolves current authority and serializes a browser DTO allowlist that withholds unauthorized money and server-only fields. The result-bearing quote source shares legacy query semantics, distinguishes unavailable reads from empty data, and retains the compatible reader. Presentation covers loading, empty, success, withheld money and explicit failure/retry with refreshed authority. All five Round 1 findings are addressed: required isolated dashboard CI partition, responsive profile menu bounds, composite tooltip hover, focus-independent Escape, and strict test-proxy targets. Full baseline and frozen intent remain unchanged.
+
+Files changed (whole author-owned code/test/spec inventory since `b8ccf1575ae94b33487470a08899f10022a8c3dc`; excludes root auto-bmad report/state files):
+
+- `.github/workflows/ci.yml` — Adds the required isolated dashboard browser job while retaining existing jobs.
+- `playwright.config.ts` — Partitions the dashboard spec into its fixture/proxy-aware CI gate.
+- `_bmad-output/implementation-artifacts/spec-19-1-dashboard-framework-and-quote-pipeline.md` — Records implementation, verification, review triage and the single authored review trail.
+- `src/app/(app)/dashboard/page.tsx` — Composes operational dashboard and existing onboarding with server-derived widget state.
+- `src/components/app-shell/AppShell.tsx` — Keeps phone header controls, tenant identity and opened profile menu within the viewport.
+- `src/components/dashboard/DashboardGrid.tsx` — Provides the responsive full-width dashboard widget layout.
+- `src/components/dashboard/WidgetCard.tsx` — Provides semantic widget framing and authorized navigation.
+- `src/components/dashboard/QuotePipelineWidget.tsx` — Renders pipeline states, authorized money and accessible mask interactions.
+- `src/components/dashboard/DashboardRetry.tsx` — Refreshes the server route with explicit pending state and current authority.
+- `src/scope/manifest.ts` — Enrolls the active quote module's pipeline widget.
+- `src/scope/widget-registry.ts` — Registers actual widget loaders and components with eligibility metadata.
+- `src/scope/manifest-schema.ts` — Validates registry/manifest ownership, equality and capability coherence.
+- `src/server/read-models/dashboard.ts` — Coordinates authorized loaders and projects the browser-safe dashboard DTO.
+- `src/server/read-models/quote-pipeline.ts` — Adds explicit read results while preserving the shared query core and legacy wrapper.
+- `tests/unit/scope/widget-registry.test.ts` — Exercises registry coherence and invalid enrollment boundaries.
+- `tests/unit/server/read-models/dashboard.test.ts` — Checks role eligibility, DTO projection and withheld/server-only property absence.
+- `tests/unit/server/read-models/quote-pipeline-result.test.ts` — Covers strict result validation, page/batch faults and legacy compatibility.
+- `tests/unit/components/dashboard/widget-state.test.ts` — Covers dashboard presentation state semantics.
+- `tests/unit/e2e/server-read-proxy.test.ts` — Verifies proxy target rejection and zero forwarding through its real handler.
+- `tests/integration/rls/dashboard-pipeline.rls.test.ts` — Verifies live authority, tenant boundaries and actual source/page/batch reads.
+- `tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts` — Implements 50 actual-browser dashboard acceptance cases and strict payload observation.
+- `tests/e2e/dashboard/playwright.config.ts` — Defines dedicated dashboard collection, fixtures and browser settings.
+- `tests/e2e/dashboard/playwright.ci.config.ts` — Adds isolated proxy/production-app startup and required CI reporting/budget.
+- `tests/e2e/dashboard/guarded-test.ts` — Connects root-owned CDP Chrome with fresh test contexts for guarded local verification.
+- `tests/e2e/dashboard/setup.ts` — Creates isolated role/source/dashboard fixtures and private fault-plan state.
+- `tests/e2e/dashboard/teardown.ts` — Cleans owned fixtures and fault-plan state after dedicated browser execution.
+- `tests/e2e/dashboard/read-plan.ts` — Defines deterministic contained query-fault and hold/release plans.
+- `tests/e2e/dashboard/server-read-proxy.mjs` — Forwards real local responses with bounded planned faults and strict upstream target validation.
+- `tests/e2e/auth/role-aware-phase-a-surface.atdd.e2e.spec.ts` — Uses the guarded fixture import while preserving existing role assertions.
+- `tests/e2e/onboarding/first-admin-checklist.e2e.spec.ts` — Uses the guarded fixture import while preserving existing onboarding assertions.
+Verification: Current full units 2,048 passed / 0 failed / 1 existing Linux-xattrs skip; current official-CI-config guarded browser 56 passed / 0 failed / 0 skipped (51.6s); prior required integration/RLS 27 passed / 0 failed / 0 skipped remains applicable. Live proxy ordinary forwarding 200 and three invalid target forms 400. Typecheck, lint (0 errors / 13 existing warnings), production build, source/bundle containment, lockfile and diff checks passed.
+Final artifact correction: CI HTML reporter now uses an absolute repository-root output path matching the workflow's ignored artifact destination. The earlier generated report was preserved in ignored private runtime storage after path-containment checks. A final bounded focused browser run passed 1 / 0 failed / 0 skipped (8.5s), wrote playwright-report/dashboard/index.html, and git check-ignore confirmed it is ignored. Reporter-only amendment did not change collection, fixture or assertions; the final 56-case run remains applicable.
+Review trail: Exactly one implementation-author section refreshed after fixes; 28 verified path/line/literal stops, 0 reference errors. Round 1 of 3 and external first-artifact provenance retained; review_loop_iteration remains 0 because no spec-fix loop occurred. followup_review_recommended remains true for the configured root follow-up; no broad Round 2 executed here.
+Residual limits: Remote GitHub CI and its automatic fresh webServer startup were not executed; local verification imports that exact configuration while root owns the matching services. Synthetic faults/money fixtures, three paused payload-observation cases and one explicit platform skip have the limits recorded above. Root's later phases remain outstanding. Story 19.2, full Epic 19, push and deployment remain outside this completion.
+Resource handoff: No active DB/browser consumers. Root owns retained service/browser lifecycle and Stop requests; this author launched no raw resources and deleted no runtime/data/profile state.
