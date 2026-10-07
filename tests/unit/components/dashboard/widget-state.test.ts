@@ -1,6 +1,6 @@
 /**
- * Story 19.1 red scaffolds. Remove skips after the real component seam exists.
- * Provisional PRESENTATION contract (no authority inputs):
+ * Story 19.1 actual dashboard presentation tests.
+ * Presentation contract (no authority inputs):
  * QuotePipelineWidget({state, descriptor?, completedAt?, onRetry?}).
  * DashboardGrid({children}); WidgetCard({title, href, children}).
  * Use the implementation's actual exported prop names when activating; retain
@@ -41,7 +41,7 @@ function descriptor(overrides: Partial<Descriptor["data"]> = {}, withheld: reado
 }
 
 // Installed TypeScript compiles actual TSX in-process; no files/dependencies or
-// shared runner edits. Registration is deferred until a skipped callback runs.
+// shared runner edits. Registration is local to the actual component tests.
 let tsxReady = false;
 function registerTsx(): void {
   if (tsxReady) return;
@@ -74,8 +74,7 @@ function plain(html: string): string {
 }
 
 describe("19.1-UNIT-013 actual pipeline component states (SSR)", () => {
-  // RED: new widget absent; activate after the presentation seam is implemented.
-  test.skip("[P1] loading announces progress without fabricated values or success time [AC9]", async () => {
+  test("[P1] loading announces progress without fabricated values or success time [AC9]", async () => {
     const html = await widget({ state: "loading" });
     assert.match(plain(html), /Offertpipeline/);
     assert.match(html, /role="status"/);
@@ -84,8 +83,7 @@ describe("19.1-UNIT-013 actual pipeline component states (SSR)", () => {
     assert.doesNotMatch(plain(html), /Hämtad|0,00|0\s*%|Ingen träffgrad ännu|Inga offerthändelser/);
     assert.doesNotMatch(html, /<time\b/);
   });
-  // RED: new widget absent; activate after the presentation seam is implemented.
-  test.skip("[P1] loaded value uses shared integer-öre presentation and honest completion time [AC3,9]", async () => {
+  test("[P1] loaded value uses shared integer-öre presentation and honest completion time [AC3,9]", async () => {
     const html = await widget({ state: "loaded",
       descriptor: descriptor({ acceptedValueOre: COMMITMENT_ORE }), completedAt: COMPLETED_AT });
     const text = plain(html);
@@ -98,13 +96,12 @@ describe("19.1-UNIT-013 actual pipeline component states (SSR)", () => {
     assert.match(text, /2025-10-07/);
     assert.match(text, /2026-10-07/);
     assert.match(text, /Hämtad/);
-    assert.match(html, new RegExp('datetime="' + COMPLETED_AT.replace(/\./g, "\\.") + '"'));
+    assert.match(html, new RegExp('datetime="' + COMPLETED_AT.replace(/\./g, "\\.") + '"', 'i'));
     assert.doesNotMatch(text, /realtid|senast ändrad|Dold|Kunde inte läsa/i);
     assert.equal((html.match(/href="\/quotes"/g) ?? []).length, 1);
     assert.match(text, /Visa offerter/);
   });
-  // RED: new widget absent; activate after the presentation seam is implemented.
-  test.skip("[P1] successful empty is period-specific, null rate and entitled zero [AC4,5]", async () => {
+  test("[P1] successful empty is period-specific, null rate and entitled zero [AC4,5]", async () => {
     const html = await widget({ state: "empty", completedAt: COMPLETED_AT,
       descriptor: descriptor({ sentCount: 0, acceptedCount: 0, lostCount: 0,
         hitRate: null, acceptedValueOre: 0 }) });
@@ -115,8 +112,7 @@ describe("19.1-UNIT-013 actual pipeline component states (SSR)", () => {
     assert.match(text, /Hämtad/);
     assert.doesNotMatch(text, /Kunde inte läsa|Dold|inga offerter finns|0\s*%/i);
   });
-  // RED: new widget absent; activate after the presentation seam is implemented.
-  test.skip("[P1] sent-only success is active but has no decided-deal rate [AC5]", async () => {
+  test("[P1] sent-only success is active but has no decided-deal rate [AC5]", async () => {
     const html = await widget({ state: "loaded", completedAt: COMPLETED_AT,
       descriptor: descriptor({ sentCount: 3, acceptedCount: 0, lostCount: 0,
         hitRate: null, acceptedValueOre: 0 }) });
@@ -124,8 +120,7 @@ describe("19.1-UNIT-013 actual pipeline component states (SSR)", () => {
     assert.doesNotMatch(plain(html), /Inga offerthändelser under perioden|Kunde inte läsa|0\s*%/);
     assert.match(plain(html), /Hämtad/);
   });
-  // RED: new widget absent; activate after the presentation seam is implemented.
-  test.skip("[P1] absent-withheld money renders Dold and SR description, never zero [AC4]", async () => {
+  test("[P1] absent-withheld money renders Dold and SR description, never zero [AC4]", async () => {
     const html = await widget({ state: "loaded", completedAt: COMPLETED_AT,
       descriptor: descriptor({}, ["acceptedValueOre"]) });
     assert.match(plain(html), /Accepterat värde/);
@@ -136,8 +131,7 @@ describe("19.1-UNIT-013 actual pipeline component states (SSR)", () => {
     assert.doesNotMatch(plain(html), /0,00|Kunde inte läsa/);
     assert.match(plain(html), /Hämtad/);
   });
-  // RED: new widget absent; activate after the presentation seam is implemented.
-  test.skip("[P1] failure has accessible local error/retry and no values or success stamp [AC6,9]", async () => {
+  test("[P1] failure has accessible local error/retry and no values or success stamp [AC6,9]", async () => {
     const html = await widget({ state: "error", onRetry: () => {} });
     const text = plain(html);
     assert.match(text, /Offertpipeline/);
@@ -154,8 +148,7 @@ describe("19.1-UNIT-013 actual pipeline component states (SSR)", () => {
 
 describe("19.1-UNIT-014 card isolation in the real grid", () => {
   for (const state of ["loaded", "error"] as const) {
-    // RED: grid/card/widget absent; activate with actual presentational exports.
-    test.skip("[P1] " + state + " pipeline preserves a healthy sibling in the shared grid [AC6]", async () => {
+      test("[P1] " + state + " pipeline preserves a healthy sibling in the shared grid [AC6]", async () => {
       registerTsx();
       const gridPath = "@/components/dashboard/DashboardGrid";
       const cardPath = "@/components/dashboard/WidgetCard";

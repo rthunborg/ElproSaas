@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/19-1-widget-registry-and-dashboard-framework
 status: in-progress
-updated_at: "2026-10-07T14:33:35Z"
+updated_at: "2026-10-07T14:50:54Z"
 started_at: "2026-10-07T14:07:05Z"
 completed_at: null
-active_seconds: 1586
-timing_anchor: 1791383615
+active_seconds: 2625
+timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
@@ -41,15 +41,15 @@ completed_phases: [0, 1, 2, 3, 4]
 spec_path: "C:/Users/Rasmus/.codex/worktrees/story19-1-dashboard/ElproSaas/_bmad-output/implementation-artifacts/spec-19-1-dashboard-framework-and-quote-pipeline.md"
 spec_approved: true
 build:
-  status: ready-for-dev
-  blocking_condition: null
-  followup_review_recommended: false
+  status: blocked
+  blocking_condition: implementation verification failed
+  followup_review_recommended: true
   review_loop_iteration: 0
   deferred_count: 0
   warnings: []
 followup_passes: 0
 hitl_halt: null
-review_unverified: false
+review_unverified: true
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -57,7 +57,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [e0fb33c5, 659139d4, a97c11bf]
+commits: [e0fb33c5, 659139d4, a97c11bf, b8ccf157]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -82,7 +82,8 @@ merge_commit: null
 branch_deleted: false
 open_questions: []
 deferred_work: []
-blockers: []
+blockers:
+  - "Resource guard HOOK_CONTEXT_UNAVAILABLE: No current root turn actor is open. Fresh human turn required before isolated DB/RLS/browser service admission."
 overrides:
   legacy_epic14_reserved: true
   bounded_story19_1_authorized: true
@@ -91,6 +92,10 @@ overrides:
   story_branch_prefix: codex/
   parallel_epic_adapter: false
   adopt_existing_reviewed_spec: true
+  independent_review_not_started_due_verification_gate: true
+  guarded_services_not_launched: true
+  renderer_default_sandbox_failed: true
+  renderer_escalated_fresh_invocation_passed: true
 constraints:
   - "Only dashboard framework and live quote pipeline; no 19.2 widgets, E20 or Epic19 completion"
   - "No bookings/scheduling/person/migration/permission-matrix changes; use existing integrated contracts"

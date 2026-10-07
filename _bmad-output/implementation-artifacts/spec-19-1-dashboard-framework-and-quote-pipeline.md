@@ -4,9 +4,9 @@ type: 'feature'
 story_id: '19.1'
 sprint_key: '19-1-widget-registry-and-dashboard-framework'
 created: '2026-10-07'
-status: 'ready-for-dev'
+status: 'blocked'
 phase: 'Phase B / Legacy Parity Release'
-baseline_revision: '8cc2d192672e80b8a2dd2e3925997ce8988a13b1'
+baseline_revision: 'b8ccf1575ae94b33487470a08899f10022a8c3dc'
 baseline_ref: 'origin/main'
 review_loop_iteration: 0
 followup_review_recommended: true
@@ -223,3 +223,108 @@ These are planning guidance, not a completed `Suggested Review Order`. The imple
 - **Independent spec review (2026-10-07):** Independent gpt-6.1-sol / High reviewer reported no material tenant-isolation, permission, money, failure-semantics, or scope blockers. This is planning-contract review only; it does not claim implementation review, executed tests, or a product verification result. The implementation review-loop count remains 0.
 - **Coherence sweep:** CAP-1–4 each have intent/success; constraints rule out concrete alternatives; non-goals and testable signal explicit; source gaps and assumptions recorded. This is a planning self-check, not independent approval.
 - **Preservation sweep:** The approved split, independent E14 lane, exact existing dashboard states, active-only manifest governance, role defaults, no placeholders, quote source/withholding/failure details, ownership/coordinator seams, review-before-dispatch and required evidence are represented above. Wrapper-only skill ceremony is omitted; no product evidence invented.
+
+## Execution Routing
+
+- Implementation: gpt-6.1-sol / high, context-free child; actual permission, tenant and accepted-money projection boundaries require High. Selected before dispatch on 2026-10-07. Parent session unchanged.
+
+## Implementation Snapshot and Verification
+
+Implementation author: Story 19.1 implementation delegate (gpt-6.1-sol / High), 2026-10-07. Product changes are uncommitted in the dedicated `C:/Users/Rasmus/.codex/worktrees/story19-1-dashboard/ElproSaas` working tree based on verified HEAD `b8ccf1575ae94b33487470a08899f10022a8c3dc`. Required DB/browser evidence and independent implementation review are incomplete; this is a verification checkpoint, not a completed story.
+
+Recorded implementation choices:
+
+- The result-bearing reader shares the existing query/pagination/aggregate/projection core. Its strict clock/period and accepted-money conversion rejects malformed input; the historical exported reader retains its descriptor fallback. No query duplication, health probe, money rule, migration, grant or dependency was added.
+- The actual registry has one loader/presentation registration. The coordinator approved the serialized one-ID quotes manifest enrollment and structural actual-registry validator input. Runtime selection applies both current Dashboard.View and Quotes.View before any quote loader. Fixed eligible defaults use the same first full-width row.
+- The dashboard adapter resolves authority on every invocation and allowlists period/count/rate/projected-money fields. Current sensitive-field authority is checked again at the browser DTO boundary, and error results are sanitized. Follow-up counts, raw rows, roles and matrices do not enter client props.
+- A card-local mask was approved instead of adding a shared UI primitive. It supports focus/hover, keyboard dismissal and a 450ms touch hold. Existing Zinc/Tailwind and restrained admin-page conventions were reused; the generic frontend skill's other-project DESIGN.md/Figma paths do not exist here.
+- The page preserves the original onboarding conditions/copy and dynamic rendering. Eligibility precedes a streamed loading fallback; retry uses the existing route-refresh pattern and shows loading without retaining values or completion time.
+- Ownership amendment approved: new `tests/e2e/dashboard/playwright.config.ts`, `read-plan.ts`, `server-read-proxy.mjs`, `setup.ts`, and `teardown.ts`. The dedicated config consumes an already running server. The loopback-only proxy faults/holds actual PostgREST reads for synthetic JWT subjects via ignored filesystem plans; it has no HTTP control API or production source switch. Browser timestamps use real read-time bounds; deterministic clock/period/completion proof remains in units.
+
+Executed against this working tree:
+
+| Command | Outcome |
+| --- | --- |
+| `pnpm install --frozen-lockfile` | Passed, unchanged lockfile |
+| `pnpm run verify:lockfiles` | Passed |
+| `pnpm audit --audit-level=high` | Passed threshold; 2 moderate advisories, no high/critical |
+| `pnpm run verify:service-role-containment` | Passed |
+| `pnpm typecheck` | Passed |
+| `pnpm lint` | Passed; 0 errors, 13 existing warnings outside new code |
+| Focused Node command over widget-registry, quote-pipeline-result, dashboard and widget-state suites | 88 passed, 0 failed, 0 skipped |
+| `pnpm run test:unit` | 2,037 total; 2,036 passed, 0 failed, 1 pre-existing Linux-xattrs skip |
+| `pnpm build` with private isolated app environment and proxy public URL `http://127.0.0.1:37921` | Passed; dashboard remains dynamic |
+| `pnpm run verify:bundle-containment` | Passed against that final production build |
+| `node --check tests/e2e/dashboard/server-read-proxy.mjs` | Passed |
+| `pnpm exec playwright test --config tests/e2e/dashboard/playwright.config.ts dashboard-pipeline --list` | Collected 48 enabled tests; 0 browser assertions executed |
+| `git diff --check` | Passed |
+
+The final broad gates cover product behavior through the calendar-clock and accessible-mask edits. Subsequent changes only reconcile validator comments and add the missing role-bearing member in a browser fixture; a final typecheck covers that fixture amendment. Earlier builds are superseded by the proxy-bound final build.
+
+Required integration/RLS and Playwright executions: **not run** (0 executed; no skipped-suite coverage claim). Root resource support reported `HOOK_CONTEXT_UNAVAILABLE`; no stack, proxy, app server or browser was launched by this delegate. The ignored private runtime preparation is not service readiness or migration evidence. No demo data/environment was used. The harness, hydration, focus/long-press, live RLS projection, retry/revocation and responsive/onboarding compositions remain unverified until guarded resources are ready. An author reconciliation and independent review remain required after that execution/fixes.
+
+## Required Verification Continuation
+
+The root owns the resource guard lifecycle and uses its exact latest trusted context after a fresh actor hook. Read the private runtime `tmp/private/story19-runtime/HANDOFF.md`; do not print private environment values. Required endpoints: isolated Supabase API `127.0.0.1:56421`, PostgreSQL `127.0.0.1:56422`, test-only proxy `127.0.0.1:37921`, production app `127.0.0.1:3201`. No resource IDs exist for this delegate.
+
+1. Complete root's guarded Compose admission/readiness and SQL-only migration/inspection steps from that handoff.
+2. Use the private test environment in the same PowerShell process and set `SUPABASE_TEST_REQUIRED=1`. Run:
+   `pnpm exec vitest run tests/integration/rls/dashboard-pipeline.rls.test.ts tests/integration/rls/quote-pipeline-read-model.rls.test.ts tests/integration/rls/role-aware-phase-a-surface.atdd.int.test.ts`.
+3. Root launches the proxy under its guard with command arguments:
+   `node tests/e2e/dashboard/server-read-proxy.mjs --upstream http://127.0.0.1:56421 --port 37921 --control-root tests/e2e/.auth/dashboard-control`.
+   Use this worktree as cwd. The proxy tolerates the not-yet-created control directory.
+4. Root launches the production server under its guard from the same cwd: load private app environment; set `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:37921`; consume the matching final build; `node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3201`. If source/config changes invalidate the build, rebuild with those same public values first.
+5. With approved browser-process ownership, private app/test environment, `E2E_PORT=3201` and `SUPABASE_TEST_REQUIRED=1`, run `pnpm exec playwright test --config tests/e2e/dashboard/playwright.config.ts`. This includes the new 48-case suite plus existing role-aware landing and first-admin checklist regression. Its config does not launch a web server.
+6. Record executed/failed/skipped counts and fix actual failures. Refresh this same authored review section, then obtain independent High implementation review. Root stops its resource IDs through the guard; preserve runtime volumes/config and keep 19.2/Epic 19 incomplete.
+
+## Suggested Review Order
+
+Author: Story 19.1 implementation delegate (gpt-6.1-sol / High).
+Refreshed against the uncommitted Story 19.1 working tree based on `b8ccf1575ae94b33487470a08899f10022a8c3dc`, 2026-10-07. See Implementation Snapshot and Verification above for current evidence and limits.
+
+### Operational entry, preserved onboarding and honest states
+
+I retained the existing onboarding branch conditions and placed the one full-width operational card below the existing heading/copy. Loading/retry clear numeric content and completion time; the local mask implements the approved UX without a new shared primitive.
+
+- `src/app/(app)/dashboard/page.tsx:14` — `DashboardPage`: preserves the operational entry and onboarding branches.
+- `src/components/dashboard/QuotePipelineWidget.tsx:36` — `QuotePipelineWidget`: separates loading, empty, loaded and unavailable presentation.
+- `src/components/dashboard/QuotePipelineWidget.tsx:14` — `MaskedValue`: explains withheld money through keyboard, hover and touch.
+- `src/components/dashboard/DashboardRetry.tsx:9` — `DashboardRetry`: refreshes current authority without keeping local values.
+
+### Actual registration and the server trust boundary
+
+The coordinator reserved and approved precisely the quotes widget enrollment; dashboard activation history and permission grants stay unchanged. The registry carries actual loader/component functions, while the request adapter resolves current authority and emits only the browser allowlist.
+
+- `src/scope/manifest.ts:153` — `quote-pipeline`: enrolls the active quotes producer's sole widget.
+- `src/scope/widget-registry.ts:10` — `WIDGET_REGISTRY`: registers the actual loader and presentation.
+- `src/scope/manifest-schema.ts:316` — `options.widgetRegistry`: validates equality, ownership and capability coherence.
+- `src/server/read-models/dashboard.ts:54` — `browserPipeline`: withholds money and removes server-only fields before serialization.
+
+### Shared source semantics and explicit unavailable results
+
+The spec required a result-bearing entry because the old empty fallback cannot identify failed reads. Both exported paths share the original query core; strict result reads reject malformed clocks/money and return no descriptor on any stage/page/batch failure.
+
+- `src/server/read-models/dashboard.ts:33` — `readDashboard`: resolves authority before eligible loaders.
+- `src/server/read-models/quote-pipeline.ts:289` — `readQuotePipelineResult`: returns projected success only after completed reads.
+- `src/server/read-models/quote-pipeline.ts:303` — `readQuotePipeline`: preserves the compatibility descriptor/fallback.
+- `tests/unit/server/read-models/quote-pipeline-result.test.ts:360` — `19.1-UNIT-012`: verifies compatible success/fallback versus explicit failure.
+
+### Acceptance evidence and the remaining live boundary
+
+Executed units cover actual registry negatives (AC1), server role/DTO/revocation boundaries (AC2/4/7), source/date/money and staged faults (AC3/5/6), and SSR masking/state isolation (AC4–9). Live database, hydration, layout and onboarding/retry browser assertions are enabled but not executed; the new proxy preserves the actual production result path.
+
+- `tests/unit/scope/widget-registry.test.ts:50` — `19.1-UNIT-001`: checks actual registration/active-manifest equality.
+- `tests/unit/server/read-models/dashboard.test.ts:216` — `19.1-UNIT-004`: inspects the actual browser DTO allowlist and withheld amount absence.
+- `tests/unit/components/dashboard/widget-state.test.ts:134` — `failure has accessible`: proves local SSR error/retry without values or success time.
+- `tests/e2e/dashboard/server-read-proxy.mjs:51` — `http.createServer`: contains planned actual-server read failures and holds.
+
+Evidence: final focused 88/0/0 and full unit 2,036 passed/0 failed/1 existing skip; typecheck, lint, build, install/audit/lockfile and both containment gates passed. Limits: injected query transport and synthetic malformed-money fixtures do not prove RLS; SSR does not prove hydration/focus/layout. Required integration and 48 browser cases have 0 executions due the root guard actor blocker. Browser fixture setup/proxy timing and seeded source integrity remain to be exercised; no implementation review or completion is claimed.
+
+## Auto Run Result
+
+Status: blocked
+Blocking condition: implementation verification failed
+Reason: Required DB/RLS and production-server browser verification cannot execute while root resource support returns HOOK_CONTEXT_UNAVAILABLE (no current root turn actor is open). No managed stack, proxy, app server or browser was launched. A fresh trusted root actor hook and guarded readiness are required; the prepared runtime is not readiness.
+Implementation: Manifest-governed dashboard framework and live quote pipeline implemented; author snapshot and exact continuation commands are recorded above.
+Evidence: focused 88 passed / 0 failed / 0 skipped; full unit 2036 passed / 0 failed / 1 pre-existing Linux-xattrs skip. Typecheck, lint (0 errors / 13 existing warnings), frozen install, high-threshold audit, lockfile, production build and source/bundle containment passed. Required DB/RLS 0 executed; 48 enabled browser cases collected / 0 executed. Independent review rounds: 0; gate held at step03.
+Completion hook: blocked/incomplete result preserved; no completed-trail reconciliation or completion claim. Author review-reference self-check passed 16 references / 0 errors, pending independent verification.

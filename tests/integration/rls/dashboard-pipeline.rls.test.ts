@@ -86,7 +86,7 @@ function success(result: PipelineResult) {
   return result.data;
 }
 
-it.skip("[P0] 19.1-INT-001 AC5 B-only data gives A a successful empty dashboard, not B counts/identity/money", async (ctx) => {
+it("[P0] 19.1-INT-001 AC5 B-only data gives A a successful empty dashboard, not B counts/identity/money", async (ctx) => {
   await withFixture(ctx, async (fixture) => {
     const { readQuotePipelineResult, readDashboard, period } = await loadFunctions();
     await seedAccepted(fixture.base.tenantB.id, B_ACCEPTED, 1);
@@ -108,7 +108,7 @@ it.skip("[P0] 19.1-INT-001 AC5 B-only data gives A a successful empty dashboard,
   });
 });
 
-it.skip("[P0] 19.1-INT-002 AC3 real new entry and default adapter show own exact adjusted accepted commitment", async (ctx) => {
+it("[P0] 19.1-INT-002 AC3 real new entry and default adapter show own exact adjusted accepted commitment", async (ctx) => {
   await withFixture(ctx, async (fixture) => {
     const { readQuotePipelineResult, readDashboard, period } = await loadFunctions();
     const own = await seedAccepted(fixture.base.tenantA.id, A_ACCEPTED);
@@ -133,7 +133,7 @@ it.skip("[P0] 19.1-INT-002 AC3 real new entry and default adapter show own exact
   });
 });
 
-it.skip("[P0] 19.1-INT-003 AC2/4 actual seller membership keeps counts while browser DTO omits accepted-value sentinel", async (ctx) => {
+it("[P0] 19.1-INT-003 AC2/4 actual seller membership keeps counts while browser DTO omits accepted-value sentinel", async (ctx) => {
   await withFixture(ctx, async (fixture) => {
     const { readDashboard } = await loadFunctions();
     await seedAccepted(fixture.base.tenantA.id, A_ACCEPTED);
@@ -150,7 +150,7 @@ it.skip("[P0] 19.1-INT-003 AC2/4 actual seller membership keeps counts while bro
 });
 
 for (const role of ["montor", "ekonomi"] as const) {
-  it.skip("[P0] 19.1-INT-003 AC2 real " + role + " membership invokes no result reader despite dashboard grant", async (ctx) => {
+  it("[P0] 19.1-INT-003 AC2 real " + role + " membership invokes no result reader despite dashboard grant", async (ctx) => {
     await withFixture(ctx, async (fixture) => {
       const { readQuotePipelineResult, readDashboard } = await loadFunctions();
       await seedAccepted(fixture.base.tenantA.id, A_ACCEPTED);
@@ -167,7 +167,7 @@ for (const role of ["montor", "ekonomi"] as const) {
   });
 }
 
-it.skip("[P0] 19.1-INT-003 AC2 current membership_roles union yields one card/one actual read", async (ctx) => {
+it("[P0] 19.1-INT-003 AC2 current membership_roles union yields one card/one actual read", async (ctx) => {
   await withFixture(ctx, async (fixture) => {
     const { readQuotePipelineResult, readDashboard } = await loadFunctions();
     await seedAccepted(fixture.base.tenantA.id, A_ACCEPTED);
@@ -182,7 +182,7 @@ it.skip("[P0] 19.1-INT-003 AC2 current membership_roles union yields one card/on
   });
 });
 
-it.skip("[P0] 19.1-INT-004 AC2 forged runtime role/tenant/money properties cannot replace actual seller authority", async (ctx) => {
+it("[P0] 19.1-INT-004 AC2 forged runtime role/tenant/money properties cannot replace actual seller authority", async (ctx) => {
   await withFixture(ctx, async (fixture) => {
     const { readDashboard } = await loadFunctions();
     await seedAccepted(fixture.base.tenantA.id, A_ACCEPTED);
@@ -200,7 +200,7 @@ it.skip("[P0] 19.1-INT-004 AC2 forged runtime role/tenant/money properties canno
   });
 });
 
-it.skip("[P0] 19.1-INT-004 AC7 same authenticated client sees revoked money membership on retry", async (ctx) => {
+it("[P0] 19.1-INT-004 AC7 same authenticated client sees revoked money membership on retry", async (ctx) => {
   await withFixture(ctx, async (fixture) => {
     const { readDashboard } = await loadFunctions();
     await seedAccepted(fixture.base.tenantA.id, A_ACCEPTED);
@@ -215,7 +215,7 @@ it.skip("[P0] 19.1-INT-004 AC7 same authenticated client sees revoked money memb
   });
 });
 
-it.skip("[P0] 19.1-INT-004 AC7 same authenticated client sees revoked quote grant before any retry loader", async (ctx) => {
+it("[P0] 19.1-INT-004 AC7 same authenticated client sees revoked quote grant before any retry loader", async (ctx) => {
   await withFixture(ctx, async (fixture) => {
     const { readQuotePipelineResult, readDashboard } = await loadFunctions();
     await seedAccepted(fixture.base.tenantA.id, A_ACCEPTED);
@@ -234,7 +234,7 @@ it.skip("[P0] 19.1-INT-004 AC7 same authenticated client sees revoked quote gran
   });
 });
 
-it.skip("[P0] 19.1-INT-004 AC7 missing session after sign-out cannot retain a previous dashboard result", async (ctx) => {
+it("[P0] 19.1-INT-004 AC7 missing session after sign-out cannot retain a previous dashboard result", async (ctx) => {
   await withFixture(ctx, async (fixture) => {
     const { readQuotePipelineResult, readDashboard } = await loadFunctions();
     await seedAccepted(fixture.base.tenantA.id, A_ACCEPTED);
@@ -253,7 +253,7 @@ it.skip("[P0] 19.1-INT-004 AC7 missing session after sign-out cannot retain a pr
   });
 });
 
-it.skip("[P1] 19.1-INT-005 AC3/6 new result-entry/default adapter preserve real later pages and accepted ID batches", async (ctx) => {
+it("[P1] 19.1-INT-005 AC3/6 new result-entry/default adapter preserve real later pages and accepted ID batches", async (ctx) => {
   await withFixture(ctx, async (fixture) => {
     const { readQuotePipelineResult, readDashboard, period } = await loadFunctions();
     const client = await makeAuthedServerClient(fixture.base.adminA);

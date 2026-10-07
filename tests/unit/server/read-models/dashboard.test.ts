@@ -97,7 +97,7 @@ function assertUnavailable(result: PipelineResult) {
 }
 
 for (const role of ["tenant_admin", "projektledare", "saljare"]) {
-  test.skip("[P0] 19.1-UNIT-003/004 AC2/4 current server " + role + " loads one correctly projected widget", async () => {
+  test("[P0] 19.1-UNIT-003/004 AC2/4 current server " + role + " loads one correctly projected widget", async () => {
     const readDashboard = await loadDashboard();
     const client = { marker: "request-bound-test-client" };
     let authorityReads = 0;
@@ -134,7 +134,7 @@ for (const role of ["tenant_admin", "projektledare", "saljare"]) {
 }
 
 for (const roles of [["montor"], ["ekonomi"], ["unknown-role"], []] as readonly (readonly string[])[]) {
-  test.skip("[P0] 19.1-UNIT-003 AC2 no quote loader for current server roles " + JSON.stringify(roles), async () => {
+  test("[P0] 19.1-UNIT-003 AC2 no quote loader for current server roles " + JSON.stringify(roles), async () => {
     const readDashboard = await loadDashboard();
     let authorityReads = 0;
     let quoteReads = 0;
@@ -155,7 +155,7 @@ for (const failure of [
   { ok: false as const, code: "TENANT_MEMBERSHIP_REQUIRED", message: "Generic membership error" },
   { ok: false as const, code: "SERVER_ERROR", message: "Generic server error" },
 ]) {
-  test.skip("[P0] 19.1-UNIT-003 AC2 authority " + failure.code + " blocks reads independently of page layout", async () => {
+  test("[P0] 19.1-UNIT-003 AC2 authority " + failure.code + " blocks reads independently of page layout", async () => {
     const readDashboard = await loadDashboard();
     let quoteReads = 0;
     const result = await readDashboard({
@@ -167,7 +167,7 @@ for (const failure of [
   });
 }
 
-test.skip("[P0] 19.1-UNIT-003 AC2 union normalizes valid roles and deduplicates the one actual widget", async () => {
+test("[P0] 19.1-UNIT-003 AC2 union normalizes valid roles and deduplicates the one actual widget", async () => {
   const readDashboard = await loadDashboard();
   let quoteReads = 0;
   const result = await readDashboard({
@@ -183,7 +183,7 @@ test.skip("[P0] 19.1-UNIT-003 AC2 union normalizes valid roles and deduplicates 
   assert.equal(descriptor.data.acceptedValueOre, SECRET_ORE, "existing field union grants money via Ekonomi only after quote capability via Säljare");
 });
 
-test.skip("[P0] 19.1-UNIT-003 AC2 omitted caller roles are irrelevant; current server resolver remains authority", async () => {
+test("[P0] 19.1-UNIT-003 AC2 omitted caller roles are irrelevant; current server resolver remains authority", async () => {
   const readDashboard = await loadDashboard();
   let authorityReads = 0;
   let quoteReads = 0;
@@ -200,7 +200,7 @@ test.skip("[P0] 19.1-UNIT-003 AC2 omitted caller roles are irrelevant; current s
   assert.equal(Object.hasOwn(success(pipeline(result)).descriptor.data, "acceptedValueOre"), false);
 });
 
-test.skip("[P0] 19.1-UNIT-003/004 AC2/4 hostile caller role/tenant/money properties cannot widen current server authority", async () => {
+test("[P0] 19.1-UNIT-003/004 AC2/4 hostile caller role/tenant/money properties cannot widen current server authority", async () => {
   const readDashboard = await loadDashboard();
   let quoteReads = 0;
   const hostile = {
@@ -213,7 +213,7 @@ test.skip("[P0] 19.1-UNIT-003/004 AC2/4 hostile caller role/tenant/money propert
   assert.deepEqual(result.widgets, []);
 });
 
-test.skip("[P0] 19.1-UNIT-004 AC4 browser DTO allowlist excludes follow-ups, raw rows, roles and private resolver metadata", async () => {
+test("[P0] 19.1-UNIT-004 AC4 browser DTO allowlist excludes follow-ups, raw rows, roles and private resolver metadata", async () => {
   const readDashboard = await loadDashboard();
   const input = await resultFactory(["saljare"]);
   assert.ok(input.ok);
@@ -231,7 +231,7 @@ test.skip("[P0] 19.1-UNIT-004 AC4 browser DTO allowlist excludes follow-ups, raw
   assert.doesNotMatch(JSON.stringify(result), /765432109|openFollowUpCount|overdueFollowUpCount|rawAcceptedRows|tenant-unit-a|user-unit-a|unit@example|tenant_admin|permissionMatrix|moneyEntitled/);
 });
 
-test.skip("[P0] 19.1-UNIT-011 AC4/6 absent money not listed as withheld rejects malformed descriptor", async () => {
+test("[P0] 19.1-UNIT-011 AC4/6 absent money not listed as withheld rejects malformed descriptor", async () => {
   const readDashboard = await loadDashboard();
   const malformed = await resultFactory();
   assert.ok(malformed.ok);
@@ -241,7 +241,7 @@ test.skip("[P0] 19.1-UNIT-011 AC4/6 absent money not listed as withheld rejects 
   assertUnavailable(pipeline(result));
 });
 
-test.skip("[P0] 19.1-UNIT-011 AC4/6 contradictory present-and-withheld money cannot cross the DTO boundary", async () => {
+test("[P0] 19.1-UNIT-011 AC4/6 contradictory present-and-withheld money cannot cross the DTO boundary", async () => {
   const readDashboard = await loadDashboard();
   const malformed = await resultFactory(["saljare"]);
   assert.ok(malformed.ok);
@@ -259,7 +259,7 @@ test.skip("[P0] 19.1-UNIT-011 AC4/6 contradictory present-and-withheld money can
   }
 });
 
-test.skip("[P0] 19.1-UNIT-011 AC6 malformed completion time cannot claim a fresh loaded result", async () => {
+test("[P0] 19.1-UNIT-011 AC6 malformed completion time cannot claim a fresh loaded result", async () => {
   const readDashboard = await loadDashboard();
   const malformed = await resultFactory();
   assert.ok(malformed.ok);
@@ -268,7 +268,7 @@ test.skip("[P0] 19.1-UNIT-011 AC6 malformed completion time cannot claim a fresh
   assertUnavailable(pipeline(result));
 });
 
-test.skip("[P0] 19.1-UNIT-008 AC6 reader error remains card-local and sanitizes unexpected provider detail", async () => {
+test("[P0] 19.1-UNIT-008 AC6 reader error remains card-local and sanitizes unexpected provider detail", async () => {
   const readDashboard = await loadDashboard();
   const result = await readDashboard({
     resolveContext: async () => contextFactory(),
@@ -278,7 +278,7 @@ test.skip("[P0] 19.1-UNIT-008 AC6 reader error remains card-local and sanitizes 
   assert.equal(result.widgets.length, 1, "eligible failed card remains available for retry");
 });
 
-test.skip("[P0] 19.1-UNIT-008 AC6 thrown reader error becomes card-local unavailable", async () => {
+test("[P0] 19.1-UNIT-008 AC6 thrown reader error becomes card-local unavailable", async () => {
   const readDashboard = await loadDashboard();
   const result = await readDashboard({
     resolveContext: async () => contextFactory(),
@@ -287,7 +287,7 @@ test.skip("[P0] 19.1-UNIT-008 AC6 thrown reader error becomes card-local unavail
   assertUnavailable(pipeline(result));
 });
 
-test.skip("[P0] 19.1-UNIT-003 AC2 thrown authority resolution blocks all quote reads", async () => {
+test("[P0] 19.1-UNIT-003 AC2 thrown authority resolution blocks all quote reads", async () => {
   const readDashboard = await loadDashboard();
   let quoteReads = 0;
   const result = await readDashboard({
@@ -299,7 +299,7 @@ test.skip("[P0] 19.1-UNIT-003 AC2 thrown authority resolution blocks all quote r
   assert.doesNotMatch(JSON.stringify(result), /SQL|tenant-private|stack-fixture/);
 });
 
-test.skip("[P0] 19.1-UNIT-003/004 AC7 retry resolves revoked quote capability before a second loader", async () => {
+test("[P0] 19.1-UNIT-003/004 AC7 retry resolves revoked quote capability before a second loader", async () => {
   const readDashboard = await loadDashboard();
   let roles = ["tenant_admin"];
   let authorityReads = 0;
@@ -317,7 +317,7 @@ test.skip("[P0] 19.1-UNIT-003/004 AC7 retry resolves revoked quote capability be
   assert.doesNotMatch(JSON.stringify(retry), /765432109|completedAt|sentCount/);
 });
 
-test.skip("[P0] 19.1-UNIT-004 AC7 retry retains quote access but immediately removes revoked money", async () => {
+test("[P0] 19.1-UNIT-004 AC7 retry retains quote access but immediately removes revoked money", async () => {
   const readDashboard = await loadDashboard();
   let roles = ["projektledare"];
   let authorityReads = 0;
@@ -336,7 +336,7 @@ test.skip("[P0] 19.1-UNIT-004 AC7 retry retains quote access but immediately rem
   assert.doesNotMatch(JSON.stringify(retry), /765432109/);
 });
 
-test.skip("[P0] 19.1-UNIT-003 AC7 stale session on retry does not reuse a prior success", async () => {
+test("[P0] 19.1-UNIT-003 AC7 stale session on retry does not reuse a prior success", async () => {
   const readDashboard = await loadDashboard();
   let authenticated = true;
   let quoteReads = 0;
@@ -352,7 +352,7 @@ test.skip("[P0] 19.1-UNIT-003 AC7 stale session on retry does not reuse a prior 
   assert.doesNotMatch(JSON.stringify(retry), /765432109|completedAt|sentCount/);
 });
 
-test.skip("[P0] 19.1-UNIT-004 AC2/4 sequential request identities cannot share prior entitled data", async () => {
+test("[P0] 19.1-UNIT-004 AC2/4 sequential request identities cannot share prior entitled data", async () => {
   const readDashboard = await loadDashboard();
   const adminResult = await readDashboard({
     resolveContext: async () => contextFactory(["tenant_admin"], "tenant-unit-a"),
@@ -367,7 +367,7 @@ test.skip("[P0] 19.1-UNIT-004 AC2/4 sequential request identities cannot share p
   assert.doesNotMatch(JSON.stringify(sellerResult), /765432109|tenant-unit-a/);
 });
 
-test.skip("[P1] 19.1-UNIT-015 AC7 repeated failed reads repeat authority without any success fallback", async () => {
+test("[P1] 19.1-UNIT-015 AC7 repeated failed reads repeat authority without any success fallback", async () => {
   const readDashboard = await loadDashboard();
   let authorityReads = 0;
   let quoteReads = 0;

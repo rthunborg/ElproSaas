@@ -1,15 +1,14 @@
 /**
- * 19.1 RED: remove skips only when the card and named prerequisites exist.
+ * Story 19.1 production-server acceptance with local RLS fixtures and subject-bound read proxy.
  * Vanilla Playwright: configured utilities are absent (two-gate mandate).
  * Binding copy comes from the approved story; semantic names are provisional
  * accessible contracts, not an observed browser snapshot. No API route mocks.
- * New dashboard19 fixture metadata below is an explicit SETUP NEED. It cannot
- * itself inject a server fault. A contained test harness must arm the real
- * readQuotePipelineResult dependency/clock per unique scenario user, retain its
- * actual query/aggregation/projection, and sequence failure/held/success reads.
- * Never implement this as a production env flag or publicly callable endpoint.
+ * The dedicated setup seeds isolated scenarios and filesystem-armed proxy plans.
+ * Browser time is bounded against the real server completion instant; deterministic
+ * period/completion-clock coverage is in unit tests. No production fault switch.
  */
 import { test, expect, type Locator, type Page, type Response } from "@playwright/test";
+import { armReadPlan, releaseRead } from "./read-plan";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { adminQuery } from "../../factories/admin-sql";
@@ -19,7 +18,7 @@ import { formatOreAsKronor } from "../../../src/lib/money";
 type User = { id: string; email: string; password: string };
 type Scenario = {
   user: User; tenantId: string; boundaryNow: string;
-  completionInstants: readonly string[];
+  plan: string;
   acceptedSentinelOre: number; frozenSentTotalOre: number;
 };
 type Fixture = {
@@ -50,7 +49,7 @@ async function login(page: Page, user: User) {
   await page.getByLabel("E-post").fill(user.email);
   await page.getByLabel("Lösenord").fill(user.password);
   await submit.click();
-  await page.waitForURL(/\/dashboard$/);
+  await page.waitForURL(/\/dashboard$/, { waitUntil: "commit" });
 }
 const card = (page: Page) => page.getByRole("region", { name: "Offertpipeline", exact: true });
 async function source(data: Scenario) {
@@ -82,8 +81,8 @@ function observePayloads(page: Page) {
 
 test.describe("19.1-E2E-001 current roles and live card set", () => {
   for (const role of ["tenant_admin", "projektledare", "saljare", "multi-role"] as const) {
-    // RED: new card absent; uses EXISTING per-run role fixtures.
-    test.skip("[P0] " + role + " has one pipeline card and quotes deep link [AC2]", async ({ page }) => {
+    // Contract: new card absent; uses EXISTING per-run role fixtures.
+    test("[P0] " + role + " has one pipeline card and quotes deep link [AC2]", async ({ page }) => {
       const f = fixture();
       const users = { tenant_admin: f.adminA, projektledare: f.notifications.projectManager,
         saljare: f.roleAware.saljare, "multi-role": f.adminUserManagement.sharedAccount };
@@ -99,8 +98,8 @@ test.describe("19.1-E2E-001 current roles and live card set", () => {
     });
   }
   for (const role of ["montor", "ekonomi"] as const) {
-    // RED: new eligibility contract; uses EXISTING per-run role fixtures.
-    test.skip("[P0] " + role + " has no pipeline, skeleton, false totals or deep link [AC2]", async ({ page }) => {
+    // Contract: new eligibility contract; uses EXISTING per-run role fixtures.
+    test("[P0] " + role + " has no pipeline, skeleton, false totals or deep link [AC2]", async ({ page }) => {
       const f = fixture();
       await login(page, role === "montor" ? f.roleAware.montor : f.notifications.finance);
       await expect(page).toHaveURL(/\/dashboard$/);
@@ -114,8 +113,9 @@ test.describe("19.1-E2E-001 current roles and live card set", () => {
 });
 
 test.describe("19.1 actual source consistency and money delivery", () => {
-  // RED: card absent; pinned real source-history/clock fixture required.
-  test.skip("[P1] 19.1-E2E-002 source counts, adjusted commitment, dates, rate and read time [AC3,9]", async ({ page }) => {
+  // Contract: card absent; pinned real source-history/clock fixture required.
+  test("[P1] 19.1-E2E-002 source counts, adjusted commitment, dates, rate and read time [AC3,9]", async ({ page }) => {
+    const startedAt = Date.now();
     const data = scenario("source-history");
     const expected = await source(data);
     await login(page, data.user);
@@ -133,12 +133,14 @@ test.describe("19.1 actual source consistency and money delivery", () => {
     expect(expected.acceptedValueOre).toBe(data.acceptedSentinelOre);
     expect(expected.acceptedValueOre).not.toBe(data.frozenSentTotalOre);
     // Semantic <time datetime> is a proposed accessible presentation seam.
-    await expect(pipeline.locator("time")).toHaveAttribute("datetime", data.completionInstants[0]);
+    const completed = Date.parse((await pipeline.locator("time").getAttribute("datetime"))!);
+    expect(completed).toBeGreaterThanOrEqual(startedAt);
+    expect(completed).toBeLessThanOrEqual(Date.now());
     await expect(pipeline.getByText(/^Hämtad /)).toBeVisible();
     await expect(pipeline.getByText(/realtid|senast ändrad/i)).toHaveCount(0);
   });
-  // RED: dedicated actual accepted-value sentinel + seller fixture required.
-  test.skip("[P0] 19.1-E2E-003 seller amount absent in initial HTML, RSC, DOM/attributes [AC4]", async ({ page }) => {
+  // Contract: dedicated actual accepted-value sentinel + seller fixture required.
+  test("[P0] 19.1-E2E-003 seller amount absent in initial HTML, RSC, DOM/attributes [AC4]", async ({ page }) => {
     const data = scenario("seller-sentinel");
     expect((await source(data)).acceptedValueOre).toBe(data.acceptedSentinelOre);
     expect(data.acceptedSentinelOre).toBeGreaterThan(0);
@@ -175,16 +177,16 @@ test.describe("19.1 actual source consistency and money delivery", () => {
       await expect(page.getByRole("tooltip", { name: "Din roll ser inte belopp", exact: true })).toBeVisible();
     } finally { observed.close(); }
   });
-  // RED: equivalent entitled synthetic membership and new card required.
-  test.skip("[P0] 19.1-E2E-003 entitled control shows actual accepted sentinel [AC4]", async ({ page }) => {
+  // Contract: equivalent entitled synthetic membership and new card required.
+  test("[P0] 19.1-E2E-003 entitled control shows actual accepted sentinel [AC4]", async ({ page }) => {
     const data = scenario("entitled-sentinel");
     await login(page, data.user);
     await expect(card(page).getByLabel("Accepterat värde", { exact: true })).toContainText(formatOreAsKronor(data.acceptedSentinelOre));
     await expect(card(page).getByText("Dold", { exact: true })).toHaveCount(0);
   });
   for (const name of ["empty-entitled", "empty-withheld", "sent-only", "entitled-zero"] as const) {
-    // RED: state UI/isolated source fixture absent. Source is real, not route-stubbed.
-    test.skip("[P1] 19.1-E2E-004 " + name + " has honest period/zero/null-rate copy [AC4,5]", async ({ page }) => {
+    // Contract: state UI/isolated source fixture absent. Source is real, not route-stubbed.
+    test("[P1] 19.1-E2E-004 " + name + " has honest period/zero/null-rate copy [AC4,5]", async ({ page }) => {
       const data = scenario(name);
       const expected = await source(data);
       await login(page, data.user);
@@ -205,8 +207,8 @@ test.describe("19.1 actual source consistency and money delivery", () => {
 });
 
 test.describe("19.1 real server-failure recovery and current authority", () => {
-  // RED: contained server-fault fixture absent; browser interception is not DB proof.
-  test.skip("[P0] 19.1-E2E-005 failure remains local and keeps heading/checklist usable [AC6]", async ({ page }) => {
+  // Contract: contained server-fault fixture absent; browser interception is not DB proof.
+  test("[P0] 19.1-E2E-005 failure remains local and keeps heading/checklist usable [AC6]", async ({ page }) => {
     const data = scenario("failure-isolation");
     await login(page, data.user);
     const pipeline = card(page);
@@ -219,22 +221,25 @@ test.describe("19.1 real server-failure recovery and current authority", () => {
     await expect(page.getByRole("button", { name: "Dölj tills vidare", exact: true })).toBeEnabled();
   });
   for (const outcome of ["recovery", "failure"] as const) {
-    // RED: harness must hold actual retry read through observable loading, then
+    // Contract: harness must hold actual retry read through observable loading, then
     // release its prearmed result. Harness orchestration is still a setup gap.
-    test.skip("[P1] 19.1-E2E-006 retry " + outcome + " announces loading without side effects [AC7]", async ({ page }) => {
+    test("[P1] 19.1-E2E-006 retry " + outcome + " announces loading without side effects [AC7]", async ({ page }) => {
       const data = scenario("retry-" + outcome);
       const before = await mutations(data.tenantId);
       await login(page, data.user);
       await expect(card(page).getByRole("alert")).toContainText("Kunde inte läsa offertpipeline");
       const retry = card(page).getByRole("button", { name: "Försök igen", exact: true });
       await hydrated(retry);
-      await retry.dblclick();
+      await retry.evaluate(button => { (button as HTMLButtonElement).click(); (button as HTMLButtonElement).click(); });
       await expect(card(page).getByRole("status")).toHaveAttribute("aria-live", "polite");
       await expect(card(page)).toHaveAttribute("aria-busy", "true");
       await expect(card(page).getByText(/^Hämtad /)).toHaveCount(0);
+      const completedAfter = Date.now();
+      releaseRead(data.plan);
       if (outcome === "recovery") {
         await expect(card(page).getByRole("alert")).toHaveCount(0);
-        await expect(card(page).locator("time")).toHaveAttribute("datetime", data.completionInstants[1]);
+        await expect(card(page).locator("time")).toBeVisible();
+        expect(Date.parse((await card(page).locator("time").getAttribute("datetime"))!)).toBeGreaterThanOrEqual(completedAfter);
         await expect(card(page).getByLabel("Accepterat värde", { exact: true })).toContainText(formatOreAsKronor(data.acceptedSentinelOre));
       } else {
         await expect(card(page).getByRole("alert")).toContainText("Kunde inte läsa offertpipeline");
@@ -244,8 +249,8 @@ test.describe("19.1 real server-failure recovery and current authority", () => {
     });
   }
   for (const revoked of ["quote", "money"] as const) {
-    // RED: success→real failure→retry plan and unique membership fixture required.
-    test.skip("[P0] 19.1-E2E-007 " + revoked + " revoked in same session before retry [AC7]", async ({ page }) => {
+    // Contract: success→real failure→retry plan and unique membership fixture required.
+    test("[P0] 19.1-E2E-007 " + revoked + " revoked in same session before retry [AC7]", async ({ page }) => {
       const data = scenario("revoke-" + revoked);
       const memberships = await adminQuery<{ id: string; role: string }>(
         "select id,role from public.tenant_memberships where tenant_id=$1 and user_id=$2 and status='active'", [data.tenantId, data.user.id]);
@@ -288,8 +293,8 @@ test.describe("19.1 real server-failure recovery and current authority", () => {
       }
     });
   }
-  // RED: actual failure scenario required; invalidate actual browser session.
-  test.skip("[P0] 19.1-E2E-007 session lost before retry returns safely to login [AC7]", async ({ page, context }) => {
+  // Contract: actual failure scenario required; invalidate actual browser session.
+  test("[P0] 19.1-E2E-007 session lost before retry returns safely to login [AC7]", async ({ page, context }) => {
     const data = scenario("retry-session-lost");
     await login(page, data.user);
     await expect(card(page).getByRole("alert")).toContainText("Kunde inte läsa offertpipeline");
@@ -304,9 +309,9 @@ test.describe("19.1 real server-failure recovery and current authority", () => {
 test.describe("19.1 onboarding composition and accessible responsive layout", () => {
   for (const outcome of ["success", "error"] as const) {
     for (const onboarding of ["undismissed", "dismissed", "completed", "non-admin", "invisible", "read-failure"] as const) {
-      // RED: isolated reader-state fixtures needed. Reuse existing full dismiss/
+      // Contract: isolated reader-state fixtures needed. Reuse existing full dismiss/
       // restore/completion regression, do not duplicate its mutation journey.
-      test.skip("[P1] 19.1-E2E-008 " + outcome + " preserves " + onboarding + " onboarding [AC8]", async ({ page }) => {
+      test("[P1] 19.1-E2E-008 " + outcome + " preserves " + onboarding + " onboarding [AC8]", async ({ page }) => {
         const data = scenario("onboarding-" + onboarding + "-" + outcome);
         await login(page, data.user);
         await expect(card(page)).toHaveCount(1);
@@ -319,8 +324,8 @@ test.describe("19.1 onboarding composition and accessible responsive layout", ()
       });
     }
   }
-  // RED: new mask absent; only EXISTING seller credentials needed.
-  test.skip("[P1] 19.1-E2E-009 keyboard reaches mask explanation and authorized quotes [AC9]", async ({ page }) => {
+  // Contract: new mask absent; only EXISTING seller credentials needed.
+  test("[P1] 19.1-E2E-009 keyboard reaches mask explanation and authorized quotes [AC9]", async ({ page }) => {
     await login(page, fixture().roleAware.saljare);
     const mask = card(page).getByRole("button", { name: "Dolt för din roll", exact: true });
     await hydrated(mask);
@@ -338,8 +343,8 @@ test.describe("19.1 onboarding composition and accessible responsive layout", ()
     await expect(page).toHaveURL(/\/quotes$/);
     await expect(page.getByRole("heading", { name: "Offerter", exact: true })).toBeVisible();
   });
-  // RED: new mask absent; clock controls gesture duration, not server read clock.
-  test.skip("[P1] 19.1-E2E-009 mobile long press shows role explanation [AC4,9]", async ({ page }) => {
+  // Contract: new mask absent; clock controls gesture duration, not server read clock.
+  test("[P1] 19.1-E2E-009 mobile long press shows role explanation [AC4,9]", async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 640 });
     await login(page, fixture().roleAware.saljare);
     const mask = card(page).getByRole("button", { name: "Dolt för din roll", exact: true });
@@ -356,8 +361,8 @@ test.describe("19.1 onboarding composition and accessible responsive layout", ()
     { name: "tablet", width: 768, height: 1024 },
     { name: "desktop", width: 1440, height: 900 },
   ]) {
-    // RED: live widget absent; only EXISTING role credentials needed.
-    test.skip("[P1] 19.1-E2E-010 " + viewport.name + " live full-width row fits [AC9]", async ({ page }) => {
+    // Contract: live widget absent; only EXISTING role credentials needed.
+    test("[P1] 19.1-E2E-010 " + viewport.name + " live full-width row fits [AC9]", async ({ page }) => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await login(page, fixture().roleAware.saljare);
       await expect(card(page)).toBeVisible();
@@ -373,11 +378,16 @@ test.describe("19.1 onboarding composition and accessible responsive layout", ()
       expect(Math.abs(widths.grid - widths.card)).toBeLessThanOrEqual(2);
     });
     for (const state of ["loading", "error", "empty", "withheld"] as const) {
-      // RED: contained state fixture required, including a held actual loading read.
-      test.skip("[P1] 19.1-E2E-010 " + viewport.name + " " + state + " fits with useful dimensions [AC9]", async ({ page }) => {
+      // Contract: contained state fixture required, including a held actual loading read.
+      test("[P1] 19.1-E2E-010 " + viewport.name + " " + state + " fits with useful dimensions [AC9]", async ({ page }) => {
         const data = scenario("layout-" + state);
         await page.setViewportSize({ width: viewport.width, height: viewport.height });
         await login(page, data.user);
+        let heldPlan: string | undefined;
+        if (state === "loading") {
+          heldPlan = armReadPlan(data.user.id, { quote_events: [{ outcome: "pass", hold: true }] });
+          await page.reload({ waitUntil: "commit" });
+        }
         await expect(card(page)).toBeVisible();
         const box = await card(page).boundingBox();
         expect(box).not.toBeNull();
@@ -391,6 +401,8 @@ test.describe("19.1 onboarding composition and accessible responsive layout", ()
           await expect(card(page)).toHaveAttribute("aria-busy", "true");
           await expect(card(page).getByRole("status")).toHaveAttribute("aria-live", "polite");
           await expect(card(page).getByText(/^Hämtad /)).toHaveCount(0);
+          releaseRead(heldPlan!);
+          await expect(card(page).locator("time")).toBeVisible();
         }
       });
     }

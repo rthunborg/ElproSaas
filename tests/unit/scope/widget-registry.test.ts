@@ -2,7 +2,7 @@
  * Story 19.1 ATDD — actual widget registry / manifest coherence.
  * Provisional export/property names below are harness contracts, not product decisions.
  * Align names with the implemented registry while retaining these behavioral assertions.
- * No product imports run at collection time; every case remains intentionally skipped.
+ * Actual product registry and validator imports are evaluated inside each case.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -47,7 +47,7 @@ async function loadValidator(): Promise<Validate> {
   return source.validateManifestCoherence;
 }
 
-test.skip("[P1] 19.1-UNIT-001 AC1 actual loader/component registrations equal the active manifest union", async () => {
+test("[P1] 19.1-UNIT-001 AC1 actual loader/component registrations equal the active manifest union", async () => {
   const registryName = "@/scope/widget-registry";
   const manifestName = "@/scope/manifest";
   const matrixName = "@/server/authz/permission-matrix";
@@ -92,7 +92,7 @@ const negativeCases: {
   { label: "missing registered presentation", change: (_m, r) => { r[0].component = undefined; } },
 ];
 for (const scenario of negativeCases) {
-  test.skip("[P1] 19.1-UNIT-002 AC1 rejects " + scenario.label, async () => {
+  test("[P1] 19.1-UNIT-002 AC1 rejects " + scenario.label, async () => {
     const validate = await loadValidator();
     const manifest: Manifest = { modules: [moduleFactory()] };
     const registry = [registrationFactory()];

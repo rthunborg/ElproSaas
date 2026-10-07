@@ -149,7 +149,7 @@ function success(result: PipelineResult) {
 
 for (const table of ["quote_events", "quote_acceptances", "quote_follow_ups", "quote_versions"] as const) {
   for (const mode of ["error", "throw"] as const) {
-    test.skip("[P0] 19.1-UNIT-007/008 AC6 " + table + " " + mode + " never yields partial totals", async () => {
+    test("[P0] 19.1-UNIT-007/008 AC6 " + table + " " + mode + " never yields partial totals", async () => {
       const { readQuotePipelineResult } = await loadReaders();
       const transport = paginatedTransport(dataFactory(), { table, mode });
       const result = await readQuotePipelineResult(WINDOW, ADMIN, { client: transport.client, now: NOW });
@@ -192,7 +192,7 @@ const lateCases: { label: string; table: Table; batch?: number; from?: number; r
 ];
 for (const scenario of lateCases) {
   for (const mode of ["error", "throw"] as const) {
-    test.skip("[P0] 19.1-UNIT-007 AC6 " + scenario.label + " " + mode + " discards already-read prefixes", async () => {
+    test("[P0] 19.1-UNIT-007 AC6 " + scenario.label + " " + mode + " discards already-read prefixes", async () => {
       const { readQuotePipelineResult } = await loadReaders();
       const transport = paginatedTransport(scenario.rows(), { ...scenario, mode });
       const result = await readQuotePipelineResult(WINDOW, ADMIN, { client: transport.client, now: NOW });
@@ -204,20 +204,20 @@ for (const scenario of lateCases) {
   }
 }
 
-test.skip("[P0] 19.1-UNIT-008 AC6 synchronous query construction throws become generic failures", async () => {
+test("[P0] 19.1-UNIT-008 AC6 synchronous query construction throws become generic failures", async () => {
   const { readQuotePipelineResult } = await loadReaders();
   const transport = paginatedTransport(dataFactory(), { table: "quote_events", mode: "from-throw" });
   assertFailure(await readQuotePipelineResult(WINDOW, ADMIN, { client: transport.client, now: NOW }));
 });
 
-test.skip("[P0] 19.1-UNIT-008 AC6 actual cookie-client construction outside a request fails safely", async () => {
+test("[P0] 19.1-UNIT-008 AC6 actual cookie-client construction outside a request fails safely", async () => {
   const { readQuotePipelineResult } = await loadReaders();
   // No injected client: actual factory fails without request cookies (or missing public env).
   // It must not throw or serialize the Next/env error; no new factory bypass is introduced.
   assertFailure(await readQuotePipelineResult(WINDOW, ADMIN, { now: NOW }));
 });
 
-test.skip("[P0] 19.1-UNIT-005 AC3 lifecycle history and adjusted accepted commitment equal the existing aggregate", async () => {
+test("[P0] 19.1-UNIT-005 AC3 lifecycle history and adjusted accepted commitment equal the existing aggregate", async () => {
   const { readQuotePipelineResult } = await loadReaders();
   const aggregateName = "@/server/read-models/quote-pipeline-aggregate";
   const moneyName = "@/lib/money/ore";
@@ -250,7 +250,7 @@ test.skip("[P0] 19.1-UNIT-005 AC3 lifecycle history and adjusted accepted commit
 });
 
 for (const roles of [["tenant_admin"], ["saljare"]]) {
-  test.skip("[P1] 19.1-UNIT-006 AC4/5 empty successful period remains successful for " + roles[0], async () => {
+  test("[P1] 19.1-UNIT-006 AC4/5 empty successful period remains successful for " + roles[0], async () => {
     const { readQuotePipelineResult } = await loadReaders();
     const transport = paginatedTransport(dataFactory({ quote_events: [], quote_follow_ups: [] }));
     const { descriptor, completedAt } = success(await readQuotePipelineResult(WINDOW, { roles }, { client: transport.client, now: NOW }));
@@ -270,7 +270,7 @@ for (const roles of [["tenant_admin"], ["saljare"]]) {
   });
 }
 
-test.skip("[P1] 19.1-UNIT-006 AC5 sent-only activity is loaded activity with null rate and entitled zero", async () => {
+test("[P1] 19.1-UNIT-006 AC5 sent-only activity is loaded activity with null rate and entitled zero", async () => {
   const { readQuotePipelineResult } = await loadReaders();
   const transport = paginatedTransport(dataFactory({
     quote_events: [eventFactory({ event_type: "sent" })], quote_follow_ups: [],
@@ -285,12 +285,13 @@ test.skip("[P1] 19.1-UNIT-006 AC5 sent-only activity is loaded activity with nul
 
 for (const invalid of [
   { label: "malformed clock", now: "not-an-instant", period: undefined },
+  { label: "impossible clock calendar day", now: "2026-02-30T00:00:00.000Z", period: WINDOW },
   { label: "malformed clock with explicit valid period", now: "not-an-instant", period: WINDOW },
   { label: "impossible period day", now: NOW, period: { from: "2026-02-30", to: "2026-07-31" } },
   { label: "reversed period", now: NOW, period: { from: "2026-08-01", to: "2026-07-01" } },
   { label: "non-date period field", now: NOW, period: { from: "yesterday", to: "2026-07-31" } },
 ]) {
-  test.skip("[P0] 19.1-UNIT-009 AC6 " + invalid.label + " is unavailable, never fresh safe-date zeros", async () => {
+  test("[P0] 19.1-UNIT-009 AC6 " + invalid.label + " is unavailable, never fresh safe-date zeros", async () => {
     const { readQuotePipelineResult } = await loadReaders();
     const transport = paginatedTransport(dataFactory());
     assertFailure(await readQuotePipelineResult(invalid.period, ADMIN, { client: transport.client, now: invalid.now }));
@@ -304,7 +305,7 @@ for (const invalid of [
   { label: "non-finite ore", value: Infinity },
   { label: "missing accepted money", value: null },
 ]) {
-  test.skip("[P0] 19.1-UNIT-010 AC3/6 synthetic " + invalid.label + " cannot become a fresh accepted total", async () => {
+  test("[P0] 19.1-UNIT-010 AC3/6 synthetic " + invalid.label + " cannot become a fresh accepted total", async () => {
     const { readQuotePipelineResult } = await loadReaders();
     const transport = paginatedTransport(dataFactory({
       quote_acceptances: [{ quote_version_id: "version-1", accepted_price_ore: invalid.value }],
@@ -313,7 +314,7 @@ for (const invalid of [
   });
 }
 
-test.skip("[P0] 19.1-UNIT-010 AC6 aggregate overflow is unavailable after individually safe accepted rows", async () => {
+test("[P0] 19.1-UNIT-010 AC6 aggregate overflow is unavailable after individually safe accepted rows", async () => {
   const { readQuotePipelineResult } = await loadReaders();
   const transport = paginatedTransport(dataFactory({
     quote_events: [eventFactory(), eventFactory({ id: "event-2", quote_version_id: "version-2" })],
@@ -325,7 +326,7 @@ test.skip("[P0] 19.1-UNIT-010 AC6 aggregate overflow is unavailable after indivi
   assertFailure(await readQuotePipelineResult(WINDOW, ADMIN, { client: transport.client, now: NOW }));
 });
 
-test.skip("[P0] 19.1-UNIT-010 AC3 exact safe integer ore boundary remains successful", async () => {
+test("[P0] 19.1-UNIT-010 AC3 exact safe integer ore boundary remains successful", async () => {
   const { readQuotePipelineResult } = await loadReaders();
   const transport = paginatedTransport(dataFactory({
     quote_acceptances: [{ quote_version_id: "version-1", accepted_price_ore: String(Number.MAX_SAFE_INTEGER) }],
@@ -334,7 +335,7 @@ test.skip("[P0] 19.1-UNIT-010 AC3 exact safe integer ore boundary remains succes
   assert.equal(descriptor.data.acceptedValueOre, Number.MAX_SAFE_INTEGER);
 });
 
-test.skip("[P0] 19.1-UNIT-004 AC4 seller result is projected before return, not CSS-hidden", async () => {
+test("[P0] 19.1-UNIT-004 AC4 seller result is projected before return, not CSS-hidden", async () => {
   const { readQuotePipelineResult } = await loadReaders();
   const transport = paginatedTransport(dataFactory());
   const result = await readQuotePipelineResult(WINDOW, { roles: ["saljare"] }, { client: transport.client, now: NOW });
@@ -346,7 +347,7 @@ test.skip("[P0] 19.1-UNIT-004 AC4 seller result is projected before return, not 
 });
 
 for (const now of ["2024-02-29T09:00:00.000Z", "2026-03-29T00:30:00.000Z", "2026-07-19T23:30:00.000Z"]) {
-  test.skip("[P1] 19.1-UNIT-009 AC3 default period equals existing Stockholm authority at " + now, async () => {
+  test("[P1] 19.1-UNIT-009 AC3 default period equals existing Stockholm authority at " + now, async () => {
     const { readQuotePipelineResult } = await loadReaders();
     const name = "@/server/read-models/quote-pipeline-aggregate";
     const { resolvePipelinePeriod } = await import(name);
@@ -356,7 +357,7 @@ for (const now of ["2024-02-29T09:00:00.000Z", "2026-03-29T00:30:00.000Z", "2026
   });
 }
 
-test.skip("[P1] 19.1-UNIT-012 AC6 old wrapper signature/fallback stays compatible while new entry distinguishes faults", async () => {
+test("[P1] 19.1-UNIT-012 AC6 old wrapper signature/fallback stays compatible while new entry distinguishes faults", async () => {
   const { readQuotePipelineResult, readQuotePipeline } = await loadReaders();
   const good = paginatedTransport(dataFactory());
   const legacyGood = await readQuotePipeline(WINDOW, ADMIN, { client: good.client, now: NOW });
@@ -373,7 +374,7 @@ test.skip("[P1] 19.1-UNIT-012 AC6 old wrapper signature/fallback stays compatibl
   assertFailure(await readQuotePipelineResult(WINDOW, ADMIN, { client: resultFailed.client, now: NOW }));
 });
 
-test.skip("[P1] 19.1-UNIT-015 AC3/6 real result consumes all bounded pages/chunks with no health query", async () => {
+test("[P1] 19.1-UNIT-015 AC3/6 real result consumes all bounded pages/chunks with no health query", async () => {
   const { readQuotePipelineResult } = await loadReaders();
   const distinctAccepted = ID_BATCH_SIZE + 1;
   const rows = dataFactory({
@@ -400,7 +401,7 @@ test.skip("[P1] 19.1-UNIT-015 AC3/6 real result consumes all bounded pages/chunk
   assert.ok(transport.calls.filter((call) => call.table === "quote_acceptances").every((call) => call.ids.length <= ID_BATCH_SIZE));
 });
 
-test.skip("[P1] 19.1-UNIT-013 AC9 completion instant is stamped after the final successful read", async (t) => {
+test("[P1] 19.1-UNIT-013 AC9 completion instant is stamped after the final successful read", async (t) => {
   const { readQuotePipelineResult } = await loadReaders();
   const START = "2026-10-07T12:00:00.000Z";
   t.mock.timers.enable({ apis: ["Date"], now: Date.parse(START) });
