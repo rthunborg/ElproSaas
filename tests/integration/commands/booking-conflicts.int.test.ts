@@ -603,6 +603,69 @@ test("[P0] AC10 invitation expiry is checked after the operation-row lock wait b
   });
 });
 
+test.each(["confirmation revoked", "confirmed email changed"] as const)(
+  "[P0] AC10 invitation rechecks current confirmed Auth identity after the operation-row wait: %s",
+  async (change) => {
+    const h = await harness(); const b = await h.loadConflictBindings();
+    await h.withConflictFixture(async (fx) => {
+      const writer = await b.prepareInvitationWriter(fx); const membershipId = writer.lockParams[0];
+      const recipientId = fx.base.adminB.id;
+      const [originalAuth] = await h.adminQuery<{ email: string; confirmed_at: string }>(
+        "select email,email_confirmed_at::text as confirmed_at from auth.users where id=$1", [recipientId]);
+      expect(originalAuth.email === fx.base.adminB.email).toBe(true);
+      expect(originalAuth.confirmed_at !== null).toBe(true);
+      const [beforeMember] = await h.adminQuery<{ row: Record<string, unknown>; long_lived: boolean }>(
+        "select to_jsonb(m) as row,invitation_expires_at>clock_timestamp()+interval '30 minutes' as long_lived from public.tenant_memberships m where id=$1",
+        [membershipId]);
+      expect(beforeMember.long_lived).toBe(true);
+      expect(beforeMember.row).toMatchObject({ status: "invited", user_id: null });
+      const before = await h.bookingSnapshot(fx.tenantIds);
+      const [beforeAudit] = await h.adminQuery<{ count: number }>(
+        "select count(*)::int as count from public.audit_events where target_id=$1 and event_type='membership_activated'", [membershipId]);
+      expect(beforeAudit.count).toBe(0);
+      try {
+        await h.adminSession(async ({ query }) => {
+          await query("begin"); let accept: ReturnType<typeof writer.invoke> | undefined;
+          try {
+            const [owner] = await query<{ pid: number }>("select pg_backend_pid() as pid");
+            const locked = await query("select id from public.membership_admin_operations where membership_id=$1 and superseded_at is null for update", [membershipId]);
+            expect(locked).toHaveLength(1);
+            accept = writer.invoke(); await h.waitForBlocked(owner.pid, 1);
+            // The recipient passed the initial current-Auth check and reached the
+            // operation-row lock. Change only its trusted identity while blocked;
+            // the invitation remains long-lived, so expiry cannot explain denial.
+            if (change === "confirmation revoked") {
+              await h.adminQuery("update auth.users set email_confirmed_at=null where id=$1", [recipientId]);
+            } else {
+              await h.adminQuery("update auth.users set email=$2 where id=$1", [recipientId, `changed-${crypto.randomUUID()}@example.test`]);
+            }
+            const [changedAuth] = await h.adminQuery<{ confirmed: boolean; email_matches: boolean }>(
+              "select email_confirmed_at is not null as confirmed,email=$2 as email_matches from auth.users where id=$1", [recipientId, originalAuth.email]);
+            expect(changedAuth).toEqual(change === "confirmation revoked"
+              ? { confirmed: false, email_matches: true } : { confirmed: true, email_matches: false });
+            await h.waitForBlocked(owner.pid, 1);
+            await query("commit");
+            expect(await accept).toMatchObject({ data: false, error: null });
+          } finally { await query("rollback"); if (accept) await accept; }
+        });
+        const [afterMember] = await h.adminQuery<{ row: Record<string, unknown>; long_lived: boolean }>(
+          "select to_jsonb(m) as row,invitation_expires_at>clock_timestamp()+interval '30 minutes' as long_lived from public.tenant_memberships m where id=$1", [membershipId]);
+        expect(afterMember.long_lived).toBe(true);
+        // Boolean comparison avoids printing recipient identity/row contents.
+        expect(JSON.stringify(afterMember.row) === JSON.stringify(beforeMember.row)).toBe(true);
+        expect(afterMember.row).toMatchObject({ status: "invited", user_id: null });
+        const [afterAudit] = await h.adminQuery<{ count: number }>(
+          "select count(*)::int as count from public.audit_events where target_id=$1 and event_type='membership_activated'", [membershipId]);
+        expect(afterAudit.count).toBe(beforeAudit.count);
+        expect(await h.bookingSnapshot(fx.tenantIds)).toEqual(before);
+      } finally {
+        await h.adminQuery("update auth.users set email=$2,email_confirmed_at=$3::timestamptz where id=$1",
+          [recipientId, originalAuth.email, originalAuth.confirmed_at]);
+      }
+    });
+  },
+);
+
 test("[P0] AC8 every participant in four-booking daily capacity is retrievable and refreshed independently", async () => {
   const h = await harness();
   await h.withConflictFixture(async (fx) => {
