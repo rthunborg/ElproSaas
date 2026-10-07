@@ -49,6 +49,16 @@ running primary session was reconfigured when only a delegate was changed.
 See [the routing policy](docs/process/agent-model-routing.md) for settings,
 phase defaults, task-specific overrides and session reload limits.
 
+## Parallel development ownership
+
+Ordinary Auto-BMAD epic runs remain sequential. Concurrent story implementation
+requires the opt-in coordinator/worker protocol in
+[docs/process/parallel-auto-bmad.md](docs/process/parallel-auto-bmad.md), explicit
+shared claims and separate worktrees. A copied epic anchor is not a new assignment.
+Keep existing legacy sessions excluded by their actual write scope. Only the
+coordinator updates aggregate progress and integrates verified worker results.
+Do not hot-upgrade a running loop or use heartbeat age alone to take its work.
+
 ## Code Review Rules
 
 - Future completed implementation stories must contain one author-written `## Suggested Review Order`, following [the project convention](docs/process/review-order.md). The implementation/fix author refreshes rationale, verified stops and evidence after fixes; reviewers check it against the final change. Use the project BMAD hooks and section scaffold; do not backfill historical stories. The auto-bmad root delegates this work and never authors story code or spec content.

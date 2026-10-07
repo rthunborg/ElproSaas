@@ -1,5 +1,7 @@
 # Delegation prompts
 
+Parallel worker context: when called from parallel-epic.md, append the validated assignment identity/generation, owned paths, exact worktree, spec and base SHA to every delegate prompt. Carry its aggregate-write prohibition and effort policy to nested handoffs. Stop and report an intent/scope gap rather than widening ownership.
+
 **This file is the single source of truth for what each delegated step runs** — its exact `/bmad-*` command (or inline task), prompt body, and the placeholders below.
 
 - One entry per step, named by its heading.

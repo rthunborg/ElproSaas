@@ -1,0 +1,46 @@
+name: Auto-BMAD parallel contracts
+
+on:
+  pull_request:
+    paths:
+      - ".agents/skills/auto-bmad/**"
+      - ".claude/skills/auto-bmad/**"
+      - ".github/workflows/auto-bmad-parallel.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".agents/skills/auto-bmad/**"
+      - ".claude/skills/auto-bmad/**"
+      - ".github/workflows/auto-bmad-parallel.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: auto-bmad-parallel-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  contracts:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Claims, recovery and integration
+        run: python -X utf8 .agents/skills/auto-bmad/scripts/tests/test_parallel_run.py -v
+      - name: Actual CLI two-worker lifecycle
+        run: python -X utf8 .agents/skills/auto-bmad/scripts/tests/test_parallel_cli.py -v
+      - name: Existing model routing
+        run: python -X utf8 .agents/skills/auto-bmad/scripts/tests/test_routing_migration.py
+      - name: Existing external CLI process behavior
+        run: python -X utf8 .agents/skills/auto-bmad/scripts/tests/test_cli_delegate_windows_pid.py
