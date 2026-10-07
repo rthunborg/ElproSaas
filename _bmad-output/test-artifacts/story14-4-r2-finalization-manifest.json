@@ -22,6 +22,11 @@
       "description": "Round 2 review, verification, diagnostic or finalization evidence."
     },
     {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-author-handoff.json",
+      "relativePath": "_bmad-output/test-artifacts/story14-4-r2-author-handoff.json",
+      "description": "Original author final fix, owned-path and verification handoff."
+    },
+    {
       "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-blind-hunter.md",
       "relativePath": "_bmad-output/test-artifacts/story14-4-r2-blind-hunter.md",
       "description": "Round 2 review, verification, diagnostic or finalization evidence."
@@ -289,7 +294,7 @@
       "reviewOrderErrors": 0
     },
     "rootOwnedBookkeepingPending": "_bmad-output/auto-bmad/state/14-4-booking-editor-with-live-conflict-warnings-and-audited-override.yaml",
-    "commit": "Exact revision reported in final delegate handoff; artifact cannot self-reference its containing commit.",
+    "commit": "Product/fix commit 2993151f407f0904105f53af8774952eed15ec14; exact final documentation revision is reported in the delegate result.",
     "completionHook": "Root re-engages original author on the exact commit; terminal result reported through delegate contract."
   },
   "Open questions": [],
