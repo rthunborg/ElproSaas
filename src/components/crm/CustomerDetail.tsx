@@ -50,6 +50,7 @@ export function CustomerDetail({
   filesPanel,
   facilityFilePanels,
   contactFilePanels,
+  bookingPanel,
 }: {
   readonly customer: CustomerDetailRow;
   readonly facilities: readonly FacilityRow[];
@@ -60,6 +61,7 @@ export function CustomerDetail({
   readonly facilityFilePanels?: Readonly<Record<string, ReactNode>>;
   /** Per-contact Story 8.2 file panels keyed by contact id (own-tenant crm_document). */
   readonly contactFilePanels?: Readonly<Record<string, ReactNode>>;
+  readonly bookingPanel?: ReactNode;
 }) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
@@ -166,6 +168,8 @@ export function CustomerDetail({
         facilities={facilities}
         filePanels={facilityFilePanels}
       />
+
+      {bookingPanel ? <div className="mt-8">{bookingPanel}</div> : null}
 
       {/* Contacts (Kontakter). */}
       <ContactsSection

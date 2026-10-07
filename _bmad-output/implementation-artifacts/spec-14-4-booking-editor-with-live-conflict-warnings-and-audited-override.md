@@ -2,15 +2,17 @@
 title: 'Story 14.4: Booking Editor with Live Conflict Warnings and Audited Override'
 type: 'feature'
 created: '2026-10-07'
-status: 'ready-for-dev'
-baseline_revision: '5ce4d6b54ba3fff1f1406aba9c03373a00ba2635'
+status: 'done'
+baseline_revision: 'b94be3d33b7161e31ff4e01da79dd36c5474fd73'
 review_loop_iteration: 0
-followup_review_recommended: false
+followup_review_recommended: true
 context:
   - 'docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md'
   - 'docs/decisions/epic-14-story-ownership-contract-d-2026-10-07.md'
   - '_bmad-output/implementation-artifacts/epic-14-context.md'
   - '_bmad-output/test-artifacts/test-design-epic-14.md'
+  - '_bmad-output/test-artifacts/atdd-checklist-spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md'
+  - 'docs/process/local-setup.md'
   - 'docs/process/review-order.md'
   - 'docs/process/agent-model-routing.md'
 warnings: [oversized]
@@ -104,8 +106,34 @@ Official resumed Step 02 inspected the current files at root-verified full basel
 
 - 2026-10-07 preparation author: recorded owner-approved Contract D; reconciled only empty-slot entry ownership and selective reviewed conflict acceptance in the intent contract; retained all other approved intent and historical blocked evidence. Status is draft for the pending official replan, not ready-for-dev or new verification.
 - 2026-10-07 official resumed Step 02 author: preserved the prepared intent contract verbatim, loaded freshly compiled Epic 14 context and current predecessor continuity, and rechecked actual UI/authority seams at `5ce4d6b54ba3fff1f1406aba9c03373a00ba2635`. Replaced provisional execution with file-specific dependency order, complete named evidence mapping, stable create identity, separate reviewed receipt, whole-group selective transaction and semantic replay obligations. Historical blocker/evidence stays intact. No implementation or product verification was performed.
+- 2026-10-07 implementation author: implemented the responsive editor, current authorized sanitized reads/preview, opaque separate review receipt and atomic selective whole-group acceptance. Preserved the intent contract; added three immutable forward migrations, activated all 92 retained named tests and two component regressions, corrected foreign-reference preview and tenant-scoped fallback identity defects, and recorded final build/required integration/browser evidence below. This author owns the final review trail; parent retains official review and terminal workflow state.
+- 2026-10-07 original fix author, Round1: applied all ten accepted patches in one batch without changing frozen intent or driver-owned triage. Added the immutable fourth forward migration and actual large-group/identity red→green evidence; corrected the discard-focus regression found by the first browser run. Refreshed the same author review section against final build `TGBWaTwRYVJLLfZUysZQV`, working-tree fingerprint and actual final gates; preserved original successes, failed diagnostics and cleanup limitations as history.
 
 ## Review Triage Log
+
+**Round 1 of 3**
+
+### 2026-10-07 — Review pass
+- intent_gap: 0
+- bad_spec: 0
+- patch: 10: (high 4, medium 6, low 0)
+- defer: 0
+- reject: 4: (high 0, medium 0, low 4)
+- addressed_findings:
+  - `[high]` `[patch]` Preserved each untouched timestamp independently, with pure and mounted durable endpoint regressions.
+  - `[high]` `[patch]` Exposed standalone/disconnected reopen and edit through the existing authorized toolbar host.
+  - `[medium]` `[patch]` Rendered safe read-error retry while withholding unknown-authority data and controls.
+  - `[medium]` `[patch]` Preserved the compatible facility when selecting a customer-level contact, with durable mounted regression.
+  - `[medium]` `[patch]` Rendered absent current references explicitly as disabled current-only options; deliberate clears persist.
+  - `[medium]` `[patch]` Projected recognizable same-tenant staff identity under the unchanged checked management gate and closed ACL.
+  - `[medium]` `[patch]` Distinguished untitled jobs using safe existing customer context and job IDs.
+  - `[medium]` `[patch]` Removed the unrelated logical-ID size ceiling consistently in TS/forward SQL, retaining exact signed whole-group validation and tested signed-partial/forged no-ops.
+  - `[high]` `[patch]` Blocked submission during discard confirmation and guarded pending/unresolved dismissal; repaired and verified the fix-induced focus regression.
+  - `[high]` `[patch]` Retained the exact unresolved attempted command/decision for retry; blocked edits until resolution and reopened the confirmed booking for update.
+
+All six configured layers completed independently at `gpt-6.1-sol` High against the complete 68-file artifact (SHA256 `2C05C6E096CDC39236B5C6FA1EE6D112CE6D497C3901B8A4F64474D25FFA1A04`). This is completed broad round 1 of 3; all ten patches were applied by the original implementation author in one synchronous batch. Security returned `No findings.` Capacity refusals were recovered in batches. The external CLI genuinely completed; its first CMD stdout read failed on forward-slash path formatting, its native-path read recovered the exact result, and the already-started exact native-path retry completed with exit 0. Both runs retain one external-layer/round identity, with the original transport failure preserved. Full provenance and independent classification are retained at `C:/Users/Rasmus/AppData/Local/Temp/story14-4-r1-review-provenance-triage.md`; parent owns durable final reporting. No intent/spec loopback or destructive revert is needed.
+
+Final narrow fix/trail check passed against source/test fingerprint `624e4347d9fd7ded2ec26164a7ec5655706ac597c20711b7aeeb395dde440fc8` (all 48 recorded file hashes matched) and production build `TGBWaTwRYVJLLfZUysZQV`. Required full integration: 1456 registered/1455 passed/0 failed/1 existing recovery skip; affected actual API/RLS/schema 169/0/0. Final corrected-build browser 15/0/0/0 flaky, native 0; unit 2033 registered/2032 passed/0 failed/1 existing xattr skip; final component/read 25/0/0. Full integration preceded the final focus-only UI correction; command/SQL/input files remained unchanged, with affected components and final-build browser rerun afterward. The earlier 13-pass/2-fail diagnostic and zero-body preflight remain preserved. The single original-author Suggested Review Order has 20 verified stops; independent narrow source/test/evidence inspection also passed. This narrow check supplies no broad Round 2 or Phase 7 credit. Follow-up recommendation: true; patched high 4/medium 6/low 0, score 18. Empty-DB Epic CI and transferred Story 15.1 calendar checks remain pending.
 
 ## Design Notes
 
@@ -119,11 +147,67 @@ Equal committed replay checks current authorization before returning its histori
 
 ## Verification
 
-Planning execution: source/doc inspection only; zero product tests executed and no resource/database/browser/hosted action. Reported predecessor evidence is historical: required full1368/1367/0/1 intentional recovery skip; affected145/145/0/0; conflict integration62 unskipped; 14 named units and three timezone runs pass. Contract C's four transferred checks passed before this plan; this does not establish 14.4 coverage.
+Final implementation/fix evidence: [story14-4-verification.md](../test-artifacts/story14-4-verification.md) records each of the ten patches, commands, assertions, red/green fixes, migration hashes and limits, preserving the original run as history. HEAD/baseline is `b94be3d33b7161e31ff4e01da79dd36c5474fd73`; final uncommitted source/test fingerprint is `624e4347d9fd7ded2ec26164a7ec5655706ac597c20711b7aeeb395dde440fc8` over48 files (`story14-4-r1-working-tree-evidence.json`). Final production build is `TGBWaTwRYVJLLfZUysZQV`, unchanged before/after browser execution. No product source changed after that build. Frozen intent is byte-identical to HEAD; parent owns subsequent official review/terminal result.
 
-Later implementation commands: `pnpm run typecheck`, `pnpm run lint`, `pnpm run test:unit`; component `pnpm exec vitest run tests/integration/components/booking-editor.test.ts`; with `SUPABASE_TEST_REQUIRED=1`, `pnpm exec vitest run tests/integration/commands/booking-editor.int.test.ts tests/integration/commands/booking-conflicts.int.test.ts tests/integration/commands/bookings-replay-authority.int.test.ts tests/integration/rls/bookings.rls.test.ts tests/integration/rls/migration-reset.int.test.ts`, then full `pnpm run test:int`; `pnpm exec playwright test tests/e2e/booking-editor.e2e.spec.ts` using configured production server. Run `pnpm run verify:lockfiles`, `pnpm run verify:service-role-containment`, `pnpm audit --audit-level=high`, `pnpm run build`, then `pnpm run verify:bundle-containment`. Report actual counts/skips, preserve mandatory failures and all existing gates. Local verification infrastructure follows `docs/process/local-setup.md` and resource guard; do not use historical native Supabase lifecycle/reset directions as new authorization. Exact empty-DB/migrations/seed/required integration Epic CI remains mandatory before merge. Performance fixture size/timing may be recorded; approved numeric targets remain absent and non-gating, no fabricated NFR pass.
+Typecheck, full lint (0 errors/13 existing warnings), production build and lockfile/service-role/bundle containment exited0; dependency audit remains valid original evidence (unchanged dependencies, 2 moderate/no high). Full unit: 2033 registered/2032 passed/0 failed/1 existing Windows xattr skip. Required full integration with normal parallelism and `SUPABASE_TEST_REQUIRED=1`: 1456 registered/1455 passed/0 failed/1 existing CI-only isolated recovery Storage proof skip; it includes169 affected real API/predecessor/RLS/schema passes without skips. Command/SQL/input files have not changed since that full run; the subsequent focus-only UI correction passed affected component/read25/0/0 and final browser15/0/0/0 flaky on the final build. All92 retained named obligations execute; added regressions cover all ten patches. No skipped test receives acceptance credit.
 
-After implementation/fixes, author and validate the final review trail with `node scripts/verify/check-review-order.mjs _bmad-output/implementation-artifacts/spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md`; planning has no final Suggested Review Order heading.
+Four authorized SQL-only forward transactions preserved exact prior ledger hashes and progressed95→99 through `20261007131222`; applied files were never edited. The fourth migration's real95-peers-plus-candidate acceptance/identity tests went from2 failed to2 passed, including signed partial-map and forged-selection no-op negatives. No reset, broad seed, hosted action or unmanaged resource launch occurred. Root owns and retains the guarded local resources. Exact empty-DB migration/seed/required integration Epic CI remains mandatory before merge. Story15.1 calendar click/drag remains pending per Contract D. Numeric performance targets remain absent; fixture elapsed times do not establish an NFR pass.
+
+Evidence limits: component rendering and mocked read transport do not prove RLS; actual command/SQL and browser bodies use synthetic isolated fixtures/local signing. Next actions serialize; browser proves invalidation/obsolete discard and latest queued preview, while reverse delivery uses the production response branch. Original Auth setup failure remains unknown with unidentified partial fixtures untouched. Round1 preflight exercised0 bodies due to an omitted required test flag; its first actual browser run13 passed/2 failed exposed the discard-focus regression and disabled-option assertion mismatch, both corrected before the final15/15 pass. Reports and identified fixture/context cleanup are preserved. Independent narrow fix inspection is not another broad review round or approval.
+
+Validate the author trail with `node scripts/verify/check-review-order.mjs _bmad-output/implementation-artifacts/spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md`.
+
+## Suggested Review Order
+
+Author: `/root/build_14_4/implementation_14_4`, implementation and fix author.
+Refreshed after the complete Round1 patch batch against baseline `b94be3d33b7161e31ff4e01da79dd36c5474fd73`, final uncommitted fingerprint `624e4347d9fd7ded2ec26164a7ec5655706ac597c20711b7aeeb395dde440fc8` and production build `TGBWaTwRYVJLLfZUysZQV`.
+
+### Current host entry and durable draft
+
+Contract D retains standalone create/update through toolbar/job/customer entries; toolbar summaries now make standalone and disconnected bookings reopenable. Summary projection still excludes command-invalid metadata; each endpoint now tracks changes independently, and absent historical references render as current-only options without additional reads or new assignment authority.
+
+- `src/app/(app)/jobs/page.tsx:42` — `BookingEntry`: exposes the entitled toolbar; job/customer hosts use the same editor.
+- `src/components/resources/BookingEntry.tsx:39` — `bookingSummaryDraft`: exposes authorized summaries and projects valid facts for every retained host.
+- `src/features/resources/booking-editor-input.ts:24` — `prepareBookingTimes`: preserves each untouched instant; all-day changes deliberately convert both endpoints.
+- `src/components/resources/BookingEditor.tsx:139` — `const optional`: shows missing current references distinctly without offering them for new assignment.
+
+### Authorized preview without detector authority in the browser
+
+Reads/actions still resolve current authority independently of host permissions, and same-tenant candidate-reference validation remains before receipt issuance. Failed reads expose only generic retry; existing checked staff lookup now uses membership/Auth email identity for recognizable labels, with a deliberate UUID fallback only when identity is absent. Untitled jobs use current safe customer context and distinguishing existing job IDs.
+
+- `src/features/resources/bookings-read.ts:91` — `readBookingHost`: fails closed while returning sanitized summaries under current booking entitlement.
+- `src/features/resources/booking-actions.ts:33` — `previewBookingAction`: checks current tenant and management authority before preview.
+- `supabase/migrations/20261007131222_booking_editor_review_round1_fixes.sql:28` — `booking_editor_people`: projects same-tenant staff identity under the unchanged management gate and ACL.
+- `src/server/bookings/editor-preview.ts:26` — `openEditorReceipt`: authenticates the encrypted review transport separately from detector proof.
+
+### One current, selective acceptance transaction and replay identity
+
+Selected complete candidate groups are accepted; reviewed unselected groups stay open. I removed the unrelated description-size ceiling from human logical IDs after genuine95-participant preview/save failure, retaining exact signed group validation and the single atomic commit. Existing tenant-plus-command fallback identity correction and current-authority replay remain intact; transport expiry cannot turn a committed retry into another write.
+
+- `src/server/bookings/save-with-conflicts.ts:26` — `saveWithConflicts`: binds current candidate/facts and reviewed business decision before fresh finalization.
+- `supabase/migrations/20261007121724_booking_editor_group_alias_fix.sql:3` — `booking_editor_groups_internal`: verifies complete signed candidate groups and every projected association.
+- `supabase/migrations/20261007120235_booking_editor_audited_override.sql:279` — `update public.booking_conflicts`: records selected acceptance with SQL actor/time before the single audit.
+- `supabase/migrations/20261007131222_booking_editor_review_round1_fixes.sql:2` — `booking_editor_decision_internal`: supports genuine large identities while preserving closed decisions, reason and subset validation.
+
+### Resolve attempted saves before changing identity
+
+An unknown save outcome now retains the exact attempted command, candidate and business decision for explicit replay; edits and dismissal stay locked until resolution, after which the confirmed booking can reopen as an update. Discard confirmation blocks submission, while preserving field focus during confirmation avoids the regression found by the diagnostic browser run; pending/unresolved discard remains guarded.
+
+- `src/components/resources/BookingEditor.tsx:63` — `function change`: prevents candidate identity rotation while an attempted save is unresolved.
+- `src/components/resources/BookingEditor.tsx:109` — `discard`: blocks submission while confirmation is open and requires current preview for fresh attempts.
+- `src/components/resources/BookingEditor.tsx:114` — `attempted.current`: retains the exact input for retry rather than accepting an edited decision.
+- `tests/e2e/booking-editor.e2e.spec.ts:349` — `E2E-005`: blocks attempted edits, replays once and reopens the confirmed booking for update.
+
+### Assertions and operational limits
+
+AC3/4 real SQL asserts large/third-candidate group selection, open/unrelated groups and exact rollback; AC6 browser replay compares exact durable snapshots. The matrix maps every accepted patch and AC to executed assertions, including mounted endpoints/connections and authorization labels; historical diagnostics and structural/mocked limits remain explicit.
+
+- `tests/integration/commands/booking-editor-review-fixes.int.test.ts:12` — `95 peers`: proves complete large-group acceptance and signed-partial/forged no-op negatives.
+- `tests/integration/commands/booking-editor.int.test.ts:361` — `after_acceptance`: covers create/update faults and exact acceptance/outcome/audit rollback.
+- `tests/e2e/booking-editor.e2e.spec.ts:82` — `endpoint-only`: proves production handlers persist the untouched endpoint exactly.
+- `_bmad-output/test-artifacts/story14-4-verification.md:1` — `Story 14.4 implementation verification`: records the full AC matrix, final gates and material limits.
+
+Evidence: required full integration1455 passed/0 failed/1 existing recovery skip, including affected actual169/0/0; final browser15/0/0/0 flaky; unit2032/0/1 existing xattr skip; final component/read25/0/0. Type/lint/build/containment pass; audit remains unchanged dependency evidence. No retained Story14.4 acceptance is skipped. Limits include synthetic fixtures, serialized transport, unidentified original setup fixtures, pending15.1 calendar acceptance and mandatory empty-DB Epic CI. The post-integration focus-only correction passed affected components and final-build browser; narrow fix/trail inspection is not broad-round credit or approval.
 
 ## Planning Gate
 
@@ -158,7 +242,134 @@ Options: (A) explicitly review all candidate warnings and accept selected logica
 
 ## Auto Run Result
 
-### Current canonical result — 2026-10-07: ready-for-dev
+### Current canonical result — 2026-10-07: done
+
+Status: done
+Blocking condition: none
+Follow-up review recommended: true
+Deferred count: 0
+Baseline: `b94be3d33b7161e31ff4e01da79dd36c5474fd73` on `codex/epic14-resume`.
+
+Implemented the responsive booking editor and current toolbar/job/customer entry points, authorized live preview with opaque current-review receipts, complete logical-group selective acceptance, and atomic booking/assignee/conflict/outcome/audit persistence. Preserve standalone and optional connections, current role/tenant authority, exact timestamp precision, stable tenant-scoped create identity, reviewed retry identity and explicit failure/retry. Four immutable forward migrations were applied additively, preserving every prior ledger row; the isolated ledger ends at 99 / `20261007131222`.
+
+All six independent configured review layers completed in one broad Round 1 of 3. Actual capacity refusals were recovered in synchronous batches. The external CLI genuinely completed; its Windows stdout-path transport failure, exact output recovery and already-launched path-corrected retry are preserved as one layer identity. Triage: intent_gap 0, bad_spec 0, patch 10 (high 4, medium 6, low 0), defer 0, reject 4. The original author fixed all ten patches in one batch and refreshed the same review trail. Follow-up score `3 × 6 + 0 = 18`; high patches and score independently require `followup_review_recommended: true`. Narrow fix/regression/trail checks pass and provide no broad Round 2 credit. Root's subsequent Phase 7 follow-up remains required.
+
+Final evidence: required configured-parallel integration native 0, 1456 registered / 1455 passed / 0 failed / 1 existing CI-only recovery Storage physical-loader skip; affected actual API/RLS/regressions 169 passed / 0 failed / 0 skipped; browser native 0, 15 passed / 0 failed / 0 skipped / 0 flaky on matching build `TGBWaTwRYVJLLfZUysZQV`; units native 0, 2032 passed / 0 failed / 1 existing Windows xattr skip; affected component/read checks 25 passed / 0 failed / 0 skipped. Typecheck, lint (0 errors, 13 inherited warnings), build, lockfiles, source/bundle containment and high-level audit pass. Skips are not acceptance evidence. All retained named Story 14.4 obligations execute. The final 48-file source/test/migration fingerprint is `624e4347d9fd7ded2ec26164a7ec5655706ac597c20711b7aeeb395dde440fc8`, refreshed after a cosmetic test EOF-only trim without claiming another execution. One author-written Suggested Review Order validates 20 stops; independent narrow checks confirm the final rationale/evidence and source hashes.
+
+The [author verification matrix](../test-artifacts/story14-4-verification.md), [review provenance/triage](../test-artifacts/story14-4-r1-review-provenance-triage.md) and [absolute changed-file manifest](../test-artifacts/story14-4-finalization-manifest.json) record commands, assertions, path descriptions, diagnostics and limits. No owner questions remain; frozen intent is unchanged.
+
+Residual work: exact empty-DB migration/seed/required integration Epic CI before merge; only calendar empty-slot click/drag transferred to Story 15.1 before applicable calendar exposure/completion; separate Phase 6/7 orchestration and fresh broad follow-up. Historical failures, zero-body Auth setup failure with unknown cause/unidentified partial fixture graph, and serialized Next action transport limits remain recorded. No hosted deployment, reset, old-ledger rewrite, scheduling activation or Phase C feature was performed. Root retains its guarded resources for subsequent authorized phases.
+
+Finalization whitespace evidence: default staged `git diff --check` flags only generated terminal blank lines in the already applied, immutable `supabase/migrations/20261007120235_booking_editor_audited_override.sql:292` and `supabase/migrations/20261007121034_booking_editor_whole_group_validation.sql:125`. Their bytes and application hashes are preserved. The normal scoped check of every other staged path exits 0; command-local `git -c core.whitespace=-blank-at-eof diff --cached --check -- <the two exact files>` exits 0, proving no other whitespace issues. No global/repository Git configuration or hook was changed. Fifteen captured TXT presentation copies had trailing/EOF whitespace normalized; their exact raw originals remain in `C:/Users/Rasmus/AppData/Local/Temp/story14-4-raw-output-09ed8ab97a98474cadcb20c5b2c3ffb5`. This cosmetic evidence cleanup does not change commands, outcomes, source behavior or acceptance.
+
+### Files changed
+
+| File | Change |
+| --- | --- |
+| `_bmad-output/implementation-artifacts/spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md` | Story implementation, triage and author review trail. |
+| `_bmad-output/test-artifacts/story14-4-api-conflicts-final-live.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-api-live.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-booking-browser-diagnostic-f9-setup-evidence.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-booking-browser-diagnostic-f9-setup.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-booking-browser-diagnostic-Sfin-evidence.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-booking-browser-diagnostic-Sfin.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-final-booking-browser-evidence.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-final-booking-browser.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-finalization-manifest.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-foundation-rls-live.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-full-int-output.txt` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-full-int.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-lint-results.txt` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-migration-evidence.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-migration2-evidence.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-migration3-evidence.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-migration4-evidence.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-predecessor-live.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-api-focused-output.txt` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-api-focused.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-api-red-output.txt` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-api-red.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-blind-hunter.md` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-booking-browser-diagnostic-output.txt` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-booking-browser-diagnostic.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-booking-browser-final-evidence.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-booking-browser-final-output.txt` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-booking-browser-final.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-booking-browser-preflight-output.txt` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-booking-browser-preflight.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-build-final-output.txt` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-build-output.txt` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-components-reads-final-output.txt` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-components-reads-final.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-components-reads-output.txt` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-components-reads.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-edge-case-hunter.md` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-external-final.md` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-external-first-transport-recovered.md` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-full-int-output.txt` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-full-int.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-intent-alignment.md` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-lint-results.txt` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-review-provenance-triage.md` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-security.md` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-unit-results.txt` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-verification-gap.md` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-r1-working-tree-evidence.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-replay-rls-live.json` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-run-local.mjs` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-unit-results.txt` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-verification.md` | Story verification, diagnostic, migration or review evidence. |
+| `_bmad-output/test-artifacts/story14-4-working-tree-evidence.json` | Story verification, diagnostic, migration or review evidence. |
+| `src/app/(app)/customers/[customerId]/page.tsx` | Current authorized booking entry and summary host. |
+| `src/app/(app)/jobs/[jobId]/page.tsx` | Current authorized booking entry and summary host. |
+| `src/app/(app)/jobs/page.tsx` | Current authorized booking entry and summary host. |
+| `src/components/crm/CustomerDetail.tsx` | Responsive booking UI, conflict display or dialog behavior. |
+| `src/components/crm/Dialog.tsx` | Responsive booking UI, conflict display or dialog behavior. |
+| `src/components/jobs/JobDetailView.tsx` | Responsive booking UI, conflict display or dialog behavior. |
+| `src/components/jobs/JobList.tsx` | Responsive booking UI, conflict display or dialog behavior. |
+| `src/components/resources/BookingConflictChip.tsx` | Responsive booking UI, conflict display or dialog behavior. |
+| `src/components/resources/BookingConflictPanel.tsx` | Responsive booking UI, conflict display or dialog behavior. |
+| `src/components/resources/BookingEditor.tsx` | Responsive booking UI, conflict display or dialog behavior. |
+| `src/components/resources/BookingEntry.tsx` | Responsive booking UI, conflict display or dialog behavior. |
+| `src/features/resources/booking-action-state.ts` | Booking input, read, action or user-facing state contract. |
+| `src/features/resources/booking-actions.ts` | Booking input, read, action or user-facing state contract. |
+| `src/features/resources/booking-editor-input.ts` | Booking input, read, action or user-facing state contract. |
+| `src/features/resources/booking-types.ts` | Booking input, read, action or user-facing state contract. |
+| `src/features/resources/bookings-read.ts` | Booking input, read, action or user-facing state contract. |
+| `src/server/bookings/candidate-references.ts` | Current-fact preview, review receipt or stable save identity. |
+| `src/server/bookings/conflict-facts.ts` | Current-fact preview, review receipt or stable save identity. |
+| `src/server/bookings/create-identity.ts` | Current-fact preview, review receipt or stable save identity. |
+| `src/server/bookings/editor-preview.ts` | Current-fact preview, review receipt or stable save identity. |
+| `src/server/bookings/save-with-conflicts.ts` | Current-fact preview, review receipt or stable save identity. |
+| `src/server/commands/bookings/booking-db.ts` | Validated checked booking save and safe command errors. |
+| `src/server/commands/bookings/create-booking.ts` | Validated checked booking save and safe command errors. |
+| `src/server/commands/bookings/update-booking.ts` | Validated checked booking save and safe command errors. |
+| `src/server/commands/bookings/validation.ts` | Validated checked booking save and safe command errors. |
+| `src/server/commands/command-errors.ts` | Validated checked booking save and safe command errors. |
+| `supabase/migrations/20261007120235_booking_editor_audited_override.sql` | Immutable forward booking editor authority or review correction. |
+| `supabase/migrations/20261007121034_booking_editor_whole_group_validation.sql` | Immutable forward booking editor authority or review correction. |
+| `supabase/migrations/20261007121724_booking_editor_group_alias_fix.sql` | Immutable forward booking editor authority or review correction. |
+| `supabase/migrations/20261007131222_booking_editor_review_round1_fixes.sql` | Immutable forward booking editor authority or review correction. |
+| `tests/e2e/booking-editor.e2e.spec.ts` | Production adapter or executable acceptance/regression assertion. |
+| `tests/e2e/support/booking-editor-atdd.ts` | Production adapter or executable acceptance/regression assertion. |
+| `tests/integration/commands/booking-conflicts.int.test.ts` | Production adapter or executable acceptance/regression assertion. |
+| `tests/integration/commands/booking-editor-review-fixes.int.test.ts` | Production adapter or executable acceptance/regression assertion. |
+| `tests/integration/commands/booking-editor.int.test.ts` | Production adapter or executable acceptance/regression assertion. |
+| `tests/integration/commands/bookings-replay-authority.int.test.ts` | Production adapter or executable acceptance/regression assertion. |
+| `tests/integration/commands/bookings.int.test.ts` | Production adapter or executable acceptance/regression assertion. |
+| `tests/integration/components/booking-editor.test.ts` | Production adapter or executable acceptance/regression assertion. |
+| `tests/integration/features/booking-read-actions.test.ts` | Production adapter or executable acceptance/regression assertion. |
+| `tests/integration/rls/bookings.rls.test.ts` | Production adapter or executable acceptance/regression assertion. |
+| `tests/integration/rls/migration-reset.int.test.ts` | Production adapter or executable acceptance/regression assertion. |
+| `tests/support/booking-conflict-attestation.ts` | Production adapter or executable acceptance/regression assertion. |
+| `tests/support/booking-editor-atdd.ts` | Production adapter or executable acceptance/regression assertion. |
+| `tests/support/booking-editor-production.ts` | Production adapter or executable acceptance/regression assertion. |
+| `tests/support/bookings-atdd.ts` | Production adapter or executable acceptance/regression assertion. |
+| `tests/unit/features/resources/booking-editor-input.test.ts` | Production adapter or executable acceptance/regression assertion. |
+| `tests/unit/scope/booking-editor-scope.test.ts` | Production adapter or executable acceptance/regression assertion. |
+| `tests/unit/server/commands/bookings-validation.test.ts` | Production adapter or executable acceptance/regression assertion. |
+
+## Historical Auto Run Result — planning 2026-10-07
 
 Status: ready-for-dev
 Blocking condition: none

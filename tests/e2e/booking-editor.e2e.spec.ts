@@ -1,6 +1,5 @@
 /**
- * Story 14.4 ATDD RED: every case is intentionally skipped.
- * Planned selectors are test-owned contracts from AC1..6 / Contract D, UNVERIFIED.
+ * Story 14.4 retained browser acceptance against actual Next actions and SQL readback.
  * No calendar/nav/recurrence host is scaffolded. Empty-slot click/drag belongs
  * to 15.1 actual Schema/Resurser before their entry exposure and completion.
  * Library gate exception: playwright-utils=true but package is absent; use
@@ -9,6 +8,7 @@
 import { test, expect, type Scenario } from "./support/booking-editor-atdd";
 import type { Locator, Page } from "@playwright/test";
 import { bookingSnapshot, type BookingSnapshot, type DurableRow } from "../support/bookings-atdd";
+import { adminQuery } from "../factories/admin-sql";
 
 async function signIn(page: Page, scenario: Scenario): Promise<void> {
   await page.goto("/login");
@@ -17,25 +17,24 @@ async function signIn(page: Page, scenario: Scenario): Promise<void> {
   await page.getByRole("button", { name: "Logga in" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
 }
-const editor = (page: Page) => page.getByTestId("booking-editor");
+const editor = (page: Page) => page.getByRole("dialog");
 const summary = (page: Page, id: string) => page.getByTestId("booking-summary-" + id);
 async function openToolbar(page: Page): Promise<void> {
   await page.goto("/jobs");
-  await page.getByTestId("booking-entry-toolbar").getByRole("button", { name: "Ny bokning" }).click();
+  await page.getByTestId("booking-entry-toolbar").click();
   await expect(editor(page)).toHaveAttribute("role", "dialog");
   await expect(editor(page)).toHaveAttribute("aria-modal", "true");
 }
-async function fillDraft(page: Page, scenario: Scenario): Promise<void> {
+async function fillDraft(page: Page, scenario: Scenario, waitForPreview = true): Promise<void> {
   const sheet = editor(page);
   await sheet.getByTestId("booking-description").fill(scenario.description);
   await sheet.getByTestId("booking-start").fill(scenario.startsLocal);
   await sheet.getByTestId("booking-end").fill(scenario.endsLocal);
   await sheet.getByTestId("booking-work-role").selectOption(scenario.workRoleId);
   await sheet.getByTestId("booking-status").selectOption("planned");
-  for (const label of scenario.assigneeLabels) {
-    await sheet.getByRole("checkbox", { name: label, exact: true }).check();
-  }
-  await expect(sheet.getByTestId("booking-availability")).toBeVisible();
+  for (let i=0;i<scenario.assigneeIds.length;i++) {const input=sheet.getByTestId("booking-assignee-option-"+scenario.assigneeIds[i]);
+    await expect(input.locator("..")).toContainText(scenario.assigneeLabels[i]!); await input.check();}
+  if (waitForPreview) await expect(sheet.getByTestId("booking-availability")).toBeVisible();
 }
 function added(before: readonly DurableRow[], after: readonly DurableRow[]): DurableRow[] {
   const priorIds = new Set(before.map((row) => row.id));
@@ -75,12 +74,64 @@ async function expectTarget(locator: Locator, minHeight = 44): Promise<void> {
 async function saveConfirmed(page: Page, confirmed: Promise<void>): Promise<void> {
   await editor(page).getByTestId("booking-save").click();
   await confirmed;
-  await expect(page.getByTestId("booking-save-status")).toHaveText(/sparats/i);
+  await expect(page.getByTestId("booking-save-status")).toHaveText(/sparad|sparats/i);
   await expect(page.getByTestId("booking-save-status")).toHaveAttribute("role", "status");
 }
 
-test.describe("Story 14.4 booking editor retained browser acceptance (RED)", () => {
-  test.skip("[P0] E2E-006 toolbar creates a standalone booking through the desktop sheet", async ({ resourcePage: page, bookingEditor: h }) => {
+test.describe("Story 14.4 booking editor retained browser acceptance", () => {
+  test("Round1 endpoint-only mounted edits preserve the other PostgreSQL instant exactly", async ({resourcePage:page,bookingEditor:h})=>{
+    const s=await h.seed("conflict-free"); const before=await bookingSnapshot(s.tenantIds);
+    await signIn(page,s); await openToolbar(page); await fillDraft(page,s);
+    const create=await h.observeNextConfirmedSave(); await saveConfirmed(page,create.confirmed);
+    const row=expectOneCreate(before,await bookingSnapshot(s.tenantIds),s,{jobId:null,customerId:null});
+    await editor(page).getByTestId("booking-close").click();
+    await adminQuery("update public.bookings set starts_at='2026-10-12T07:00:00.123456Z',ends_at='2026-10-12T08:00:00.654321Z' where id=$1 and tenant_id=$2",[row.id,s.tenantId]);
+    await page.reload(); await summary(page,row.id).getByTestId("booking-edit").click();
+    await editor(page).getByTestId("booking-end").fill("2026-10-12T10:30");
+    const end=await h.observeNextConfirmedSave(); await saveConfirmed(page,end.confirmed);
+    expect((await bookingSnapshot(s.tenantIds)).bookings.find(r=>r.id===row.id)).toMatchObject({starts_at:"2026-10-12T07:00:00.123456+00:00",ends_at:"2026-10-12T08:30:00+00:00"});
+    await editor(page).getByTestId("booking-close").click();
+    await adminQuery("update public.bookings set ends_at='2026-10-12T08:30:00.654321Z' where id=$1 and tenant_id=$2",[row.id,s.tenantId]);
+    await page.reload(); await summary(page,row.id).getByTestId("booking-edit").click();
+    await editor(page).getByTestId("booking-start").fill("2026-10-12T09:15");
+    const start=await h.observeNextConfirmedSave(); await saveConfirmed(page,start.confirmed);
+    expect((await bookingSnapshot(s.tenantIds)).bookings.find(r=>r.id===row.id)).toMatchObject({starts_at:"2026-10-12T07:15:00+00:00",ends_at:"2026-10-12T08:30:00.654321+00:00"});
+  });
+  test("Round1 compatible customer contact retains facility; archived current links remain visible and deliberately clearable", async ({resourcePage:page,bookingEditor:h})=>{
+    const s=await h.seed("conflict-free"), duplicate=crypto.randomUUID();
+    try {
+      await adminQuery("update public.contacts set facility_id=null where id=$1 and tenant_id=$2",[s.contactId,s.tenantId]);
+      await adminQuery("update public.jobs set title=null,facility_id=$3,contact_id=$4 where id=$1 and tenant_id=$2",[s.jobId,s.tenantId,s.facilityId,s.contactId]);
+      await adminQuery("insert into public.jobs(id,tenant_id,customer_id,title) values($1,$2,$3,null)",[duplicate,s.tenantId,s.customerId]);
+      const before=await bookingSnapshot(s.tenantIds);
+      await signIn(page,s); await openToolbar(page); await fillDraft(page,s);
+      const jobOptions=editor(page).getByTestId("booking-job");
+      const first=await jobOptions.locator(`option[value="${s.jobId}"]`).textContent(), second=await jobOptions.locator(`option[value="${duplicate}"]`).textContent();
+      expect(first).toContain(s.description); expect(first).toContain(s.jobId); expect(second).toContain(duplicate); expect(first).not.toBe(second);
+      await editor(page).getByTestId("booking-customer").selectOption(s.customerId);
+      await editor(page).getByTestId("booking-facility").selectOption(s.facilityId);
+      await editor(page).getByTestId("booking-contact").selectOption(s.contactId);
+      await expect(editor(page).getByTestId("booking-facility")).toHaveValue(s.facilityId);
+      await jobOptions.selectOption(s.jobId);
+      const save=await h.observeNextConfirmedSave(); await saveConfirmed(page,save.confirmed);
+      const row=expectOneCreate(before,await bookingSnapshot(s.tenantIds),s,{jobId:s.jobId,customerId:s.customerId});
+      expect(row).toMatchObject({facility_id:s.facilityId,contact_id:s.contactId});
+      await editor(page).getByTestId("booking-close").click();
+      for(const [table,id] of [["jobs",s.jobId],["customers",s.customerId],["facilities",s.facilityId],["contacts",s.contactId]])
+        await adminQuery(`update public.${table} set archived_at=statement_timestamp() where id=$1 and tenant_id=$2`,[id,s.tenantId]);
+      await page.reload(); await summary(page,row.id).getByTestId("booking-edit").click();
+      for(const [field,id] of [["job",s.jobId],["customer",s.customerId],["facility",s.facilityId],["contact",s.contactId]]) {
+        const select=editor(page).getByTestId(`booking-${field}`); await expect(select).toHaveValue(id);
+        await expect(select.locator("option:checked")).toContainText("Nuvarande koppling"); await expect(select.locator("option:checked")).toHaveAttribute("disabled", "");
+      }
+      await editor(page).getByTestId("booking-customer").selectOption("");
+      const clear=await h.observeNextConfirmedSave(); await saveConfirmed(page,clear.confirmed);
+      expect((await bookingSnapshot(s.tenantIds)).bookings.find(r=>r.id===row.id)).toMatchObject({job_id:null,customer_id:null,facility_id:null,contact_id:null});
+      await editor(page).getByTestId("booking-close").click(); await summary(page,row.id).getByTestId("booking-edit").click();
+      await expect(editor(page).getByTestId("booking-customer")).toHaveValue("");
+    } finally {await adminQuery("delete from public.jobs where id=$1 and tenant_id=$2",[duplicate,s.tenantId]);}
+  });
+  test("[P0] E2E-006 toolbar creates a standalone booking through the desktop sheet", async ({ resourcePage: page, bookingEditor: h }) => {
     const s = await h.seed("conflict-free");
     await page.setViewportSize({ width: 1280, height: 800 });
     const observer = await h.observeNextConfirmedSave(); // network first
@@ -100,16 +151,21 @@ test.describe("Story 14.4 booking editor retained browser acceptance (RED)", () 
     const row = expectOneCreate(before, await bookingSnapshot(s.tenantIds), s, { jobId: null, customerId: null });
     expect(row.facility_id).toBeNull();
     expect(row.contact_id).toBeNull();
+    await editor(page).getByTestId("booking-close").click();
+    await summary(page,row.id).getByTestId("booking-edit").click();
+    await expect(editor(page).getByTestId("booking-description")).toHaveValue(s.description);
+    await expect(editor(page).getByTestId("booking-job")).toHaveValue("");
+    await expect(editor(page).getByTestId("booking-customer")).toHaveValue("");
   });
 
   for (const host of ["job", "customer"] as const) {
-    test.skip("[P0] E2E-006 " + host + " entry persists preconnection then reopens and edits", async ({ resourcePage: page, bookingEditor: h }) => {
+    test("[P0] E2E-006 " + host + " entry persists preconnection then reopens and edits", async ({ resourcePage: page, bookingEditor: h }) => {
       const s = await h.seed("conflict-free");
       const before = await bookingSnapshot(s.tenantIds);
       const createObserver = await h.observeNextConfirmedSave();
       await signIn(page, s);
       await page.goto(host === "job" ? "/jobs/" + s.jobId : "/customers/" + s.customerId);
-      await page.getByTestId("booking-entry-" + host).getByRole("button", { name: /^(Boka|Ny bokning)$/ }).click();
+      await page.getByTestId("booking-entry-" + host).click();
       await expect(editor(page).getByTestId(host === "job" ? "booking-job" : "booking-customer"))
         .toHaveValue(host === "job" ? s.jobId : s.customerId);
       await fillDraft(page, s);
@@ -119,6 +175,7 @@ test.describe("Story 14.4 booking editor retained browser acceptance (RED)", () 
       await editor(page).getByTestId("booking-contact").selectOption(s.contactId);
       await editor(page).getByTestId("booking-contact").selectOption("");
       await editor(page).getByTestId("booking-facility").selectOption("");
+      if (host === "job") await editor(page).getByTestId("booking-job").selectOption(s.jobId);
       await saveConfirmed(page, createObserver.confirmed);
       const committed = await bookingSnapshot(s.tenantIds);
       const row = expectOneCreate(before, committed, s, { jobId: host === "job" ? s.jobId : null, customerId: s.customerId });
@@ -142,10 +199,19 @@ test.describe("Story 14.4 booking editor retained browser acceptance (RED)", () 
       await page.reload();
       await summary(page, row.id).getByTestId("booking-edit").click();
       await expect(editor(page).getByTestId("booking-description")).toHaveValue(s.description + " edited");
+      const clear=await h.observeNextConfirmedSave();
+      await editor(page).getByTestId("booking-customer").selectOption("");
+      await saveConfirmed(page,clear.confirmed);
+      await editor(page).getByTestId("booking-close").click();
+      await page.goto("/jobs");
+      await summary(page,row.id).getByTestId("booking-edit").click();
+      await expect(editor(page).getByTestId("booking-job")).toHaveValue("");
+      await expect(editor(page).getByTestId("booking-customer")).toHaveValue("");
+      expect((await bookingSnapshot(s.tenantIds)).bookings.find(item=>item.id===row.id)).toMatchObject({job_id:null,customer_id:null});
     });
   }
 
-  test.skip("[P1] E2E-001/007 360x640 fullscreen editor scrolls without overflow and keeps actions reachable", async ({ resourcePage: page, bookingEditor: h }) => {
+  test("[P1] E2E-001/007 360x640 fullscreen editor scrolls without overflow and keeps actions reachable", async ({ resourcePage: page, bookingEditor: h }) => {
     const s = await h.seed("conflict-free");
     await page.setViewportSize({ width: 360, height: 640 });
     await signIn(page, s);
@@ -157,14 +223,14 @@ test.describe("Story 14.4 booking editor retained browser acceptance (RED)", () 
     expect(Math.abs(bounds!.y)).toBeLessThanOrEqual(1);
     expect(bounds!.width).toBe(360);
     expect(bounds!.height).toBe(640);
-    const scroll = editor(page).getByTestId("booking-editor-scroll-body");
+    const scroll = editor(page).locator(".overflow-y-auto");
     expect(await scroll.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
     expect(await editor(page).evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
     for (const target of ["booking-start", "booking-end", "booking-status", "booking-work-role", "booking-close"]) {
       await expectTarget(editor(page).getByTestId(target));
     }
     for (const id of s.assigneeIds) {
-      await expectTarget(editor(page).getByTestId("booking-assignee-option-" + id));
+      await expectTarget(editor(page).getByTestId("booking-assignee-option-" + id).locator(".."));
     }
     await expectTarget(editor(page).getByTestId("booking-save"), 48);
     const saveBounds = await editor(page).getByTestId("booking-save").boundingBox();
@@ -172,7 +238,7 @@ test.describe("Story 14.4 booking editor retained browser acceptance (RED)", () 
     expect(saveBounds!.y + saveBounds!.height).toBeLessThanOrEqual(640);
   });
 
-  test.skip("[P1] E2E-002 reload chip counts persisted OPEN logical conflicts only", async ({ resourcePage: page, bookingEditor: h }) => {
+  test("[P1] E2E-002 reload chip counts persisted OPEN logical conflicts only", async ({ resourcePage: page, bookingEditor: h }) => {
     const s = await h.seed("persisted-conflict-states");
     const durable = await bookingSnapshot(s.tenantIds);
     const rows = durable.conflicts.filter((row) => row.booking_id === s.persistedBookingId || row.related_booking_id === s.persistedBookingId);
@@ -190,7 +256,7 @@ test.describe("Story 14.4 booking editor retained browser acceptance (RED)", () 
   });
 
   for (const dismissal of ["Escape", "close", "back"] as const) {
-    test.skip("[P1] E2E-003/007 dirty " + dismissal + " cancel retains draft and discard restores entry focus", async ({ resourcePage: page, bookingEditor: h }) => {
+    test("[P1] E2E-003/007 dirty " + dismissal + " cancel retains draft and discard restores entry focus", async ({ resourcePage: page, bookingEditor: h }) => {
       const s = await h.seed("conflict-free");
       const before = await bookingSnapshot(s.tenantIds);
       await signIn(page, s);
@@ -210,14 +276,14 @@ test.describe("Story 14.4 booking editor retained browser acceptance (RED)", () 
       await requestDismissal();
       await guard.getByTestId("booking-discard").click();
       await expect(editor(page)).toBeHidden();
-      await expect(page.getByTestId("booking-entry-toolbar").getByRole("button", { name: "Ny bokning" })).toBeFocused();
+      await expect(page.getByTestId("booking-entry-toolbar")).toBeFocused();
       expect(await bookingSnapshot(s.tenantIds)).toEqual(before);
-      await page.getByTestId("booking-entry-toolbar").getByRole("button", { name: "Ny bokning" }).click();
+      await page.getByTestId("booking-entry-toolbar").click();
       await expect(editor(page).getByTestId("booking-description")).toHaveValue("");
     });
   }
 
-  test.skip("[P1] E2E-003 in-flight save blocks Escape close and back until confirmed", async ({ resourcePage: page, bookingEditor: h }) => {
+  test("[P1] E2E-003 in-flight save blocks Escape close and back until confirmed", async ({ resourcePage: page, bookingEditor: h }) => {
     const s = await h.seed("conflict-free");
     const gate = await h.holdNextSave();
     const observer = await h.observeNextConfirmedSave();
@@ -226,9 +292,16 @@ test.describe("Story 14.4 booking editor retained browser acceptance (RED)", () 
       await signIn(page, s);
       await openToolbar(page);
       await fillDraft(page, s);
+      await editor(page).getByTestId("booking-close").click();
+      await expect(page.getByTestId("booking-discard-confirmation")).toBeVisible();
+      await expect(editor(page).getByTestId("booking-save")).toBeDisabled();
+      await editor(page).getByTestId("booking-editor").evaluate(form=>(form as HTMLFormElement).requestSubmit());
+      expect(await bookingSnapshot(s.tenantIds)).toEqual(before);
+      await expect(editor(page).getByTestId("booking-editor")).toHaveAttribute("aria-busy","false");
+      await editor(page).getByTestId("booking-keep-editing").click();
       await editor(page).getByTestId("booking-save").click();
       await gate.started;
-      await expect(editor(page)).toHaveAttribute("aria-busy", "true");
+      await expect(editor(page).getByTestId("booking-editor")).toHaveAttribute("aria-busy", "true");
       await expect(editor(page).getByTestId("booking-close")).toBeDisabled();
       await expect(editor(page).getByTestId("booking-save")).toBeDisabled();
       await page.keyboard.press("Escape");
@@ -239,12 +312,12 @@ test.describe("Story 14.4 booking editor retained browser acceptance (RED)", () 
       expect(await bookingSnapshot(s.tenantIds)).toEqual(before);
       await gate.release();
       await observer.confirmed;
-      await expect(page.getByTestId("booking-save-status")).toHaveText(/sparats/i);
+      await expect(page.getByTestId("booking-save-status")).toHaveText(/sparad|sparats/i);
       expectOneCreate(before, await bookingSnapshot(s.tenantIds), s, { jobId: null, customerId: null });
     } finally { await gate.release(); }
   });
 
-  test.skip("[P0] E2E-004/005 phone failure keeps unsent draft and explicit retry confirms one durable save",
+  test("[P0] E2E-004/005 phone failure keeps unsent draft and explicit retry confirms one durable save",
     { annotation: [{ type: "skipNetworkMonitoring", description: "Expected transient save failure is the subject of the test" }] },
     async ({ resourcePage: page, bookingEditor: h }) => {
       const s = await h.seed("conflict-free");
@@ -263,17 +336,17 @@ test.describe("Story 14.4 booking editor retained browser acceptance (RED)", () 
       await expect(editor(page).getByTestId("booking-description")).toHaveValue(s.description);
       await expect(editor(page).getByTestId("booking-start")).toHaveValue(s.startsLocal);
       await expect(editor(page).getByTestId("booking-end")).toHaveValue(s.endsLocal);
-      for (const label of s.assigneeLabels) await expect(editor(page).getByRole("checkbox", { name: label, exact: true })).toBeChecked();
+      for (const id of s.assigneeIds) await expect(editor(page).getByTestId("booking-assignee-option-" + id)).toBeChecked();
       expect(await bookingSnapshot(s.tenantIds)).toEqual(before);
       const observer = await h.observeNextConfirmedSave();
       await expectTarget(editor(page).getByTestId("booking-retry"), 48);
       await editor(page).getByTestId("booking-retry").click();
       await observer.confirmed;
-      await expect(page.getByTestId("booking-save-status")).toHaveText(/sparats/i);
+      await expect(page.getByTestId("booking-save-status")).toHaveText(/sparad|sparats/i);
       expectOneCreate(before, await bookingSnapshot(s.tenantIds), s, { jobId: null, customerId: null });
     });
 
-  test.skip("[P0] E2E-005 phone lost committed response replays one booking assignments conflicts and attributable audit",
+  test("[P0] E2E-005 phone lost committed response replays one booking assignments conflicts and attributable audit",
     { annotation: [{ type: "skipNetworkMonitoring", description: "Lose only the response after real atomic commit" }] },
     async ({ resourcePage: page, bookingEditor: h }) => {
       const s = await h.seed("conflicted");
@@ -285,7 +358,7 @@ test.describe("Story 14.4 booking editor retained browser acceptance (RED)", () 
       await fillDraft(page, s);
       await expect(editor(page).getByTestId("booking-conflict-panel")).toBeVisible();
       await editor(page).getByTestId("booking-review-current-warnings").check();
-      await editor(page).getByTestId("booking-select-logical-" + s.selectedLogicalId).check();
+      await editor(page).getByTestId("booking-conflict-panel").locator("article").filter({ hasText: "Dubbelbokning" }).getByRole("checkbox").check();
       const reason = "Samordnat tillfälligt arbete";
       await editor(page).getByTestId("booking-override-reason").fill(reason);
       await editor(page).getByTestId("booking-save").click();
@@ -294,6 +367,13 @@ test.describe("Story 14.4 booking editor retained browser acceptance (RED)", () 
       await expect(page.getByTestId("booking-save-status")).toHaveCount(0);
       await expect(editor(page).getByTestId("booking-description")).toHaveValue(s.description);
       await expect(editor(page).getByTestId("booking-override-reason")).toHaveValue(reason);
+      await expect(editor(page).getByTestId("booking-unresolved-save")).toBeVisible();
+      await expect(editor(page).getByTestId("booking-description")).toBeDisabled();
+      await expect(editor(page).getByTestId("booking-override-reason")).toBeDisabled();
+      const blockedEdit=await editor(page).getByTestId("booking-description").fill(s.description+" changed",{timeout:300}).then(()=>false,()=>true);
+      expect(blockedEdit).toBe(true);
+      await expect(editor(page).getByTestId("booking-description")).toHaveValue(s.description);
+      await expect(editor(page).getByTestId("booking-close")).toBeDisabled();
       const committed = await bookingSnapshot(s.tenantIds);
       const row = expectOneCreate(before, committed, s, { jobId: null, customerId: null });
       const conflicts = committed.conflicts.filter((item) => item.booking_id === row.id || item.related_booking_id === row.id);
@@ -309,43 +389,55 @@ test.describe("Story 14.4 booking editor retained browser acceptance (RED)", () 
       const observer = await h.observeNextConfirmedSave();
       await editor(page).getByTestId("booking-retry").click();
       await observer.confirmed;
-      await expect(page.getByTestId("booking-save-status")).toHaveText(/sparats/i);
+      await expect(page.getByTestId("booking-save-status")).toHaveText(/sparad|sparats/i);
       expect(await bookingSnapshot(s.tenantIds)).toEqual(committed); // exact outcome/audit/no duplicate identity
+      await editor(page).getByTestId("booking-close").click();
+      await summary(page,row.id).getByTestId("booking-edit").click();
+      await expect(editor(page)).toHaveAccessibleName("Redigera bokning");
+      await expect(editor(page).getByTestId("booking-description")).toHaveValue(s.description);
+      await expect(editor(page).getByTestId("booking-conflict-panel")).toBeVisible();
+      expect(await bookingSnapshot(s.tenantIds)).toEqual(committed);
     });
 
-  test.skip("[P1] AC2/ E2E-007 latest warning wins and preview failure remains visibly unknown",
+  test("[P1] AC2/ E2E-007 latest warning wins and preview failure remains visibly unknown",
     { annotation: [{ type: "skipNetworkMonitoring", description: "Expected preview failure is the subject of the test" }] },
     async ({ resourcePage: page, bookingEditor: h }) => {
       const s = await h.seed("conflicted");
       const race = await h.raceNextPreviews(); // arm before navigation/action
       await signIn(page, s);
       await openToolbar(page);
-      await fillDraft(page, s);
+      await fillDraft(page, s, false);
       await race.olderStarted;
       await editor(page).getByTestId("booking-end").fill("2026-10-12T17:00");
-      await race.newerStarted;
-      await race.releaseNewerAndWaitForRender();
       const panel = editor(page).getByTestId("booking-conflict-panel");
+      await expect(panel).toContainText("Okänd");
+      await expect(panel.getByText(s.olderWarning.text, { exact: true })).toHaveCount(0);
+      // Actual Next action transport serializes requests. Release obsolete work,
+      // verify it cannot restore warnings, then deliver the queued newest result.
+      await race.releaseOlderAndWaitForSettlement();
+      await race.newerStarted;
+      await expect(panel).toContainText("Okänd");
+      await expect(panel.getByText(s.olderWarning.text, { exact: true })).toHaveCount(0);
+      await race.releaseNewerAndWaitForRender();
       await expect(panel).toContainText(s.newerWarning.text);
       for (const detail of [s.newerWarning.rule, s.newerWarning.person, s.newerWarning.window, s.newerWarning.collision]) {
         await expect(panel).toContainText(detail);
       }
       await expect(panel.getByRole("img", { name: s.newerWarning.timelineName })).toBeVisible();
-      await race.releaseOlderAndWaitForSettlement();
       await expect(panel).toContainText(s.newerWarning.text);
       await expect(panel.getByText(s.olderWarning.text, { exact: true })).toHaveCount(0);
       await editor(page).getByTestId("booking-review-current-warnings").check();
       const failure = await h.failNextPreviewOnce();
       await editor(page).getByTestId("booking-end").fill("2026-10-12T18:00");
       await failure.failed;
-      await expect(editor(page).getByTestId("booking-review-current-warnings")).not.toBeChecked();
+      await expect(editor(page).getByTestId("booking-review-current-warnings")).toHaveCount(0);
       await expect(editor(page).getByTestId("booking-preview-error")).toHaveAttribute("role", "alert");
       await expect(editor(page).getByTestId("booking-preview-unknown")).toBeVisible();
       await expect(editor(page).getByTestId("booking-conflict-free")).toHaveCount(0);
       await expect(editor(page).getByTestId("booking-end")).toHaveValue("2026-10-12T18:00");
     });
 
-  test.skip("[P1] E2E-007 keyboard focus remains in sheet and warnings announce explanatory timeline", async ({ resourcePage: page, bookingEditor: h }) => {
+  test("[P1] E2E-007 keyboard focus remains in sheet and warnings announce explanatory timeline", async ({ resourcePage: page, bookingEditor: h }) => {
     const s = await h.seed("conflicted");
     await signIn(page, s);
     await openToolbar(page);

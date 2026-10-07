@@ -1,10 +1,11 @@
 import type { BookingFacts, CreateBookingInput, UpdateBookingInput } from "@/features/resources/booking-types";
 import type { ValidationResult } from "../envelope-core";
+import { normalizeBookingDecision, type BookingEditorReview } from "@/features/resources/booking-editor-input";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const INSTANT = /^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
 const CONNECTIONS = ["workRoleId", "jobId", "customerId", "facilityId", "contactId"] as const;
-const FIELDS = ["commandId", "startsAt", "endsAt", "allDay", ...CONNECTIONS, "description", "status", "assigneeIds", "seriesId", "occurrenceIndex", "isException"];
+const FIELDS = ["commandId", "proposedBookingId", "editorReview", "startsAt", "endsAt", "allDay", ...CONNECTIONS, "description", "status", "assigneeIds", "seriesId", "occurrenceIndex", "isException"];
 const stockholmClock = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Stockholm", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
 function normalizedUuid(value: unknown): string | null {
   return typeof value === "string" && UUID.test(value) ? value.toLowerCase() : null;
@@ -32,6 +33,17 @@ function validate(raw: unknown, update: boolean): ValidationResult<CreateBooking
   if (Object.keys(value).some((key) => !allowed.has(key))) return invalid;
   const commandId = normalizedUuid(value.commandId);
   const bookingId = update ? normalizedUuid(value.bookingId) : null;
+  const proposedBookingId = value.proposedBookingId === undefined ? undefined : normalizedUuid(value.proposedBookingId);
+  if (proposedBookingId === null || (update && proposedBookingId !== undefined)) return invalid;
+  let editorReview: BookingEditorReview | undefined;
+  if (value.editorReview !== undefined) {
+    if (!value.editorReview || typeof value.editorReview !== "object" || Array.isArray(value.editorReview)) return invalid;
+    const review = value.editorReview as Record<string, unknown>;
+    if (Object.keys(review).length !== 2 || typeof review.receipt !== "string" || review.receipt.length === 0 || review.receipt.length > 1000000) return invalid;
+    const decision = normalizeBookingDecision(review.decision);
+    if (!decision.ok) return invalid;
+    editorReview = { receipt: review.receipt, decision: decision.data };
+  }
   const startsAt = normalizedInstant(value.startsAt);
   const endsAt = normalizedInstant(value.endsAt);
   if (!commandId || (update && !bookingId) || !startsAt || !endsAt || endsAt <= startsAt) return invalid;
@@ -56,7 +68,8 @@ function validate(raw: unknown, update: boolean): ValidationResult<CreateBooking
     facilityId: connections.facilityId, contactId: connections.contactId,
     description: value.description as string | undefined ?? "", status: value.status as BookingFacts["status"] | undefined ?? "planned",
     assigneeIds: (assigneeIds as string[]).sort(), seriesId: null, occurrenceIndex: null, isException: false };
-  return { ok: true, data: { ...facts, commandId, ...(bookingId ? { bookingId } : {}) } };
+  return { ok: true, data: { ...facts, commandId, ...(bookingId ? { bookingId } : {}),
+    ...(proposedBookingId ? { proposedBookingId } : {}), ...(editorReview ? { editorReview } : {}) } };
 }
 export function validateCreateBooking(raw: unknown): ValidationResult<CreateBookingInput> {
   return validate(raw, false) as ValidationResult<CreateBookingInput>;
@@ -66,7 +79,9 @@ export function validateUpdateBooking(raw: unknown): ValidationResult<UpdateBook
 }
 /** Stable pure identity used by callers/tests; SQL independently rebuilds its digest. */
 export function canonicalBookingPayload(input: CreateBookingInput | UpdateBookingInput): string {
-  return JSON.stringify({ operation: "bookingId" in input ? "update" : "create", bookingId: "bookingId" in input ? input.bookingId : null, payload: bookingPayload(input) });
+  return JSON.stringify({ operation: "bookingId" in input ? "update" : "create", bookingId: "bookingId" in input ? input.bookingId : null,
+    payload: bookingPayload(input), ...(input.proposedBookingId ? {proposedBookingId: input.proposedBookingId} : {}),
+    ...(input.editorReview ? {decision: input.editorReview.decision} : {}) });
 }
 export function bookingPayload(input: CreateBookingInput | UpdateBookingInput): BookingFacts {
   const { startsAt, endsAt, allDay, workRoleId, jobId, customerId, facilityId, contactId, description, status, assigneeIds, seriesId, occurrenceIndex, isException } = input;

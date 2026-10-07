@@ -39,7 +39,7 @@ describe("Story 14.2 booking transaction foundation ATDD", () => {
         const updated = await bookingCommand("update", fx.adminClient, update);
         expect(updated).toEqual({ ok: true, data: { bookingId } });
         const beforeUpdateReplay = await bookingSnapshot(fx.tenantIds);
-        const directReplay = await checkedBookingRpc("update", fx.adminClient, { ...equivalent, ...update, startsAt: equivalent.startsAt, endsAt: equivalent.endsAt }, fx.base.tenantA.id, fx.base.adminA.id);
+        const directReplay = await authoritativeBookingRpc("update", fx.adminClient, { ...equivalent, ...update, startsAt: equivalent.startsAt, endsAt: equivalent.endsAt }, fx.base.tenantA.id, fx.base.adminA.id);
         expect(directReplay.error).toBeNull(); expect(directReplay.data).toEqual({ bookingId });
         expect(await bookingSnapshot(fx.tenantIds)).toEqual(beforeUpdateReplay);
         const [stored] = await adminQuery<{ start: string; end: string }>(

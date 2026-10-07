@@ -26,6 +26,7 @@ export function Dialog({
   children,
   initialFocusRef,
   busy = false,
+  variant = "dialog",
 }: {
   readonly open: boolean;
   readonly onClose: () => void;
@@ -40,6 +41,7 @@ export function Dialog({
    * cancel button must be disabled independently (this only owns the Dialog's chrome close paths).
    */
   readonly busy?: boolean;
+  readonly variant?: "dialog" | "sheet";
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -121,7 +123,7 @@ export function Dialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center">
+    <div className={variant === "sheet" ? "fixed inset-0 z-50 flex justify-end" : "fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center"}>
       <button
         type="button"
         aria-label="Stäng dialogruta"
@@ -136,7 +138,7 @@ export function Dialog({
         aria-modal="true"
         aria-labelledby={titleId}
         onKeyDown={onKeyDown}
-        className="relative z-10 w-full max-w-lg rounded-lg bg-white shadow-xl"
+        className={variant === "sheet" ? "relative z-10 flex h-dvh w-full flex-col bg-white shadow-xl sm:max-w-xl" : "relative z-10 w-full max-w-lg rounded-lg bg-white shadow-xl"}
       >
         <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4">
           <h2 id={titleId} className="text-lg font-semibold text-zinc-900">
@@ -148,7 +150,7 @@ export function Dialog({
             onClick={guardedClose}
             disabled={busy}
             aria-label="Stäng"
-            className="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-60"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-60"
           >
             <svg
               viewBox="0 0 24 24"
@@ -164,7 +166,7 @@ export function Dialog({
             </svg>
           </button>
         </div>
-        <div ref={contentRef} className="px-5 py-4">
+        <div ref={contentRef} className={variant === "sheet" ? "min-h-0 flex-1 overflow-y-auto px-5 py-4" : "px-5 py-4"}>
           {children}
         </div>
       </div>

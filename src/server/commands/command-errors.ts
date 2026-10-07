@@ -102,6 +102,8 @@ export type CommandErrorCode =
   | "TENANT_ACCESS_DENIED"
   | "FILE_ACCESS_DENIED"
   | "COMMAND_CONFLICT"
+  | "PREVIEW_STALE"
+  | "BOOKING_CONFLICT_UNACKNOWLEDGED"
   | "ACCEPTANCE_ALREADY_RECORDED"
   | "QUOTE_VERSION_NOT_DRAFT"
   | "QUOTE_VERSION_LOCKED"
@@ -177,6 +179,8 @@ export const COMMAND_MESSAGES: Record<CommandErrorCode, string> = {
   // Reserved for idempotent/retry-able commands (unused until one lands).
   COMMAND_CONFLICT:
     "Åtgärden kunde inte slutföras på grund av en konflikt. Försök igen.",
+  PREVIEW_STALE: "Förutsättningarna har ändrats. Uppdatera varningarna och granska dem igen.",
+  BOOKING_CONFLICT_UNACKNOWLEDGED: "Granska de aktuella varningarna och ange en anledning innan du sparar.",
   // Story 7.2 idempotency conflict: a raced accept lost the one-acceptance-per-version
   // race and could not resolve into an idempotent return. Generic + user-safe (no leak).
   ACCEPTANCE_ALREADY_RECORDED:

@@ -7,13 +7,14 @@ import { DEFAULT_SCHEDULING_RULES, SCHEDULING_RULES_VERSION,
   type SchedulingBooking, type SchedulingFacts, type SchedulingRules } from "@/features/scheduling/types";
 import { BOOKING_CONFLICT_ENGINE_VERSION, CONFLICT_CLAIM_FIELDS, type ConflictClaims } from "./conflict-attestation";
 import { CommandError } from "@/server/commands/command-errors";
+import { proposedBookingIdentity } from "./create-identity";
 
 export type BookingRpcClient = { rpc(name: string, args: Record<string, unknown>): PromiseLike<{
   readonly data: unknown; readonly error: { readonly code?: string } | null;
 }> };
 export type BookingRpcArgs = { readonly p_tenant_id: string; readonly p_actor_id: string;
   readonly p_correlation_id: string; readonly p_command_id: string; readonly p_booking_id?: string;
-  readonly p_payload: BookingFacts };
+  readonly p_proposed_id?: string; readonly p_payload: BookingFacts };
 type FactBundle = {
   readonly bookings: readonly SchedulingBooking[];
   readonly profiles: readonly { readonly id: string; readonly membershipId: string; readonly defaultWorkRoleId: string | null;
@@ -59,14 +60,23 @@ function freezeFacts<T>(value: T): T {
   if (value && typeof value === "object") { Object.values(value).forEach(freezeFacts); Object.freeze(value); }
   return value;
 }
-export async function snapshotBookingConflicts(client: BookingRpcClient, args: BookingRpcArgs, keyId: string): Promise<SnapshotResult> {
-  const { data, error } = await client.rpc("snapshot_booking_conflicts", { ...args, p_booking_id: args.p_booking_id ?? null, p_key_id: keyId });
+export async function snapshotBookingConflicts(client: BookingRpcClient, args: BookingRpcArgs, keyId: string,
+  decision: import("@/features/resources/booking-editor-input").BookingDecision | null = null): Promise<SnapshotResult> {
+  const { data, error } = await client.rpc("snapshot_booking_editor", { ...args, p_booking_id: args.p_booking_id ?? null,
+    p_proposed_id: args.p_proposed_id ?? proposedBookingIdentity(args.p_tenant_id, args.p_command_id), p_key_id: keyId, p_decision: decision });
   if (error) throw error;
   return parseDetectionSnapshot(data);
 }
 
 /** Internal frozen-fact preview seam for 14.4. No route/action/browser entry point. */
 export function previewBookingConflicts(snapshot: DetectionSnapshot): DerivedConflict[] {
+  return deriveBookingConflicts(snapshot).output;
+}
+export type LogicalConflictGroup = { readonly logicalId: string; readonly keys: readonly string[];
+  readonly personId: string; readonly bookingIds: readonly string[]; readonly rule: string;
+  readonly startsAt: string; readonly endsAt: string };
+/** Keep engine identity before projection, including candidate-third aggregate associations. */
+export function deriveBookingConflicts(snapshot: DetectionSnapshot): { output: DerivedConflict[]; groups: LogicalConflictGroup[] } {
   const facts = snapshot.facts;
   // A caller-supplied assignee outside the checked tenant is an authorization
   // failure, not malformed schedule data. SQL also enforces every FK at commit.
@@ -96,6 +106,7 @@ export function previewBookingConflicts(snapshot: DetectionSnapshot): DerivedCon
   const common = { people, calendarDays: facts.calendarDays.map((row) => ({ date: row.date, variant: row.variant,
     ...(row.reductionPercent !== null ? { reductionPercent: row.reductionPercent } : {}) })), jobInputs: null, rules: facts.rules };
   const unique = new Map<string, DerivedConflict>();
+  const groups = new Map<string, LogicalConflictGroup>();
   for (const candidate of bookings) {
     const input: SchedulingFacts = { ...common, candidate, existingBookings: bookings.filter((row) => row.id !== candidate.id) };
     for (const conflict of detectConflicts(input)) {
@@ -107,6 +118,7 @@ export function previewBookingConflicts(snapshot: DetectionSnapshot): DerivedCon
           affected_person_profile_id: personId, conflict_type: conflict.conflictType,
           starts_at: conflict.startsAt, ends_at: conflict.endsAt, natural_key: naturalKey };
         unique.set(naturalKey, row);
+        const keys = [naturalKey];
         // Preserve the established first-pair row/key, then expose every remaining
         // aggregate participant through an existing-schema association row. Each
         // key still binds the complete participant set, person, type and window.
@@ -114,9 +126,16 @@ export function previewBookingConflicts(snapshot: DetectionSnapshot): DerivedCon
           const participantKey = `v2:${createHash("sha256").update(JSON.stringify([conflict.naturalKey, personId, bookingId])).digest("hex")}`;
           unique.set(participantKey, { ...row, booking_id: bookingId,
             related_booking_id: conflict.bookingIds[0]!, natural_key: participantKey });
+          keys.push(participantKey);
+        }
+        if (conflict.bookingIds.includes(snapshot.bookingId)) {
+          const logicalId = JSON.stringify([conflict.naturalKey, personId]);
+          groups.set(logicalId, { logicalId, keys: keys.sort(), personId, bookingIds: conflict.bookingIds,
+            rule: conflict.conflictType, startsAt: conflict.startsAt, endsAt: conflict.endsAt });
         }
       }
     }
   }
-  return [...unique.values()].sort((left, right) => left.natural_key < right.natural_key ? -1 : left.natural_key > right.natural_key ? 1 : 0);
+  return { output: [...unique.values()].sort((left, right) => left.natural_key < right.natural_key ? -1 : left.natural_key > right.natural_key ? 1 : 0),
+    groups: [...groups.values()].sort((left, right) => left.logicalId < right.logicalId ? -1 : left.logicalId > right.logicalId ? 1 : 0) };
 }

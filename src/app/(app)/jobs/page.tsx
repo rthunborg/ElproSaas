@@ -16,6 +16,8 @@
 import { JobList } from "@/components/jobs/JobList";
 import { readJobList } from "@/features/jobs/read";
 import { readCustomerList } from "@/features/crm/read";
+import { BookingEntry } from "@/components/resources/BookingEntry";
+import { readBookingHost, readBookingEditorOptions } from "@/features/resources/bookings-read";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +29,8 @@ export default async function JobsPage() {
     id: c.id,
     label: c.display_name,
   }));
+  const bookingHost = await readBookingHost({});
+  const bookingOptions = await readBookingEditorOptions();
   return (
     <JobList
       rows={rows}
@@ -35,6 +39,7 @@ export default async function JobsPage() {
       // A FAILED options read must not masquerade as "no customers exist" (the island shows
       // a neutral retry message and keeps submit disabled).
       optionsLoadError={customerError !== null}
+      bookingPanel={<BookingEntry {...bookingHost} options={bookingOptions} host="toolbar" />}
     />
   );
 }

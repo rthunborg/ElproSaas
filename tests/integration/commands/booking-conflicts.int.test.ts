@@ -10,7 +10,9 @@ async function harness() {
   const fixtures = await import("../../support/booking-conflicts-atdd");
   const bookings = await import("../../support/bookings-atdd");
   const sql = await import("../../factories/admin-sql");
-  return { ...fixtures, ...bookings, ...sql };
+  const { reviewedFixtureInput } = await import("../../support/booking-editor-production");
+  const { authoritativeBookingRpc } = await import("../../support/booking-conflict-attestation");
+  return { ...fixtures, ...bookings, ...sql, reviewedFixtureInput, authoritativeBookingRpc };
 }
 function exactSuccess(result: { ok: boolean; data?: { bookingId: string }; code?: string }): string {
   expect(result.ok, result.code ?? "Expected real command success").toBe(true);
@@ -174,7 +176,7 @@ describe("Story 14.3 authoritative conflict persistence", () => {
     });
   });
 
-  test("[P0] 14.3-INT-006 real save refreshes stale facts under the original command UUID", async () => {
+  test("[P0] 14.3-INT-006 stale save requires deliberate renewed review under the original command UUID", async () => {
     const h = await harness(); const b = await h.loadConflictBindings();
     await h.withConflictFixture(async (fx) => {
       const input = h.bookingInput([fx.ownProfile.id]); const correlation = crypto.randomUUID();
@@ -185,34 +187,42 @@ describe("Story 14.3 authoritative conflict persistence", () => {
           peerState = await h.bookingSnapshot(fx.tenantIds);
         } else expect(await h.bookingSnapshot(fx.tenantIds)).toEqual(peerState);
       });
-      const id = exactSuccess(observed.result);
-      expect(observed.snapshots).toHaveLength(2);
-      expect(observed.snapshots.map((row) => row.commandId)).toEqual([input.commandId, input.commandId]);
-      expect(observed.finalizations).toEqual([{ kind: "stale" }, { kind: "committed", bookingId: id }]);
+      expect(observed.result).toMatchObject({ ok: false, code: "PREVIEW_STALE" });
+      expect(observed.snapshots).toHaveLength(1);
+      expect(observed.snapshots.map((row) => row.commandId)).toEqual([input.commandId]);
+      expect(observed.finalizations).toEqual([{ kind: "stale" }]);
+      expect(await h.bookingSnapshot(fx.tenantIds)).toEqual(peerState);
+      const renewed = await h.reviewedFixtureInput(fx.adminClient, "create", input, true);
+      const retried = await b.observeCommand(fx.adminClient, "create", renewed, correlation, async () => {});
+      const id = exactSuccess(retried.result);
+      expect(retried.snapshots.map((row) => row.commandId)).toEqual([input.commandId]);
+      expect(retried.finalizations).toEqual([{ kind: "committed", bookingId: id }]);
       const after = await h.bookingSnapshot(fx.tenantIds);
       expect(after.bookings).toHaveLength(peerState!.bookings.length + 1);
       expect(after.audit.filter((row) => row.correlation_id === correlation)).toEqual([expect.objectContaining({ target_id: id })]);
       expect(after.conflicts.filter((row) => row.conflict_type === "double_booking")).toHaveLength(1);
-      expect(b.normalizedRows(after.conflicts)).toEqual(await b.detect(observed.snapshots[1]));
+      expect(b.normalizedRows(after.conflicts)).toEqual(await b.detect(retried.snapshots[0]));
     });
 
   });
 
-  test("[P0] AC10 three real stale attempts exhaust as retryable SERVER_ERROR without target/outcome/audit writes", async () => {
+  test("[P0] AC10 three explicitly renewed reviews each go stale without target/outcome/audit writes", async () => {
     const h = await harness(); const b = await h.loadConflictBindings();
     await h.withConflictFixture(async (fx) => {
       const input = h.bookingInput([fx.ownProfile.id]); const correlation = crypto.randomUUID();
       let committedPeers: Awaited<ReturnType<typeof h.bookingSnapshot>>;
-      const observed = await b.observeCommand(fx.adminClient, "create", input, correlation, async (_attempt, index) => {
-        exactSuccess(await h.bookingCommand("create", fx.plannerClient, h.bookingInput([fx.ownProfile.id], { description: `Concurrent peer ${index}` })));
-        committedPeers = await h.bookingSnapshot(fx.tenantIds);
-      });
-      expect(observed.result).toMatchObject({ ok: false, code: "SERVER_ERROR" });
-      // Retry is represented by SERVER_ERROR, not an invented public wire field.
-      expect(Object.keys(observed.result).sort()).toEqual(["code", "message", "ok"]);
-      expect(observed.snapshots).toHaveLength(3);
-      expect(observed.snapshots.map((row) => row.commandId)).toEqual([input.commandId, input.commandId, input.commandId]);
-      expect(observed.finalizations).toEqual([{ kind: "stale" }, { kind: "stale" }, { kind: "stale" }]);
+      for (let index = 0; index < 3; index++) {
+        const renewed = await h.reviewedFixtureInput(fx.adminClient, "create", input, true);
+        const observed = await b.observeCommand(fx.adminClient, "create", renewed, correlation, async () => {
+          exactSuccess(await h.bookingCommand("create", fx.plannerClient, h.bookingInput([fx.ownProfile.id], { description: `Concurrent peer ${index}` })));
+          committedPeers = await h.bookingSnapshot(fx.tenantIds);
+        });
+        expect(observed.result).toMatchObject({ ok: false, code: "PREVIEW_STALE" });
+        expect(Object.keys(observed.result).sort()).toEqual(["code", "message", "ok"]);
+        expect(observed.snapshots.map((row) => row.commandId)).toEqual([input.commandId]);
+        expect(observed.finalizations).toEqual([{ kind: "stale" }]);
+        expect(await h.bookingSnapshot(fx.tenantIds)).toEqual(committedPeers!);
+      }
       expect(await h.bookingSnapshot(fx.tenantIds)).toEqual(committedPeers!);
       expect(committedPeers!.bookings.some((row) => row.create_command_id === input.commandId)).toBe(false);
       expect(committedPeers!.audit.some((row) => row.correlation_id === correlation)).toBe(false);
@@ -228,7 +238,13 @@ describe("Story 14.3 authoritative conflict persistence", () => {
       const runs = inputs.map((input, index) => b.observeCommand(fx.adminClient, "create", input, correlations[index], async (_attempt, retry) => {
         if (retry === 0) { arrivals++; if (arrivals === 2) release(); await barrier; }
       }));
-      const results = await Promise.all(runs); const ids = results.map((row) => exactSuccess(row.result));
+      const results = await Promise.all(runs);
+      expect(results.filter((row) => row.result.ok)).toHaveLength(1);
+      expect(results.filter((row) => !row.result.ok)[0].result).toMatchObject({ code: "PREVIEW_STALE" });
+      const loser = results.findIndex((row) => !row.result.ok);
+      const renewed = await h.reviewedFixtureInput(fx.adminClient, "create", inputs[loser], true);
+      const retried = await b.observeCommand(fx.adminClient,"create",renewed,correlations[loser],async () => {});
+      const ids = results.map((row,index) => exactSuccess(index === loser ? retried.result : row.result));
       expect(new Set(ids).size).toBe(2);
       expect(results.flatMap((row) => row.finalizations).filter((row) => row.kind === "stale")).toHaveLength(1);
       const after = await h.bookingSnapshot(fx.tenantIds);
@@ -241,7 +257,7 @@ describe("Story 14.3 authoritative conflict persistence", () => {
       expect(after.audit).toHaveLength(before.audit.length + 2);
       for (let index = 0; index < inputs.length; index++) {
         expect(after.audit.filter((row) => row.correlation_id === correlations[index])).toEqual([expect.objectContaining({ target_id: ids[index] })]);
-        expect(await h.bookingCommand("create", fx.adminClient, inputs[index])).toEqual(results[index].result);
+        expect(await h.bookingCommand("create", fx.adminClient, inputs[index])).toEqual(index === loser ? retried.result : results[index].result);
         expect(await h.bookingSnapshot(fx.tenantIds)).toEqual(after);
       }
     });
@@ -319,7 +335,7 @@ for (const operation of ["create", "update"] as const) {
       expect(await h.bookingSnapshot(fx.tenantIds)).toEqual(committed);
       await h.adminSession(async ({ query }) => {
         await query("begin"); let revoke: PromiseLike<{ error: { code?: string } | null }> | undefined;
-        let replay: Promise<Awaited<ReturnType<typeof h.checkedBookingRpc>>> | undefined;
+        let replay: Promise<Awaited<ReturnType<typeof h.authoritativeBookingRpc>>> | undefined;
         try {
           const [owner] = await query<{ pid: number }>("select pg_backend_pid() as pid");
           await query("select id from public.tenant_memberships where id=$1 for update", [member.id]);
@@ -327,7 +343,7 @@ for (const operation of ["create", "update"] as const) {
             p_membership_id: member.id, p_action: "re_role", p_roles: ["saljare"], p_reason: "Post-wait replay authority", p_operation_id: crypto.randomUUID() });
           // Convert thenable so the real RPC starts before observing the lock.
           revoke = Promise.resolve(revoke); await h.waitForBlocked(owner.pid, 1);
-          replay = Promise.resolve(h.checkedBookingRpc(operation, client, input, fx.base.tenantA.id, actor.id)); await h.waitForBlocked(owner.pid, 2);
+          replay = Promise.resolve(h.authoritativeBookingRpc(operation, client, input, fx.base.tenantA.id, actor.id)); await h.waitForBlocked(owner.pid, 2);
           await query("commit"); expect((await revoke).error).toBeNull();
           const denied = await replay; expect(denied.error?.code).toBe("42501"); expect(denied.data).toBeNull();
           const afterRevocation = await h.bookingSnapshot(fx.tenantIds);
@@ -354,7 +370,7 @@ for (const operation of ["create", "update"] as const) {
       const before = await h.bookingSnapshot(fx.tenantIds);
       const canonical = { ...input, assigneeIds: [...input.assigneeIds].reverse(), startsAt: "2026-10-12T08:00:00+02:00", endsAt: "2026-10-12T16:00:00+02:00" };
       expect(await h.bookingCommand(operation, fx.adminClient, canonical)).toEqual(original);
-      const direct = await h.checkedBookingRpc(operation, fx.adminClient, canonical, fx.base.tenantA.id, fx.base.adminA.id);
+      const direct = await h.authoritativeBookingRpc(operation, fx.adminClient, canonical, fx.base.tenantA.id, fx.base.adminA.id);
       expect(direct.error).toBeNull(); expect(direct.data).toEqual(original.ok ? original.data : undefined);
       expect(await h.bookingCommand(operation, fx.adminClient, { ...input, description: "Changed canonical payload" })).toMatchObject({ ok: false, code: "COMMAND_CONFLICT" });
       expect(await h.bookingSnapshot(fx.tenantIds)).toEqual(before);
@@ -766,7 +782,7 @@ test("[P0] AC11 previous incomplete normalization version cannot authorize a fre
 });
 
 for (const expiredAttempts of [1, 3] as const) {
-  test(`[P0] AC10 actual save refreshes ${expiredAttempts} genuine signed expiries during gate waits under the same command UUID`, async () => {
+  test(`[P0] AC10 ${expiredAttempts} deliberately reviewed signed expiries during gate waits preserve the same command UUID`, async () => {
     const h = await harness(); const b = await h.loadConflictBindings();
     const { parseDetectionSnapshot, conflictClaims } = await import("@/server/bookings/conflict-facts");
     const { setTimeout: pause } = await import("node:timers/promises");
@@ -777,7 +793,7 @@ for (const expiredAttempts of [1, 3] as const) {
       let snapshot: ReturnType<typeof parseDetectionSnapshot> | undefined; let finalizations = 0;
       const client = new Proxy(fx.adminClient, { get(target, property) {
         if (property === "rpc") return async (name: string, args: Record<string, unknown>) => {
-          if (name === "finalize_booking_conflicts") {
+          if (name === "finalize_booking_editor") {
             finalizations++; expect(args.p_command_id).toBe(input.commandId);
             if (finalizations <= expiredAttempts) {
               if (!snapshot || snapshot.kind !== "snapshot") throw new Error("Actual save snapshot required");
@@ -807,25 +823,35 @@ for (const expiredAttempts of [1, 3] as const) {
             }
           }
           const reply = await target.rpc(name, args);
-          if (name === "snapshot_booking_conflicts" && !reply.error) {
+          if (name === "snapshot_booking_editor" && !reply.error) {
             snapshot = parseDetectionSnapshot(reply.data);
             if (snapshot.kind === "snapshot") commandIds.push(snapshot.commandId);
           }
-          if (name === "finalize_booking_conflicts" && !reply.error) kinds.push((reply.data as { kind: string }).kind);
+          if (name === "finalize_booking_editor" && !reply.error) kinds.push((reply.data as { kind: string }).kind);
           return reply;
         };
         const value = Reflect.get(target, property, target);
         return typeof value === "function" ? value.bind(target) : value;
       } });
-      const result = await h.bookingCommand("create", client, input, correlation);
+      let result: Awaited<ReturnType<typeof h.bookingCommand>> | undefined;
+      for (let attempt = 0; attempt < expiredAttempts; attempt++) {
+        const reviewed = await h.reviewedFixtureInput(fx.adminClient,"create",input,true);
+        result = await h.bookingCommand("create",client,reviewed,correlation);
+        expect(result).toMatchObject({ ok: false,code: "PREVIEW_STALE" });
+        expect(await h.bookingSnapshot(fx.tenantIds)).toEqual(before);
+      }
+      if (expiredAttempts === 1) {
+        const reviewed = await h.reviewedFixtureInput(fx.adminClient,"create",input,true);
+        result = await h.bookingCommand("create",client,reviewed,correlation);
+      }
       expect(commandIds).toEqual(Array(expiredAttempts === 1 ? 2 : 3).fill(input.commandId));
       if (expiredAttempts === 3) {
-        expect(result).toMatchObject({ ok: false, code: "SERVER_ERROR" });
-        expect(Object.keys(result).sort()).toEqual(["code", "message", "ok"]);
+        expect(result).toMatchObject({ ok: false, code: "PREVIEW_STALE" });
+        expect(Object.keys(result!).sort()).toEqual(["code", "message", "ok"]);
         expect(kinds).toEqual(["stale", "stale", "stale"]);
         expect(await h.bookingSnapshot(fx.tenantIds)).toEqual(before);
       } else {
-        const id = exactSuccess(result); expect(kinds).toEqual(["stale", "committed"]);
+        const id = exactSuccess(result!); expect(kinds).toEqual(["stale", "committed"]);
         const after = await h.bookingSnapshot(fx.tenantIds);
         expect(after.bookings).toHaveLength(before.bookings.length + 1);
         expect(after.bookings.find((row) => row.id === id)?.create_command_id).toBe(input.commandId);

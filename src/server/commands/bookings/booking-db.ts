@@ -11,15 +11,19 @@ type BookingRpcArgs = {
   readonly p_command_id: string;
   readonly p_payload: BookingFacts;
   readonly p_booking_id?: string;
+  readonly p_proposed_id?: string;
 };
-export async function executeBooking(db: CommandDbClient, operation: "create_booking" | "update_booking", args: BookingRpcArgs): Promise<BookingResult> {
+export async function executeBooking(db: CommandDbClient, operation: "create_booking" | "update_booking", args: BookingRpcArgs,
+  review?: import("@/features/resources/booking-editor-input").BookingEditorReview): Promise<BookingResult> {
   void operation;
   try {
-    return await saveWithConflicts(db as unknown as BookingRpcClient, args);
+    return await saveWithConflicts(db as unknown as BookingRpcClient, args, review);
   } catch (error) {
     if (error instanceof CommandError) throw error;
     const code = (error as { code?: string } | null)?.code;
     if (code === "BK409") throw new CommandError("COMMAND_CONFLICT");
+    if (code === "BR428") throw new CommandError("BOOKING_CONFLICT_UNACKNOWLEDGED");
+    if (code === "BR409") throw new CommandError("PREVIEW_STALE");
     if (code === "42501" || code === "23503") throw new CommandError("TENANT_ACCESS_DENIED");
     if (["23514", "22P02", "22007", "22008"].includes(code ?? "")) throw new CommandError("VALIDATION_FAILED");
     throw new Error("booking write failed");

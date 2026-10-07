@@ -23,7 +23,11 @@ describe("Story 14.3 exact checked/private conflict authority inventory", () => 
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { actualConflictBindings } = await import("../../support/booking-conflict-attestation");
     const inventory = (await actualConflictBindings()).sqlInventory;
-    expect(inventory.checked).toHaveLength(2); expect(inventory.private).toHaveLength(8);
+    expect(inventory.checked.map((fn) => fn.name).sort()).toEqual([
+      "booking_editor_people", "finalize_booking_conflicts", "finalize_booking_editor",
+      "snapshot_booking_conflicts", "snapshot_booking_editor",
+    ]);
+    expect(inventory.private).toHaveLength(14);
     for (const [kind, functions] of [["checked", inventory.checked], ["private", inventory.private]] as const) {
       for (const fn of functions) {
         const [row] = await adminQuery<{ anon: boolean; authenticated: boolean; service: boolean; public_execute: boolean; search_path: string[] }>(
@@ -628,6 +632,37 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     expect(functions[0]?.authenticated_can_execute).toBe(true);
     expect(functions[0]?.service_role_can_execute).toBe(true);
   });
+});
+
+it("[P0] 14.4 migration inventory has exact authenticated editor entries and private helpers", async (testCtx) => {
+  if (skipUnlessStack(testCtx, stackUp)) return;
+  const checked = [
+    "snapshot_booking_editor(uuid,uuid,uuid,uuid,uuid,uuid,jsonb,text,jsonb)",
+    "finalize_booking_editor(uuid,uuid,uuid,uuid,uuid,uuid,jsonb,jsonb,text,text,jsonb,text,text,jsonb)",
+    "booking_editor_people(uuid,uuid)",
+  ];
+  const privateFunctions = [
+    "booking_editor_decision_internal(jsonb)", "booking_editor_digest_internal(uuid,uuid,jsonb,jsonb)",
+    "booking_editor_replay_internal(uuid,uuid,uuid,uuid,uuid,jsonb,jsonb)",
+    "booking_editor_proof_bytes_internal(jsonb,text)", "booking_editor_groups_internal(jsonb,jsonb,uuid)",
+    "booking_commit_editor_internal(uuid,uuid,uuid,uuid,uuid,jsonb,uuid,jsonb,jsonb,jsonb)",
+  ];
+  const functions = await adminQuery<{ signature: string; definer: boolean; proconfig: string[] | null;
+    public_execute: boolean; anon_execute: boolean; authenticated_execute: boolean; service_execute: boolean }>(
+    `select p.oid::regprocedure::text as signature,p.prosecdef as definer,p.proconfig,
+      exists(select 1 from aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a where a.grantee=0 and a.privilege_type='EXECUTE') as public_execute,
+      has_function_privilege('anon',p.oid,'execute') as anon_execute,
+      has_function_privilege('authenticated',p.oid,'execute') as authenticated_execute,
+      has_function_privilege('service_role',p.oid,'execute') as service_execute
+      from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'
+      and (p.proname like 'booking%editor%internal' or p.proname in ('snapshot_booking_editor','finalize_booking_editor','booking_editor_people'))`);
+  expect(functions.map((row) => row.signature).sort()).toEqual([...checked,...privateFunctions].sort());
+  for (const fn of functions) {
+    assertSearchPathExactlyEmpty(fn.signature,fn.proconfig);
+    expect(fn.public_execute).toBe(false); expect(fn.anon_execute).toBe(false); expect(fn.service_execute).toBe(false);
+    expect(fn.authenticated_execute).toBe(checked.includes(fn.signature));
+    expect(fn.definer).toBe(checked.includes(fn.signature));
+  }
 });
 
 // Close this file's admin pool once all migration-reset assertions are done.

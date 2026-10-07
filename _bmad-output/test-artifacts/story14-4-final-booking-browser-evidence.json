@@ -1,0 +1,22 @@
+{
+  "command": "node _bmad-output/test-artifacts/story14-4-run-local.mjs run node_modules/@playwright/test/cli.js test tests/e2e/booking-editor.e2e.spec.ts --reporter=list,json",
+  "buildId": "_f9ZTjPyc9ElGjcxCnJMb",
+  "serverOrigin": "http://127.0.0.1:3100",
+  "guardCdpOrigin": "http://127.0.0.1:59601",
+  "nativeExit": 0,
+  "executed": 13,
+  "passed": 13,
+  "failed": 0,
+  "skipped": 0,
+  "flaky": 0,
+  "durationMs": 41466.333,
+  "report": "story14-4-final-booking-browser.json",
+  "scope": "Retained Story14.4 toolbar/job/customer acceptance only; Story15.1 empty-slot click/drag remains pending",
+  "protocolLimit": "Actual Next server actions serialize requests. Browser proves obsolete response discarded before queued current response and unknown on failure; component tests separately cover reversed delivery.",
+  "priorSetupFailure": {
+    "report": "story14-4-booking-browser-diagnostic-f9-setup.json",
+    "evidence": "story14-4-booking-browser-diagnostic-f9-setup-evidence.json",
+    "cause": "Unconfirmed; concurrency is only a hypothesis",
+    "cleanupLimit": "Setup failed before fixture serialization, so partial prior fixture graph has no retained scoped cleanup handles; unidentified records were not deleted"
+  }
+}

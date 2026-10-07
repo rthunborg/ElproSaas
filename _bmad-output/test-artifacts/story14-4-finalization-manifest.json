@@ -1,0 +1,536 @@
+{
+  "baseline_revision": "b94be3d33b7161e31ff4e01da79dd36c5474fd73",
+  "status": "done",
+  "followup_review_recommended": true,
+  "deferred_count": 0,
+  "broad_review_rounds_completed": 1,
+  "patched_findings": {
+    "high": 4,
+    "medium": 6,
+    "low": 0,
+    "score": 18
+  },
+  "build_id": "TGBWaTwRYVJLLfZUysZQV",
+  "verified_source_fingerprint": "7079fd92d3f60e599469ebd9aec7b3e8698137ce2627b53697509f174a8d90de",
+  "final_source_fingerprint_after_cosmetic_trim": "624e4347d9fd7ded2ec26164a7ec5655706ac597c20711b7aeeb395dde440fc8",
+  "file_count": 102,
+  "files": [
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md",
+      "repository_path": "_bmad-output/implementation-artifacts/spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md",
+      "description": "Story implementation, triage and author review trail."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-api-conflicts-final-live.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-api-conflicts-final-live.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-api-live.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-api-live.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-booking-browser-diagnostic-f9-setup-evidence.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-booking-browser-diagnostic-f9-setup-evidence.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-booking-browser-diagnostic-f9-setup.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-booking-browser-diagnostic-f9-setup.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-booking-browser-diagnostic-Sfin-evidence.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-booking-browser-diagnostic-Sfin-evidence.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-booking-browser-diagnostic-Sfin.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-booking-browser-diagnostic-Sfin.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-final-booking-browser-evidence.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-final-booking-browser-evidence.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-final-booking-browser.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-final-booking-browser.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-finalization-manifest.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-finalization-manifest.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-foundation-rls-live.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-foundation-rls-live.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-full-int-output.txt",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-full-int-output.txt",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-full-int.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-full-int.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-lint-results.txt",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-lint-results.txt",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-migration-evidence.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-migration-evidence.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-migration2-evidence.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-migration2-evidence.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-migration3-evidence.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-migration3-evidence.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-migration4-evidence.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-migration4-evidence.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-predecessor-live.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-predecessor-live.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-api-focused-output.txt",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-api-focused-output.txt",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-api-focused.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-api-focused.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-api-red-output.txt",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-api-red-output.txt",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-api-red.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-api-red.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-blind-hunter.md",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-blind-hunter.md",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-booking-browser-diagnostic-output.txt",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-booking-browser-diagnostic-output.txt",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-booking-browser-diagnostic.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-booking-browser-diagnostic.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-booking-browser-final-evidence.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-booking-browser-final-evidence.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-booking-browser-final-output.txt",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-booking-browser-final-output.txt",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-booking-browser-final.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-booking-browser-final.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-booking-browser-preflight-output.txt",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-booking-browser-preflight-output.txt",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-booking-browser-preflight.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-booking-browser-preflight.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-build-final-output.txt",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-build-final-output.txt",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-build-output.txt",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-build-output.txt",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-components-reads-final-output.txt",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-components-reads-final-output.txt",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-components-reads-final.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-components-reads-final.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-components-reads-output.txt",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-components-reads-output.txt",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-components-reads.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-components-reads.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-edge-case-hunter.md",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-edge-case-hunter.md",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-external-final.md",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-external-final.md",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-external-first-transport-recovered.md",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-external-first-transport-recovered.md",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-full-int-output.txt",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-full-int-output.txt",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-full-int.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-full-int.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-intent-alignment.md",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-intent-alignment.md",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-lint-results.txt",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-lint-results.txt",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-review-provenance-triage.md",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-review-provenance-triage.md",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-security.md",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-security.md",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-unit-results.txt",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-unit-results.txt",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-verification-gap.md",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-verification-gap.md",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-working-tree-evidence.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-r1-working-tree-evidence.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-replay-rls-live.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-replay-rls-live.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-run-local.mjs",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-run-local.mjs",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-unit-results.txt",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-unit-results.txt",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-verification.md",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-verification.md",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-working-tree-evidence.json",
+      "repository_path": "_bmad-output/test-artifacts/story14-4-working-tree-evidence.json",
+      "description": "Story verification, diagnostic, migration or review evidence."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/app/(app)/customers/[customerId]/page.tsx",
+      "repository_path": "src/app/(app)/customers/[customerId]/page.tsx",
+      "description": "Current authorized booking entry and summary host."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/app/(app)/jobs/[jobId]/page.tsx",
+      "repository_path": "src/app/(app)/jobs/[jobId]/page.tsx",
+      "description": "Current authorized booking entry and summary host."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/app/(app)/jobs/page.tsx",
+      "repository_path": "src/app/(app)/jobs/page.tsx",
+      "description": "Current authorized booking entry and summary host."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/components/crm/CustomerDetail.tsx",
+      "repository_path": "src/components/crm/CustomerDetail.tsx",
+      "description": "Responsive booking UI, conflict display or dialog behavior."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/components/crm/Dialog.tsx",
+      "repository_path": "src/components/crm/Dialog.tsx",
+      "description": "Responsive booking UI, conflict display or dialog behavior."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/components/jobs/JobDetailView.tsx",
+      "repository_path": "src/components/jobs/JobDetailView.tsx",
+      "description": "Responsive booking UI, conflict display or dialog behavior."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/components/jobs/JobList.tsx",
+      "repository_path": "src/components/jobs/JobList.tsx",
+      "description": "Responsive booking UI, conflict display or dialog behavior."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/components/resources/BookingConflictChip.tsx",
+      "repository_path": "src/components/resources/BookingConflictChip.tsx",
+      "description": "Responsive booking UI, conflict display or dialog behavior."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/components/resources/BookingConflictPanel.tsx",
+      "repository_path": "src/components/resources/BookingConflictPanel.tsx",
+      "description": "Responsive booking UI, conflict display or dialog behavior."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/components/resources/BookingEditor.tsx",
+      "repository_path": "src/components/resources/BookingEditor.tsx",
+      "description": "Responsive booking UI, conflict display or dialog behavior."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/components/resources/BookingEntry.tsx",
+      "repository_path": "src/components/resources/BookingEntry.tsx",
+      "description": "Responsive booking UI, conflict display or dialog behavior."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/features/resources/booking-action-state.ts",
+      "repository_path": "src/features/resources/booking-action-state.ts",
+      "description": "Booking input, read, action or user-facing state contract."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/features/resources/booking-actions.ts",
+      "repository_path": "src/features/resources/booking-actions.ts",
+      "description": "Booking input, read, action or user-facing state contract."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/features/resources/booking-editor-input.ts",
+      "repository_path": "src/features/resources/booking-editor-input.ts",
+      "description": "Booking input, read, action or user-facing state contract."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/features/resources/booking-types.ts",
+      "repository_path": "src/features/resources/booking-types.ts",
+      "description": "Booking input, read, action or user-facing state contract."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/features/resources/bookings-read.ts",
+      "repository_path": "src/features/resources/bookings-read.ts",
+      "description": "Booking input, read, action or user-facing state contract."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/server/bookings/candidate-references.ts",
+      "repository_path": "src/server/bookings/candidate-references.ts",
+      "description": "Current-fact preview, review receipt or stable save identity."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/server/bookings/conflict-facts.ts",
+      "repository_path": "src/server/bookings/conflict-facts.ts",
+      "description": "Current-fact preview, review receipt or stable save identity."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/server/bookings/create-identity.ts",
+      "repository_path": "src/server/bookings/create-identity.ts",
+      "description": "Current-fact preview, review receipt or stable save identity."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/server/bookings/editor-preview.ts",
+      "repository_path": "src/server/bookings/editor-preview.ts",
+      "description": "Current-fact preview, review receipt or stable save identity."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/server/bookings/save-with-conflicts.ts",
+      "repository_path": "src/server/bookings/save-with-conflicts.ts",
+      "description": "Current-fact preview, review receipt or stable save identity."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/server/commands/bookings/booking-db.ts",
+      "repository_path": "src/server/commands/bookings/booking-db.ts",
+      "description": "Validated checked booking save and safe command errors."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/server/commands/bookings/create-booking.ts",
+      "repository_path": "src/server/commands/bookings/create-booking.ts",
+      "description": "Validated checked booking save and safe command errors."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/server/commands/bookings/update-booking.ts",
+      "repository_path": "src/server/commands/bookings/update-booking.ts",
+      "description": "Validated checked booking save and safe command errors."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/server/commands/bookings/validation.ts",
+      "repository_path": "src/server/commands/bookings/validation.ts",
+      "description": "Validated checked booking save and safe command errors."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/src/server/commands/command-errors.ts",
+      "repository_path": "src/server/commands/command-errors.ts",
+      "description": "Validated checked booking save and safe command errors."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/supabase/migrations/20261007120235_booking_editor_audited_override.sql",
+      "repository_path": "supabase/migrations/20261007120235_booking_editor_audited_override.sql",
+      "description": "Immutable forward booking editor authority or review correction."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/supabase/migrations/20261007121034_booking_editor_whole_group_validation.sql",
+      "repository_path": "supabase/migrations/20261007121034_booking_editor_whole_group_validation.sql",
+      "description": "Immutable forward booking editor authority or review correction."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/supabase/migrations/20261007121724_booking_editor_group_alias_fix.sql",
+      "repository_path": "supabase/migrations/20261007121724_booking_editor_group_alias_fix.sql",
+      "description": "Immutable forward booking editor authority or review correction."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/supabase/migrations/20261007131222_booking_editor_review_round1_fixes.sql",
+      "repository_path": "supabase/migrations/20261007131222_booking_editor_review_round1_fixes.sql",
+      "description": "Immutable forward booking editor authority or review correction."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/e2e/booking-editor.e2e.spec.ts",
+      "repository_path": "tests/e2e/booking-editor.e2e.spec.ts",
+      "description": "Production adapter or executable acceptance/regression assertion."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/e2e/support/booking-editor-atdd.ts",
+      "repository_path": "tests/e2e/support/booking-editor-atdd.ts",
+      "description": "Production adapter or executable acceptance/regression assertion."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "repository_path": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "description": "Production adapter or executable acceptance/regression assertion."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/booking-editor-review-fixes.int.test.ts",
+      "repository_path": "tests/integration/commands/booking-editor-review-fixes.int.test.ts",
+      "description": "Production adapter or executable acceptance/regression assertion."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/booking-editor.int.test.ts",
+      "repository_path": "tests/integration/commands/booking-editor.int.test.ts",
+      "description": "Production adapter or executable acceptance/regression assertion."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "repository_path": "tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "description": "Production adapter or executable acceptance/regression assertion."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/bookings.int.test.ts",
+      "repository_path": "tests/integration/commands/bookings.int.test.ts",
+      "description": "Production adapter or executable acceptance/regression assertion."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/components/booking-editor.test.ts",
+      "repository_path": "tests/integration/components/booking-editor.test.ts",
+      "description": "Production adapter or executable acceptance/regression assertion."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/features/booking-read-actions.test.ts",
+      "repository_path": "tests/integration/features/booking-read-actions.test.ts",
+      "description": "Production adapter or executable acceptance/regression assertion."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/bookings.rls.test.ts",
+      "repository_path": "tests/integration/rls/bookings.rls.test.ts",
+      "description": "Production adapter or executable acceptance/regression assertion."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/migration-reset.int.test.ts",
+      "repository_path": "tests/integration/rls/migration-reset.int.test.ts",
+      "description": "Production adapter or executable acceptance/regression assertion."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/booking-conflict-attestation.ts",
+      "repository_path": "tests/support/booking-conflict-attestation.ts",
+      "description": "Production adapter or executable acceptance/regression assertion."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/booking-editor-atdd.ts",
+      "repository_path": "tests/support/booking-editor-atdd.ts",
+      "description": "Production adapter or executable acceptance/regression assertion."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/booking-editor-production.ts",
+      "repository_path": "tests/support/booking-editor-production.ts",
+      "description": "Production adapter or executable acceptance/regression assertion."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/bookings-atdd.ts",
+      "repository_path": "tests/support/bookings-atdd.ts",
+      "description": "Production adapter or executable acceptance/regression assertion."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/resources/booking-editor-input.test.ts",
+      "repository_path": "tests/unit/features/resources/booking-editor-input.test.ts",
+      "description": "Production adapter or executable acceptance/regression assertion."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/scope/booking-editor-scope.test.ts",
+      "repository_path": "tests/unit/scope/booking-editor-scope.test.ts",
+      "description": "Production adapter or executable acceptance/regression assertion."
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/server/commands/bookings-validation.test.ts",
+      "repository_path": "tests/unit/server/commands/bookings-validation.test.ts",
+      "description": "Production adapter or executable acceptance/regression assertion."
+    }
+  ],
+  "immutable_generated_eof_exceptions": [
+    "supabase/migrations/20261007120235_booking_editor_audited_override.sql:292",
+    "supabase/migrations/20261007121034_booking_editor_whole_group_validation.sql:125"
+  ],
+  "other_staged_paths_whitespace_exit": 0,
+  "immutable_migration_non_eof_whitespace_exit": 0,
+  "raw_output_backup": "C:/Users/Rasmus/AppData/Local/Temp/story14-4-raw-output-09ed8ab97a98474cadcb20c5b2c3ffb5"
+}

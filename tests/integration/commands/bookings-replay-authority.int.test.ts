@@ -6,7 +6,7 @@ import { makeAuthedServerClient } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import {
-  bookingCommand, bookingInput, bookingSnapshot, checkedBookingRpc, withBookingFixture,
+  bookingCommand, bookingInput, bookingSnapshot, withBookingFixture,
 } from "../../support/bookings-atdd";
 
 let stackUp = false;
@@ -21,6 +21,41 @@ beforeAll(async () => { stackUp = await isLocalStackReachable(); });
  * Public success is { bookingId }; checked RPC authority failures use 42501.
  */
 describe("Story 14.2 completed UPDATE replay authority", () => {
+  test("[P0] 14.4 preserves explicitly absent-review legacy create/update outcomes without borrowing them for override", async (ctx) => {
+    if (skipUnlessStack(ctx,stackUp)) return;
+    await withBookingFixture(async (fx) => {
+      const { bookingPayload,validateCreateBooking,validateUpdateBooking } = await import("@/server/commands/bookings/validation");
+      const { checkedBookingRpc } = await import("../../support/bookings-atdd");
+      const { runCommand } = await import("@/server/commands/envelope");
+      const { createBooking } = await import("@/server/commands/bookings/create-booking");
+      const { updateBooking } = await import("@/server/commands/bookings/update-booking");
+      const create = bookingInput([fx.ownProfile.id]);
+      const created = await bookingCommand("create",fx.adminClient,create);
+      expect(created.ok).toBe(true); if (!created.ok) throw new Error("Actual legacy fixture create missing");
+      const update = bookingInput([fx.ownProfile.id],{ bookingId: created.data.bookingId,description: "Historical update outcome" });
+      expect((await bookingCommand("update",fx.adminClient,update)).ok).toBe(true);
+      const createValid = validateCreateBooking(create), updateValid = validateUpdateBooking(update);
+      if (!createValid.ok || !updateValid.ok) throw new Error("Legacy literal payload invalid");
+      // Model outcomes from the shipped booking-only digest; this is fixture state,
+      // not a fresh writable authenticated bypass of the new review requirement.
+      await adminQuery(`update public.bookings set create_payload_digest=public.booking_detection_digest_internal('create',null,$2::jsonb),
+        update_outcomes=jsonb_set(update_outcomes,array[$3::text,'digest'],to_jsonb(public.booking_detection_digest_internal('update',id,$4::jsonb))) where id=$1`,
+      [created.data.bookingId,bookingPayload(createValid.data),update.commandId,bookingPayload(updateValid.data)]);
+      const before = await bookingSnapshot(fx.tenantIds);
+      expect(await runCommand(createBooking,{client: fx.adminClient as never,input:create})).toEqual(created);
+      expect(await runCommand(updateBooking,{client: fx.adminClient as never,input:update})).toEqual(created);
+      for (const [op,input] of [["create",create],["update",update]] as const) {
+        const old = await checkedBookingRpc(op,fx.adminClient,input,fx.base.tenantA.id,fx.base.adminA.id);
+        expect(old.error).toBeNull(); expect(old.data).toEqual(created.data);
+        const borrowed = { ...input, editorReview: { receipt: "historical receipt is deliberately absent", decision: {
+          acknowledged: true,reviewedLogicalIds:["forged warning"],selectedLogicalIds:[],reason:"Cannot borrow old digest" } } };
+        const attempt = op === "create" ? await runCommand(createBooking,{client:fx.adminClient as never,input:borrowed})
+          : await runCommand(updateBooking,{client:fx.adminClient as never,input:borrowed});
+        expect(attempt).toMatchObject({ ok:false,code:"COMMAND_CONFLICT" });
+        expect(await bookingSnapshot(fx.tenantIds)).toEqual(before);
+      }
+    });
+  });
   test.for([
     { name: "role downgraded and secondary roles removed", role: "saljare", status: "active", code: "PERMISSION_DENIED" },
     { name: "membership invited", role: "tenant_admin", status: "invited", code: "TENANT_MEMBERSHIP_REQUIRED" },
@@ -57,7 +92,7 @@ describe("Story 14.2 completed UPDATE replay authority", () => {
       // through both entry points, without a second outcome or audit event.
       expect(await bookingCommand("update", client, update)).toEqual(updated);
       expect(await bookingSnapshot(fx.tenantIds)).toEqual(committed);
-      const allowed = await checkedBookingRpc("update", client, update, fx.base.tenantA.id, actor.id);
+      const allowed = await authoritativeBookingRpc("update", client, update, fx.base.tenantA.id, actor.id);
       expect(allowed.error).toBeNull(); expect(allowed.data).toEqual({ bookingId: created.data.bookingId });
       expect(await bookingSnapshot(fx.tenantIds)).toEqual(committed);
 
@@ -69,7 +104,7 @@ describe("Story 14.2 completed UPDATE replay authority", () => {
         }
         expect(await bookingCommand("update", client, update)).toMatchObject({ ok: false, code: scenario.code });
         expect(await bookingSnapshot(fx.tenantIds)).toEqual(committed);
-        const denied = await checkedBookingRpc("update", client, update, fx.base.tenantA.id, actor.id);
+        const denied = await authoritativeBookingRpc("update", client, update, fx.base.tenantA.id, actor.id);
         expect(denied.error?.code).toBe("42501"); expect(denied.data).toBeNull();
         expect(await bookingSnapshot(fx.tenantIds)).toEqual(committed);
       } finally {
@@ -132,7 +167,7 @@ describe("Story 14.2 replay authority after serialization waits", () => {
           await query("select id from public.tenant_memberships where id=$1 for update", [membership.id]);
           const revocation = Promise.resolve(manage(scenario.revoke === "disabled membership" ? "disable" : "re_role", ["saljare"]));
           await waitForBlocked(blocker.pid, 1);
-          pending = Promise.resolve(checkedBookingRpc(scenario.operation, client, input, fx.base.tenantA.id, actor.id));
+          pending = Promise.resolve(authoritativeBookingRpc(scenario.operation, client, input, fx.base.tenantA.id, actor.id));
           await waitForBlocked(blocker.pid, 2);
           await query("commit");
           const revoked = await revocation;
@@ -176,7 +211,7 @@ describe("Story 14.2 checked SQL timestamp grammar", () => {
             ...(operation === "update" ? { bookingId } : {}),
             startsAt: "2026-10-11T06:00:00Z", endsAt: "2026-10-14T14:00:00Z", [field]: invalid,
           });
-          const denied = await checkedBookingRpc(operation, fx.adminClient, input, fx.base.tenantA.id, fx.base.adminA.id);
+          const denied = await authoritativeBookingRpc(operation, fx.adminClient, input, fx.base.tenantA.id, fx.base.adminA.id);
           expect(denied.error?.code).toBe("23514"); expect(denied.data).toBeNull();
           expect(await bookingSnapshot(fx.tenantIds)).toEqual(before);
         }

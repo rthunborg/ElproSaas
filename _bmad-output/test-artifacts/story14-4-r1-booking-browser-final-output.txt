@@ -1,0 +1,23 @@
+
+Running 15 tests using 1 worker
+
+  ok  1 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:82:7 › Story 14.4 booking editor retained browser acceptance › Round1 endpoint-only mounted edits preserve the other PostgreSQL instant exactly (6.9s)
+  ok  2 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:100:7 › Story 14.4 booking editor retained browser acceptance › Round1 compatible customer contact retains facility; archived current links remain visible and deliberately clearable (5.7s)
+  ok  3 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:134:7 › Story 14.4 booking editor retained browser acceptance › [P0] E2E-006 toolbar creates a standalone booking through the desktop sheet (3.0s)
+  ok  4 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:162:9 › Story 14.4 booking editor retained browser acceptance › [P0] E2E-006 job entry persists preconnection then reopens and edits (6.9s)
+(node:45948) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+  ok  5 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:162:9 › Story 14.4 booking editor retained browser acceptance › [P0] E2E-006 customer entry persists preconnection then reopens and edits (6.8s)
+  ok  6 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:214:7 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-001/007 360x640 fullscreen editor scrolls without overflow and keeps actions reachable (2.6s)
+  ok  7 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:241:7 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-002 reload chip counts persisted OPEN logical conflicts only (2.3s)
+  ok  8 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:259:9 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-003/007 dirty Escape cancel retains draft and discard restores entry focus (2.0s)
+  ok  9 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:259:9 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-003/007 dirty close cancel retains draft and discard restores entry focus (2.2s)
+  ok 10 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:259:9 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-003/007 dirty back cancel retains draft and discard restores entry focus (2.0s)
+  ok 11 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:286:7 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-003 in-flight save blocks Escape close and back until confirmed (3.3s)
+  ok 12 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:320:7 › Story 14.4 booking editor retained browser acceptance › [P0] E2E-004/005 phone failure keeps unsent draft and explicit retry confirms one durable save (3.3s)
+  ok 13 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:349:7 › Story 14.4 booking editor retained browser acceptance › [P0] E2E-005 phone lost committed response replays one booking assignments conflicts and attributable audit (4.4s)
+  ok 14 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:402:7 › Story 14.4 booking editor retained browser acceptance › [P1] AC2/ E2E-007 latest warning wins and preview failure remains visibly unknown (3.5s)
+  ok 15 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:440:7 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-007 keyboard focus remains in sheet and warnings announce explanatory timeline (3.6s)
+
+  15 passed (1.0m)

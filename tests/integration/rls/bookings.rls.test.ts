@@ -14,6 +14,27 @@ beforeAll(async () => { stackUp = await isLocalStackReachable(); });
 
 /** Exercises checked RPC authority, exact public reads and private outcome denial. */
 describe("Story 14.2 booking authority ATDD", () => {
+  test("[P0] 14.4 checked editor RPCs have closed anon ACL and current manager gate", async (ctx) => {
+    if (skipUnlessStack(ctx, stackUp)) return;
+    await withBookingFixture(async (fx) => {
+      const anon = await makeAnonServerClient();
+      const empty = { p_tenant_id: fx.base.tenantA.id, p_actor_id: fx.base.adminA.id,
+        p_correlation_id: crypto.randomUUID(), p_command_id: crypto.randomUUID(), p_booking_id: null,
+        p_proposed_id: crypto.randomUUID(), p_payload: {}, p_key_id: "test_v1", p_decision: null };
+      const entries = [
+        { name: "snapshot_booking_editor", args: empty },
+        { name: "booking_editor_people", args: { p_tenant_id: fx.base.tenantA.id, p_actor_id: fx.base.adminA.id } },
+        { name: "finalize_booking_editor", args: { ...empty, p_key_id: undefined, p_claims: null, p_output: null,
+          p_signature: null, p_review_claims: null, p_review_groups: null, p_review_signature: null } },
+      ];
+      const before = await bookingSnapshot(fx.tenantIds);
+      for (const entry of entries) for (const client of [anon,fx.montorClient,fx.foreignClient]) {
+        const reply = await client.rpc(entry.name,entry.args);
+        expect(reply.data).toBeNull(); expect(reply.error?.code).toBe("42501");
+        expect(await bookingSnapshot(fx.tenantIds)).toEqual(before);
+      }
+    });
+  });
   test("[P1] 14.2-RLS-002 secondary Montor grants own reads and revocation removes them", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
     await withBookingFixture(async (fx) => {

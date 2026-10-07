@@ -16,6 +16,8 @@ export type BookingInput = {
   allDay: boolean; description: string; status: "planned" | "cancelled";
   assigneeIds: string[]; workRoleId: string | null; jobId: string | null;
   customerId: string | null; facilityId: string | null; contactId: string | null;
+  proposedBookingId?: string;
+  editorReview?: import("@/features/resources/booking-editor-input").BookingEditorReview;
 };
 export function bookingInput(assignees: string[], patch: Partial<BookingInput> = {}): BookingInput {
   return { commandId: crypto.randomUUID(), startsAt: "2026-10-12T06:00:00.000Z",
@@ -121,8 +123,17 @@ export async function bookingCommand(operation: "create" | "update", client: Tes
       return typeof value === "function" ? value.bind(target) : value;
     },
   }) : client;
+  // Earlier stories deliberately exercise the current reviewed command protocol.
+  // Story 14.4's adapter invokes runCommand directly when asserting absent review.
+  const { validateCreateBooking, validateUpdateBooking } = await import("@/server/commands/bookings/validation");
+  const valid = operation === "create" ? validateCreateBooking(input) : validateUpdateBooking(input);
+  let reviewed = input;
+  if (valid.ok && !input.editorReview) {
+    try { reviewed = await (await import("./booking-editor-production")).reviewedFixtureInput(client, operation, input); }
+    catch { /* Run the real envelope to preserve current authority/validation errors. */ }
+  }
   const result = await runCommand(command as Command<unknown, { bookingId: string }>, {
-    client: observed as never, input, correlationId,
+    client: observed as never, input: reviewed, correlationId,
   });
   // Opt-in bounded diagnostics never include facts, SQL arguments, proof or tokens.
   if (diagnostic && !result.ok) console.error("Story14.3 command diagnostic", JSON.stringify({ operation, code: result.code, rpcErrors }));
@@ -133,7 +144,8 @@ export async function bookingCommand(operation: "create" | "update", client: Tes
 export function checkedBookingRpc(operation: "create" | "update", client: TestServerClient,
   input: BookingInput, tenantId: string, actorId: string | null,
   correlationId = crypto.randomUUID()) {
-  const { commandId, bookingId, ...payload } = input;
+  const { commandId, bookingId, proposedBookingId: _proposed, editorReview: _review, ...payload } = input;
+  void _proposed; void _review;
   return client.rpc(operation === "create" ? "create_booking" : "update_booking", {
     p_tenant_id: tenantId, p_actor_id: actorId, p_correlation_id: correlationId,
     p_command_id: commandId, p_payload: payload,

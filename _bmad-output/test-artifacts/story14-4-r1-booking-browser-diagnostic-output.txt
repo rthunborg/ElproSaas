@@ -1,0 +1,76 @@
+
+Running 15 tests using 1 worker
+
+  ok  1 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:82:7 › Story 14.4 booking editor retained browser acceptance › Round1 endpoint-only mounted edits preserve the other PostgreSQL instant exactly (7.0s)
+  x   2 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:100:7 › Story 14.4 booking editor retained browser acceptance › Round1 compatible customer contact retains facility; archived current links remain visible and deliberately clearable (19.4s)
+  ok  3 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:134:7 › Story 14.4 booking editor retained browser acceptance › [P0] E2E-006 toolbar creates a standalone booking through the desktop sheet (3.1s)
+  ok  4 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:162:9 › Story 14.4 booking editor retained browser acceptance › [P0] E2E-006 job entry persists preconnection then reopens and edits (6.4s)
+  ok  5 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:162:9 › Story 14.4 booking editor retained browser acceptance › [P0] E2E-006 customer entry persists preconnection then reopens and edits (6.2s)
+  ok  6 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:214:7 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-001/007 360x640 fullscreen editor scrolls without overflow and keeps actions reachable (2.5s)
+  ok  7 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:241:7 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-002 reload chip counts persisted OPEN logical conflicts only (1.9s)
+  x   8 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:259:9 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-003/007 dirty Escape cancel retains draft and discard restores entry focus (16.5s)
+  ok  9 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:259:9 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-003/007 dirty close cancel retains draft and discard restores entry focus (2.1s)
+  ok 10 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:259:9 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-003/007 dirty back cancel retains draft and discard restores entry focus (1.9s)
+  ok 11 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:286:7 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-003 in-flight save blocks Escape close and back until confirmed (3.2s)
+  ok 12 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:320:7 › Story 14.4 booking editor retained browser acceptance › [P0] E2E-004/005 phone failure keeps unsent draft and explicit retry confirms one durable save (3.1s)
+  ok 13 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:349:7 › Story 14.4 booking editor retained browser acceptance › [P0] E2E-005 phone lost committed response replays one booking assignments conflicts and attributable audit (4.2s)
+  ok 14 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:396:7 › Story 14.4 booking editor retained browser acceptance › [P1] AC2/ E2E-007 latest warning wins and preview failure remains visibly unknown (3.2s)
+  ok 15 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:434:7 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-007 keyboard focus remains in sheet and warnings announce explanatory timeline (3.0s)
+
+
+  1) [chromium] › tests\e2e\booking-editor.e2e.spec.ts:100:7 › Story 14.4 booking editor retained browser acceptance › Round1 compatible customer contact retains facility; archived current links remain visible and deliberately clearable
+
+    Error: expect(locator).toBeDisabled() failed
+
+    Locator:  getByRole('dialog').getByTestId('booking-job').locator('option:checked')
+    Expected: disabled
+    Received: enabled
+    Timeout:  15000ms
+
+    Call log:
+      - Expect "toBeDisabled" with timeout 15000ms
+      - waiting for getByRole('dialog').getByTestId('booking-job').locator('option:checked')
+        33 × locator resolved to <option disabled value="31fc2abc-ff06-45ea-9e04-02585ccf91c5">Nuvarande koppling (ej tillgänglig för nya val) ·…</option>
+           - unexpected value "enabled"
+
+
+      123 |       for(const [field,id] of [["job",s.jobId],["customer",s.customerId],["facility",s.facilityId],["contact",s.contactId]]) {
+      124 |         const select=editor(page).getByTestId(`booking-${field}`); await expect(select).toHaveValue(id);
+    > 125 |         await expect(select.locator("option:checked")).toContainText("Nuvarande koppling"); await expect(select.locator("option:checked")).toBeDisabled();
+          |                                                                                                                                            ^
+      126 |       }
+      127 |       await editor(page).getByTestId("booking-customer").selectOption("");
+      128 |       const clear=await h.observeNextConfirmedSave(); await saveConfirmed(page,clear.confirmed);
+        at C:\DEV\ElproSaas\tests\e2e\booking-editor.e2e.spec.ts:125:140
+
+    Error Context: test-results\booking-editor.e2e-Story-1-2cbd4--and-deliberately-clearable-chromium\error-context.md
+
+  2) [chromium] › tests\e2e\booking-editor.e2e.spec.ts:259:9 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-003/007 dirty Escape cancel retains draft and discard restores entry focus
+
+    TimeoutError: locator.click: Timeout 15000ms exceeded.
+    Call log:
+      - waiting for getByTestId('booking-discard-confirmation').getByTestId('booking-discard')
+
+
+      275 |       await expect(editor(page)).toBeVisible();
+      276 |       await requestDismissal();
+    > 277 |       await guard.getByTestId("booking-discard").click();
+          |                                                  ^
+      278 |       await expect(editor(page)).toBeHidden();
+      279 |       await expect(page.getByTestId("booking-entry-toolbar")).toBeFocused();
+      280 |       expect(await bookingSnapshot(s.tenantIds)).toEqual(before);
+        at C:\DEV\ElproSaas\tests\e2e\booking-editor.e2e.spec.ts:277:50
+
+    Error Context: test-results\booking-editor.e2e-Story-1-4f778-iscard-restores-entry-focus-chromium\error-context.md
+
+  2 failed
+    [chromium] › tests\e2e\booking-editor.e2e.spec.ts:100:7 › Story 14.4 booking editor retained browser acceptance › Round1 compatible customer contact retains facility; archived current links remain visible and deliberately clearable
+    [chromium] › tests\e2e\booking-editor.e2e.spec.ts:259:9 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-003/007 dirty Escape cancel retains draft and discard restores entry focus
+  13 passed (1.5m)
+
+(node:49384) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:37656) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:50688) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

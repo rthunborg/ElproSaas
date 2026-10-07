@@ -17,6 +17,7 @@ export type BookingFacts = {
   readonly occurrenceIndex: null;
   readonly isException: false;
 };
-export type CreateBookingInput = BookingFacts & { readonly commandId: string };
+export type CreateBookingInput = BookingFacts & { readonly commandId: string; readonly proposedBookingId?: string;
+  readonly editorReview?: import("./booking-editor-input").BookingEditorReview };
 export type UpdateBookingInput = CreateBookingInput & { readonly bookingId: string };
 export type BookingResult = { readonly bookingId: string };

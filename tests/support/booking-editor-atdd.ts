@@ -50,7 +50,7 @@ export type ReceiptClaims = {
   domain: string; tenantId: string; actorId: string; operation: Operation;
   bookingId: string; candidateDigest: string; factDigest: string;
   engineVersion: string; configVersion: string; issuedAt: string; expiresAt: string;
-  canonicalCandidate: Record<string, unknown>; groups: LogicalGroup[];
+  groups: LogicalGroup[];
 };
 export type Preview = {
   bookingId: string; warnings: Warning[];
@@ -147,5 +147,5 @@ export interface EditorBindings {
  * do not add a fake implementation or switch skips to pass-through fixture responses.
  */
 export async function loadBookingEditorBindings(): Promise<EditorBindings> {
-  throw new Error("14.4 RED: real editor preview receipt, decision command/RPC and audited override bindings are not implemented. Bind actual production code before unskipping.");
+  return (await import("./booking-editor-production")).actualEditorBindings();
 }

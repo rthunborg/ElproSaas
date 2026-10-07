@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validateCreateBooking, validateUpdateBooking } from "@/server/commands/bookings/validation";
+import { validateCreateBooking, validateUpdateBooking, canonicalBookingPayload } from "@/server/commands/bookings/validation";
+import { proposedBookingIdentity } from "@/server/bookings/create-identity";
 const commandId="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const profile="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const second="cccccccc-cccc-4ccc-8ccc-cccccccccccc";
@@ -45,4 +46,23 @@ test("booking all-day validation uses Stockholm midnight across DST and excludes
  for(const [startsAt,endsAt] of [["2026-03-28T23:00:00Z","2026-03-29T22:00:00Z"],["2026-10-24T22:00:00Z","2026-10-25T23:00:00Z"]])
   assert.equal(validateCreateBooking({...input(),startsAt,endsAt,allDay:true}).ok,true);
  assert.equal(validateCreateBooking({...input(),startsAt:"2026-03-29T00:00:00Z",endsAt:"2026-03-30T00:00:00Z",allDay:true}).ok,false);
+});
+test("editor command identity includes stable create ID and business decision, excluding receipt transport",()=>{
+ const decision={acknowledged:true,reviewedLogicalIds:["warning-b","warning-a"],selectedLogicalIds:["warning-a"],reason:"  Samordning  "};
+ const first=validateCreateBooking({...input(),proposedBookingId:second,editorReview:{receipt:"receipt-one",decision}});
+ const renewed=validateCreateBooking({...input(),proposedBookingId:second.toUpperCase(),editorReview:{receipt:"receipt-two",decision:{...decision,reviewedLogicalIds:["warning-a","warning-b"],reason:"Samordning"}}});
+ assert.equal(first.ok,true); assert.equal(renewed.ok,true);
+ if(!first.ok||!renewed.ok)return;
+ assert.equal(canonicalBookingPayload(first.data),canonicalBookingPayload(renewed.data));
+ const changed=validateCreateBooking({...input(),proposedBookingId:second,editorReview:{receipt:"receipt-one",decision:{...decision,reason:"Annan orsak"}}});
+ assert.equal(changed.ok,true); if(changed.ok)assert.notEqual(canonicalBookingPayload(first.data),canonicalBookingPayload(changed.data));
+ for(const review of [{receipt:"r",decision:{...decision,actorId:profile}}, {receipt:"r",decision,signature:"forged"}])
+  assert.equal(validateCreateBooking({...input(),editorReview:review}).ok,false);
+ assert.equal(validateUpdateBooking({...input(),bookingId:profile,proposedBookingId:second}).ok,false);
+});
+test("implicit stable create UUID retains tenant-scoped command identity",()=>{
+ const first=proposedBookingIdentity(profile,commandId);
+ assert.equal(first,proposedBookingIdentity(profile.toUpperCase(),commandId.toUpperCase()));
+ assert.notEqual(first,proposedBookingIdentity(second,commandId));
+ assert.match(first,/^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
 });

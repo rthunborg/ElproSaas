@@ -3,7 +3,7 @@
  * facts, detection, signatures, SQL replies or durable results.
  */
 import { createHash } from "node:crypto";
-import { parseDetectionSnapshot, snapshotBookingConflicts, previewBookingConflicts, conflictClaims,
+import { parseDetectionSnapshot, snapshotBookingConflicts, previewBookingConflicts, deriveBookingConflicts, conflictClaims,
   type BookingRpcArgs, type DetectionSnapshot as ProductionSnapshot, type BookingRpcClient } from "@/server/bookings/conflict-facts";
 import { signConflictOutput } from "@/server/bookings/conflict-attestation";
 import { validateCreateBooking, validateUpdateBooking, bookingPayload } from "@/server/commands/bookings/validation";
@@ -11,6 +11,10 @@ import { LOCAL_TEST_BOOKING_CONFLICT_KEY_ID, LOCAL_TEST_BOOKING_CONFLICT_SECRET,
 import { bookingCommand, bookingRpcDiagnostic, type BookingInput, type DurableRow } from "./bookings-atdd";
 import type { ConflictBindings, DetectionSnapshot, AttestedAttempt, DerivedConflict, Operation, FinalizeResult } from "./booking-conflicts-atdd";
 import type { TestServerClient } from "../factories/tenants";
+import { editorClaims, signEditorClaims } from "@/server/bookings/editor-preview";
+import { EMPTY_BOOKING_DECISION } from "@/features/resources/booking-editor-input";
+import { proposedBookingIdentity } from "@/server/bookings/create-identity";
+import { reviewedFixtureInput } from "./booking-editor-production";
 
 function payload(op: Operation, input: BookingInput) {
   const valid = op === "create" ? validateCreateBooking(input) : validateUpdateBooking(input);
@@ -41,22 +45,34 @@ function canonicalInstant(value: string): string {
 }
 function args(snapshot: DetectionSnapshot, input: BookingInput): BookingRpcArgs {
   return { p_tenant_id: snapshot.tenantId, p_actor_id: snapshot.actorId, p_correlation_id: snapshot.correlationId,
-    p_command_id: input.commandId, ...(input.bookingId ? { p_booking_id: input.bookingId } : {}), p_payload: payload(input.bookingId ? "update" : "create", input) };
+    p_command_id: input.commandId, p_proposed_id: input.proposedBookingId ?? proposedBookingIdentity(snapshot.tenantId,input.commandId),
+    ...(input.bookingId ? { p_booking_id: input.bookingId } : {}), p_payload: payload(input.bookingId ? "update" : "create", input) };
 }
 
 /** Direct checked RPC positive control; raw payload still reaches the SQL validator. */
 export async function authoritativeBookingRpc(op: Operation, client: TestServerClient, input: BookingInput,
   tenantId: string, actorId: string | null, correlationId = crypto.randomUUID()) {
-  const { commandId, bookingId, ...rawPayload } = input;
+  let reviewed = input;
+  try { reviewed = input.editorReview ? input : await reviewedFixtureInput(client, op, input); }
+  catch { /* Raw checked SQL remains the authority on malformed/unauthorized inputs. */ }
+  const { commandId, bookingId, proposedBookingId, editorReview, ...rawPayload } = reviewed;
   const rpcArgs = { p_tenant_id: tenantId, p_actor_id: actorId, p_correlation_id: correlationId,
-    p_command_id: commandId, p_booking_id: op === "update" ? bookingId : null, p_payload: rawPayload };
-  const snapshot = await client.rpc("snapshot_booking_conflicts", { ...rpcArgs, p_key_id: LOCAL_TEST_BOOKING_CONFLICT_KEY_ID });
+    p_command_id: commandId, p_booking_id: op === "update" ? bookingId : null,
+    p_proposed_id: proposedBookingId ?? proposedBookingIdentity(tenantId,commandId), p_payload: rawPayload };
+  const snapshot = await client.rpc("snapshot_booking_editor", { ...rpcArgs, p_key_id: LOCAL_TEST_BOOKING_CONFLICT_KEY_ID,
+    p_decision: editorReview?.decision ?? null });
   if (snapshot.error) return snapshot;
   const parsed = parseDetectionSnapshot(snapshot.data);
   if (parsed.kind === "replay") return { data: parsed.result, error: null };
   const outputText = JSON.stringify(previewBookingConflicts(parsed));
   const signature = signConflictOutput(conflictClaims(parsed), outputText, LOCAL_TEST_BOOKING_CONFLICT_SECRET);
-  const finalized = await observedRpc(client, "finalize_booking_conflicts", { ...rpcArgs, p_claims: conflictClaims(parsed), p_output: outputText, p_signature: signature });
+  const groups = deriveBookingConflicts(parsed).groups;
+  const review = editorClaims(parsed, groups);
+  const ids = groups.map((g) => g.logicalId);
+  const decision = editorReview?.decision ?? (ids.length ? { acknowledged: true, reviewedLogicalIds: ids, selectedLogicalIds: [], reason: "Deliberately reviewed direct fixture warnings" } : EMPTY_BOOKING_DECISION);
+  const finalized = await observedRpc(client, "finalize_booking_editor", { ...rpcArgs, p_claims: conflictClaims(parsed), p_output: outputText, p_signature: signature,
+    p_review_claims: conflictClaims(review), p_review_groups: JSON.stringify(groups),
+    p_review_signature: signEditorClaims(review, LOCAL_TEST_BOOKING_CONFLICT_SECRET), p_decision: decision });
   if (finalized.error) return finalized;
   const result = finalized.data as { kind: string; bookingId: string };
   return result.kind === "committed" ? { data: { bookingId: result.bookingId }, error: null }
@@ -77,6 +93,12 @@ export async function actualConflictBindings(): Promise<ConflictBindings> {
     { name: "booking_conflict_key_internal", signature: "public.booking_conflict_key_internal(text)", args: { p_key_id: "test_v1" } },
     { name: "booking_conflict_output_internal", signature: "public.booking_conflict_output_internal(uuid,uuid,jsonb,text)", args: { p_tenant_id: emptyUuid, p_booking_id: emptyUuid, p_payload: {}, p_output: "[]" } },
     { name: "booking_commit_conflicts_internal", signature: "public.booking_commit_conflicts_internal(uuid,uuid,uuid,uuid,uuid,jsonb,uuid,jsonb)", args: { p_tenant_id: emptyUuid, p_actor_id: emptyUuid, p_correlation_id: emptyUuid, p_command_id: emptyUuid, p_booking_id: null, p_payload: {}, p_proposed_id: emptyUuid, p_conflicts: [] } },
+    { name: "booking_editor_decision_internal", signature: "public.booking_editor_decision_internal(jsonb)", args: { p_decision: null } },
+    { name: "booking_editor_digest_internal", signature: "public.booking_editor_digest_internal(uuid,uuid,jsonb,jsonb)", args: { p_booking_id: null, p_proposed_id: emptyUuid, p_payload: {}, p_decision: null } },
+    { name: "booking_editor_replay_internal", signature: "public.booking_editor_replay_internal(uuid,uuid,uuid,uuid,uuid,jsonb,jsonb)", args: { p_tenant_id: emptyUuid, p_actor_id: emptyUuid, p_command_id: emptyUuid, p_booking_id: null, p_proposed_id: emptyUuid, p_payload: {}, p_decision: null } },
+    { name: "booking_editor_proof_bytes_internal", signature: "public.booking_editor_proof_bytes_internal(jsonb,text)", args: { p_claims: {}, p_groups: "[]" } },
+    { name: "booking_editor_groups_internal", signature: "public.booking_editor_groups_internal(jsonb,jsonb,uuid)", args: { p_groups: [], p_output: [], p_candidate: emptyUuid } },
+    { name: "booking_commit_editor_internal", signature: "public.booking_commit_editor_internal(uuid,uuid,uuid,uuid,uuid,jsonb,uuid,jsonb,jsonb,jsonb)", args: { p_tenant_id: emptyUuid, p_actor_id: emptyUuid, p_correlation_id: emptyUuid, p_command_id: emptyUuid, p_booking_id: null, p_payload: {}, p_proposed_id: emptyUuid, p_conflicts: [], p_groups: [], p_decision: null } },
   ];
   return {
     sourceEvidence: ["src/server/bookings/conflict-facts.ts", "src/server/bookings/save-with-conflicts.ts", "src/server/bookings/conflict-attestation.ts"],
@@ -105,14 +127,21 @@ export async function actualConflictBindings(): Promise<ConflictBindings> {
     async finalize(client, input, attempt) {
       if (!attempt) {
         const actor = await identity(client);
-        const denied = await observedRpc(client, "finalize_booking_conflicts", { p_tenant_id: actor.tenantId, p_actor_id: actor.actorId,
+        const denied = await observedRpc(client, "finalize_booking_editor", { p_tenant_id: actor.tenantId, p_actor_id: actor.actorId,
           p_correlation_id: crypto.randomUUID(), p_command_id: input.commandId, p_booking_id: input.bookingId ?? null,
-          p_payload: payload(input.bookingId ? "update" : "create", input), p_claims: null, p_output: null, p_signature: null });
+          p_proposed_id: proposedBookingIdentity(actor.tenantId,input.commandId), p_payload: payload(input.bookingId ? "update" : "create", input),
+          p_claims: null, p_output: null, p_signature: null, p_review_claims: null, p_review_groups: null, p_review_signature: null, p_decision: null });
         if (denied.error) return { kind: "denied", code: denied.error.code ?? "SERVER_ERROR" };
         throw new Error("Missing proof unexpectedly accepted");
       }
-      const { data, error } = await observedRpc(client, "finalize_booking_conflicts", { ...args(attempt.snapshot, input), p_booking_id: input.bookingId ?? null,
-        p_claims: conflictClaims(attempt.snapshot), p_output: attempt.outputText, p_signature: attempt.signature });
+      const derived = deriveBookingConflicts(attempt.snapshot as ProductionSnapshot);
+      const review = editorClaims(attempt.snapshot as ProductionSnapshot, derived.groups);
+      const ids = derived.groups.map((g) => g.logicalId);
+      const decision = ids.length ? { acknowledged: true, reviewedLogicalIds: ids, selectedLogicalIds: [], reason: "Deliberately reviewed signed fixture warnings" } : EMPTY_BOOKING_DECISION;
+      const { data, error } = await observedRpc(client, "finalize_booking_editor", { ...args(attempt.snapshot, input), p_booking_id: input.bookingId ?? null,
+        p_claims: conflictClaims(attempt.snapshot), p_output: attempt.outputText, p_signature: attempt.signature,
+        p_review_claims: conflictClaims(review), p_review_groups: JSON.stringify(review.groups),
+        p_review_signature: signEditorClaims(review, LOCAL_TEST_BOOKING_CONFLICT_SECRET), p_decision: decision });
       return error ? { kind: "denied", code: error.code ?? "SERVER_ERROR" } : data as FinalizeResult;
     },
     async observeCommand(client, op, input, correlationId, afterSnapshot) {
@@ -120,29 +149,35 @@ export async function actualConflictBindings(): Promise<ConflictBindings> {
       let snapshot: DetectionSnapshot | undefined;
       const proxy = new Proxy(client, { get(target, property) {
         if (property === "rpc") return async (name: string, rpcArgs: Record<string, unknown>) => {
-          if (name === "finalize_booking_conflicts") {
+          if (name === "finalize_booking_editor") {
             if (!snapshot) throw new Error("Actual command did not snapshot");
             const attempt: AttestedAttempt = { snapshot, outputText: String(rpcArgs.p_output), signature: String(rpcArgs.p_signature) };
             await afterSnapshot(attempt, snapshots.length - 1);
           }
           const response = await target.rpc(name, rpcArgs);
-          if (name === "snapshot_booking_conflicts" && !response.error) {
+          if (name === "snapshot_booking_editor" && !response.error) {
             const parsed = parseDetectionSnapshot(response.data);
             if (parsed.kind === "snapshot") { snapshot = parsed; snapshots.push(parsed); }
           }
-          if (name === "finalize_booking_conflicts" && !response.error) finalizations.push(response.data as FinalizeResult);
+          if (name === "finalize_booking_editor" && !response.error) finalizations.push(response.data as FinalizeResult);
           return response;
         };
         const value = Reflect.get(target, property, target);
         return typeof value === "function" ? value.bind(target) : value;
       } });
-      const result = await bookingCommand(op, proxy, input, correlationId);
+      // Issue deliberate preview before installing the finalization observer, so
+      // snapshot counts refer to actual authoritative save attempts only.
+      const reviewed = input.editorReview ? input : await reviewedFixtureInput(client, op, input);
+      const result = await bookingCommand(op, proxy, reviewed, correlationId);
       return { result, snapshots, finalizations };
     },
     normalizedRows,
     sqlInventory: { checked: [
       { name: "snapshot_booking_conflicts", signature: "public.snapshot_booking_conflicts(uuid,uuid,uuid,uuid,uuid,jsonb,text)", args: snapshotArgs },
       { name: "finalize_booking_conflicts", signature: "public.finalize_booking_conflicts(uuid,uuid,uuid,uuid,uuid,jsonb,jsonb,text,text)", args: { ...snapshotArgs, p_key_id: undefined, p_claims: {}, p_output: "[]", p_signature: "" } },
+      { name: "snapshot_booking_editor", signature: "public.snapshot_booking_editor(uuid,uuid,uuid,uuid,uuid,uuid,jsonb,text,jsonb)", args: { ...snapshotArgs, p_proposed_id: emptyUuid, p_decision: null } },
+      { name: "finalize_booking_editor", signature: "public.finalize_booking_editor(uuid,uuid,uuid,uuid,uuid,uuid,jsonb,jsonb,text,text,jsonb,text,text,jsonb)", args: { ...snapshotArgs, p_key_id: undefined, p_proposed_id: emptyUuid, p_claims: {}, p_output: "[]", p_signature: "", p_review_claims: null, p_review_groups: null, p_review_signature: null, p_decision: null } },
+      { name: "booking_editor_people", signature: "public.booking_editor_people(uuid,uuid)", args: { p_tenant_id: emptyUuid,p_actor_id: emptyUuid } },
     ], private: helpers },
     async prepareInvitationWriter(fx) {
       const operationId = crypto.randomUUID(); const tokenHash = createHash("sha256").update(crypto.randomUUID()).digest("hex");

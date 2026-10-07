@@ -11,5 +11,5 @@ export const updateBooking = defineCommand<UpdateBookingInput, BookingResult>({
     p_tenant_id: ctx.tenantContext.tenantId, p_actor_id: ctx.tenantContext.userId,
     p_correlation_id: ctx.correlationId, p_command_id: ctx.input.commandId,
     p_booking_id: ctx.input.bookingId, p_payload: bookingPayload(ctx.input),
-  }),
+  }, ctx.input.editorReview),
 });

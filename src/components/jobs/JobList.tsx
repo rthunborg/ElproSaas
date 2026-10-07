@@ -19,7 +19,7 @@
  * token/route list). Status is conveyed as TEXT (a11y — WCAG 1.4.1: never color alone). NO new nav
  * item — "Jobb/Order" already exists in the seven-item shell.
  */
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormErrorSummary, SelectField, TextField } from "@/components/crm/FormField";
@@ -51,6 +51,7 @@ export function JobList({
   loadError,
   customerOptions,
   optionsLoadError = false,
+  bookingPanel,
 }: {
   readonly rows: readonly JobListRow[];
   readonly loadError: string | null;
@@ -60,6 +61,7 @@ export function JobList({
    * "no customers exist", so the form shows a neutral retry message instead of the misleading
    * add-a-customer hint (submit stays disabled). */
   readonly optionsLoadError?: boolean;
+  readonly bookingPanel?: ReactNode;
 }) {
   const router = useRouter();
   const [customerFilter, setCustomerFilter] = useState("");
@@ -146,6 +148,8 @@ export function JobList({
           Skapa nytt jobb
         </button>
       </div>
+
+      {bookingPanel}
 
       {loadError && (
         <p
