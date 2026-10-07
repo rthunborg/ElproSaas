@@ -585,3 +585,86 @@ test("[P0] rejects unsupported producer schedules before tenant work can create 
   );
   assert.deepEqual(writes, []);
 });
+
+test("[P0] all cursor lookup failures keep producer and terminal runner outcomes failed", async () => {
+  for (const cursor of [undefined, encodeCursor(0, 0, [producer.id], "tenant-a")]) {
+    const writes: JobRunRecord[] = [];
+    const result = await runDueProducers({
+      listTenantIds: async () => ["tenant-a", "tenant-b"],
+      loadProducerCursor: async () => { throw new Error("Cursor read failed (producer; non_transient; HTTP 403)"); },
+      execute: async () => { assert.fail("failed lookup must not dispatch"); },
+      record: async (record) => { writes.push(record); },
+      now: () => dueWindow,
+    }, { cursor, producers: [producer], windowStartedAt: dueWindow });
+    assert.deepEqual(result, { outcome: "failed" });
+    assert.deepEqual(writes.map((row) => row.outcome), ["failed", "failed", "failed"]);
+    assert.ok(writes.every((row) => row.cursor === undefined));
+    assert.equal(writes.at(-1)?.errorSummary, "Background runner encountered producer failures");
+  }
+});
+
+test("[P0] partial continuation retains failure evidence after an earlier lookup failure", async () => {
+  const writes: JobRunRecord[] = [];
+  const result = await runDueProducers({
+    listTenantIds: async () => ["tenant-a", "tenant-b", "tenant-c"],
+    loadProducerCursor: async (_candidate, tenant) => { if (tenant === "tenant-a") throw new Error("lookup failed"); return undefined; },
+    execute: async () => undefined,
+    record: async (record) => { writes.push(record); },
+  }, { producers: [producer], chunkSize: 1, windowStartedAt: dueWindow });
+  assert.equal(result.outcome, "partial");
+  assert.equal(writes[0]?.outcome, "failed");
+  assert.equal(writes.at(-1)?.outcome, "partial");
+  assert.equal(writes.at(-1)?.errorSummary, "Background runner encountered producer failures");
+});
+
+test("[P0] late no-work deadline cannot clear a failure from an earlier cursor lookup", async () => {
+  let elapsed = 0; const writes: JobRunRecord[] = [];
+  const hourly = { ...producer, schedule: "0 * * * *" };
+  const start = new Date("2030-01-01T12:01:00.000Z");
+  const result = await runDueProducers({
+    listTenantIds: async () => ["tenant-a", "tenant-b"],
+    loadProducerCursor: async (_candidate, tenant) => {
+      if (tenant === "tenant-a") throw new Error("lookup failed");
+      elapsed = 100; return undefined;
+    },
+    execute: async () => { assert.fail("off-schedule work cannot dispatch"); },
+    record: async (record) => { writes.push(record); },
+    now: () => new Date(start.getTime() + elapsed),
+  }, { producers: [hourly], windowStartedAt: start, deadline: new Date(start.getTime() + 100) });
+  assert.deepEqual(result, { outcome: "failed" });
+  assert.deepEqual(writes.map((row) => row.outcome), ["failed", "failed"]);
+});
+
+test("[P0] cancellation after a mocked successful cursor read cannot dispatch or write a failed cursor", async () => {
+  const controller = new AbortController(); const writes: JobRunRecord[] = [];
+  const result = await runDueProducers({
+    listTenantIds: async () => ["tenant-a"],
+    loadProducerCursor: async () => { controller.abort(); return "saved-page"; },
+    execute: async () => { assert.fail("cancelled lookup cannot dispatch"); },
+    record: async (record) => { writes.push(record); },
+  }, { producers: [producer], windowStartedAt: dueWindow, signal: controller.signal });
+  assert.deepEqual(result, { outcome: "partial", cursor: encodeCursor(0, 0, [producer.id], "tenant-a") });
+  assert.equal(writes[0]?.outcome, "failed");
+  assert.equal(writes[0]?.cursor, undefined);
+  assert.equal(writes.at(-1)?.outcome, "partial");
+  assert.equal(writes.at(-1)?.errorSummary, "Background runner encountered producer failures");
+});
+
+test("[P0] partial and terminal summaries include earlier work and exclude their own persistence", async () => {
+  for (const terminal of [false, true]) {
+    let elapsed = 10; const writes: JobRunRecord[] = [];
+    const start = new Date("2030-01-01T12:00:00.000Z");
+    const result = await runDueProducers({
+      listTenantIds: async () => { elapsed += 20; return ["tenant-a", "tenant-b"]; },
+      loadProducerCursor: async () => { elapsed += 30; return undefined; },
+      execute: async () => { elapsed += 40; },
+      record: async (record) => { writes.push(record); elapsed += 50; },
+      now: () => new Date(start.getTime() + elapsed),
+    }, { producers: [producer], windowStartedAt: start, chunkSize: terminal ? 2 : 1 });
+    assert.equal(result.outcome, terminal ? "completed" : "partial");
+    const summary = writes.at(-1)!;
+    assert.equal(summary.startedAt, start.toISOString());
+    assert.equal(summary.finishedAt, new Date(start.getTime() + (terminal ? 270 : 150)).toISOString());
+    assert.equal(elapsed, terminal ? 320 : 200);
+  }
+});
