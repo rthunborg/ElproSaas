@@ -488,3 +488,61 @@ test.describe("19.1 onboarding composition and accessible responsive layout", ()
     }
   }
 });
+
+test("[P1] 19.1-E2E-011 successive failed retries recover in the same session [AC7]", async ({ page }) => {
+  const data = scenario("retry-failure");
+  const expected = await source(data);
+  const before = await mutations(data.tenantId);
+  // Fresh revisions make this independent of the earlier retry-failure case and repeat-each.
+  armReadPlan(data.user.id, { quote_events: [{ outcome: "error" }] });
+  try {
+    await login(page, data.user);
+    const pipeline = card(page);
+    const retry = pipeline.getByRole("button", { name: "Försök igen", exact: true });
+    await expect(pipeline.getByRole("alert")).toContainText("Kunde inte läsa offertpipeline");
+    for (const outcome of ["error", "error", "pass"] as const) {
+      await expect(retry).toBeEnabled();
+      await hydrated(retry);
+      // The root-owned proxy holds the actual server read, not a browser response mock.
+      const revision = armReadPlan(data.user.id, { quote_events: [{ outcome, hold: true }] });
+      let releasedAt = 0;
+      try {
+        await retry.click();
+        await expect(pipeline).toHaveAttribute("aria-busy", "true");
+        await expect(pipeline.getByRole("status")).toHaveAttribute("aria-live", "polite");
+        await expect(pipeline.getByRole("status")).toContainText("Läser offertpipeline");
+        await expect(pipeline.getByRole("alert")).toHaveCount(0);
+        await expect(pipeline.getByRole("button", { name: "Försök igen", exact: true })).toHaveCount(0);
+        await expect(pipeline.locator("time")).toHaveCount(0);
+        await expect(pipeline.getByText(/Hämtad|Inga offerthändelser|Skickade|Accepterat värde/)).toHaveCount(0);
+      } finally {
+        releasedAt = Date.now();
+        releaseRead(revision);
+      }
+      if (outcome === "error") {
+        await expect(pipeline.getByRole("alert")).toContainText("Kunde inte läsa offertpipeline");
+        await expect(retry).toBeEnabled();
+        await expect(pipeline).not.toHaveAttribute("aria-busy", "true");
+        await expect(pipeline.locator("time")).toHaveCount(0);
+        await expect(pipeline.getByText(/Hämtad|Inga offerthändelser|Skickade|Accepterat värde|0,00/)).toHaveCount(0);
+        await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
+      } else {
+        await expect(pipeline.getByRole("alert")).toHaveCount(0);
+        await expect(retry).toHaveCount(0);
+        await expect(pipeline).not.toHaveAttribute("aria-busy", "true");
+        await expect(pipeline.getByLabel("Skickade", { exact: true })).toHaveText(String(expected.sentCount));
+        await expect(pipeline.getByLabel("Accepterade", { exact: true })).toHaveText(String(expected.acceptedCount));
+        await expect(pipeline.getByLabel("Förlorade", { exact: true })).toHaveText(String(expected.lostCount));
+        await expect(pipeline.getByLabel("Accepterat värde", { exact: true })).toContainText(formatOreAsKronor(expected.acceptedValueOre));
+        await expect(pipeline.getByText(/^Hämtad /)).toBeVisible();
+        const completed = Date.parse((await pipeline.locator("time").getAttribute("datetime"))!);
+        expect(completed).toBeGreaterThanOrEqual(releasedAt);
+        expect(completed).toBeLessThanOrEqual(Date.now());
+      }
+    }
+    expect(await mutations(data.tenantId)).toEqual(before);
+  } finally {
+    // Keep this synthetic subject unavailable for any later repeat without retaining a hold.
+    armReadPlan(data.user.id, { quote_events: [{ outcome: "error" }] });
+  }
+});

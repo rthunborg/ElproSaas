@@ -9,17 +9,17 @@ spec_folder: null
 story_id: null
 branch: codex/19-1-widget-registry-and-dashboard-framework
 status: in-progress
-updated_at: "2026-10-07T19:53:11Z"
+updated_at: "2026-10-07T20:04:30Z"
 started_at: "2026-10-07T14:07:05Z"
 completed_at: null
-active_seconds: 7807
-timing_anchor: 1791402791
+active_seconds: 8486
+timing_anchor: 1791403470
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: tea_per_story
-selected_role: tea-delegate
+selected_phase: followup_review
+selected_role: primary-reviewer
 selected_profile: standard
 selected_model: gpt-6.1-sol
 selected_effort: high
@@ -33,12 +33,13 @@ routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: permissions, tenant-isolation\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: permissions, tenant-isolation\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: permissions, tenant-isolation\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: permissions, tenant-isolation\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: high
 tea_selected: [atdd, automate]
 tea_rationale: Required capability and quote-amount entitlement gates are authorization-sensitive
 epic_story_count: 2
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2, 3, 4, 5]
+completed_phases: [0, 1, 2, 3, 4, 5, 6]
 spec_path: "C:/Users/Rasmus/.codex/worktrees/story19-1-dashboard/ElproSaas/_bmad-output/implementation-artifacts/spec-19-1-dashboard-framework-and-quote-pipeline.md"
 spec_approved: true
 build:

@@ -382,3 +382,222 @@ test("[P1] 19.1-UNIT-015 AC7 repeated failed reads repeat authority without any 
   assertUnavailable(pipeline(first));
   assertUnavailable(pipeline(second));
 });
+
+/**
+ * Story 19.1 Automate: callable server-API overlap coverage.
+ * This module has no dashboard HTTP endpoint; reuse its Node runner and existing
+ * injected server seams. Real authenticated/RLS behavior remains in dashboard-pipeline.rls.test.ts.
+ * playwright-utils mandate inactive: package absent and this file uses node:test.
+ */
+function dashboardDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => { resolve = done; });
+  return { promise, resolve };
+}
+async function awaitDashboardReaders(signal: AbortSignal, started: readonly Promise<void>[]) {
+  if (signal.aborted) throw signal.reason;
+  let onAbort!: () => void;
+  const cancelled = new Promise<never>((_resolve, reject) => {
+    onAbort = () => reject(signal.reason);
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+  try { await Promise.race([Promise.all(started), cancelled]); }
+  finally { signal.removeEventListener("abort", onAbort); }
+}
+function dashboardRequestContext(role: string, tenantId: string, userId: string): ContextResult {
+  const result = contextFactory([role], tenantId);
+  assert.ok(result.ok);
+  result.data.userId = userId;
+  return result;
+}
+
+for (const startedFirst of ["admin", "seller"] as const) {
+  test("[P0] 19.1-AUTO-API-001-" + startedFirst + " AC2/4/5 overlapping identities finish in reverse order without sharing authority, counts or serialized money",
+    { timeout: 5_000 }, async (t) => {
+      const readDashboard = await loadDashboard();
+      const adminClient = { marker: "overlap-admin-client" };
+      const sellerClient = { marker: "overlap-seller-client" };
+      const adminInput = await resultFactory(["tenant_admin"]);
+      const sellerInput = await resultFactory(["saljare"]);
+      assert.ok(adminInput.ok && sellerInput.ok);
+      const adminPeriod = { from: "2026-06-01", to: "2026-06-30" };
+      const sellerPeriod = { from: "2026-07-01", to: "2026-07-31" };
+      const ADMIN_SENT = 11;
+      const SELLER_SENT = 29;
+      const SELLER_COMPLETED = "2026-10-07T12:00:08.000Z";
+      adminInput.data.descriptor.data.sentCount = ADMIN_SENT;
+      adminInput.data.descriptor.data.period = adminPeriod;
+      sellerInput.data.descriptor.data.sentCount = SELLER_SENT;
+      sellerInput.data.descriptor.data.period = sellerPeriod;
+      sellerInput.data.completedAt = SELLER_COMPLETED;
+      const adminEntered = dashboardDeferred<void>();
+      const sellerEntered = dashboardDeferred<void>();
+      const adminRelease = dashboardDeferred<void>();
+      const sellerRelease = dashboardDeferred<void>();
+      const authorityClients: unknown[] = [];
+      const readerClients: unknown[] = [];
+      const completed: string[] = [];
+      const pending: Promise<Dashboard>[] = [];
+      const start = (identity: "admin" | "seller") => {
+        const isAdmin = identity === "admin";
+        const client = isAdmin ? adminClient : sellerClient;
+        const role = isAdmin ? "tenant_admin" : "saljare";
+        const read = readDashboard({
+          client, now: NOW,
+          resolveContext: async (options) => {
+            assert.equal(options?.client, client, "authority must use this request's client");
+            authorityClients.push(options?.client);
+            return dashboardRequestContext(role, "tenant-overlap-" + identity, "user-overlap-" + identity);
+          },
+          readPipeline: async (_period, entitlements, deps) => {
+            assert.deepEqual(entitlements?.roles, [role], "loader must retain this identity's resolved roles");
+            assert.equal(entitlements?.moneyEntitled, undefined);
+            assert.equal(deps?.client, client, "overlap cannot replace the request-bound RLS client");
+            assert.equal(deps?.now, NOW);
+            readerClients.push(deps?.client);
+            (isAdmin ? adminEntered : sellerEntered).resolve(undefined);
+            await (isAdmin ? adminRelease : sellerRelease).promise;
+            return isAdmin ? adminInput : sellerInput;
+          },
+        }).then((result) => { completed.push(identity); return result; });
+        pending.push(read);
+        return read;
+      };
+      try {
+        const first = start(startedFirst);
+        const finishedFirst = startedFirst === "admin" ? "seller" : "admin";
+        const second = start(finishedFirst);
+        await awaitDashboardReaders(t.signal, [adminEntered.promise, sellerEntered.promise]);
+        assert.equal(authorityClients.length, 2, "each overlapping request resolves its own authority");
+        assert.equal(readerClients.length, 2, "each eligible request invokes its own reader");
+        assert.deepEqual(completed, [], "both calls must be pending before controlled completion");
+        (finishedFirst === "admin" ? adminRelease : sellerRelease).resolve(undefined);
+        const secondResult = await second;
+        assert.deepEqual(completed, [finishedFirst]);
+        const secondSerialized = JSON.stringify(secondResult);
+        (startedFirst === "admin" ? adminRelease : sellerRelease).resolve(undefined);
+        const firstResult = await first;
+        assert.deepEqual(completed, [finishedFirst, startedFirst]);
+        assert.equal(JSON.stringify(secondResult), secondSerialized,
+          "a later request completion must not mutate an already returned browser DTO");
+        const adminResult = startedFirst === "admin" ? firstResult : secondResult;
+        const sellerResult = startedFirst === "seller" ? firstResult : secondResult;
+        const adminData = success(pipeline(adminResult));
+        const sellerData = success(pipeline(sellerResult));
+        assert.equal(adminData.descriptor.data.sentCount, ADMIN_SENT);
+        assert.deepEqual(adminData.descriptor.data.period, adminPeriod);
+        assert.equal(adminData.descriptor.data.acceptedValueOre, SECRET_ORE);
+        assert.deepEqual(adminData.descriptor.entitlements.withheld, []);
+        assert.equal(adminData.completedAt, COMPLETED);
+        assert.equal(sellerData.descriptor.data.sentCount, SELLER_SENT);
+        assert.deepEqual(sellerData.descriptor.data.period, sellerPeriod);
+        assert.equal(Object.hasOwn(sellerData.descriptor.data, "acceptedValueOre"), false);
+        assert.deepEqual(sellerData.descriptor.entitlements.withheld, ["acceptedValueOre"]);
+        assert.equal(sellerData.completedAt, SELLER_COMPLETED);
+        assert.doesNotMatch(JSON.stringify(sellerResult), /765432109|tenant-overlap-admin|user-overlap-admin/);
+        assert.doesNotMatch(JSON.stringify(adminResult), /tenant-overlap-seller|user-overlap-seller/);
+      } finally {
+        adminRelease.resolve(undefined);
+        sellerRelease.resolve(undefined);
+        await Promise.allSettled(pending);
+      }
+    });
+}
+
+for (const failureCompletes of ["first", "last"] as const) {
+  test("[P1] 19.1-AUTO-API-002-failure-" + failureCompletes + " AC6 overlapping failed read cannot corrupt another identity's healthy result or serialized DTO",
+    { timeout: 5_000 }, async (t) => {
+      const readDashboard = await loadDashboard();
+      const failedClient = { marker: "overlap-failed-client" };
+      const healthyClient = { marker: "overlap-healthy-client" };
+      const HEALTHY_SENT = 23;
+      const HEALTHY_ACCEPTED_ORE = 31415926;
+      const healthyInput = await resultFactory(["tenant_admin"]);
+      assert.ok(healthyInput.ok);
+      healthyInput.data.descriptor.data.sentCount = HEALTHY_SENT;
+      healthyInput.data.descriptor.data.acceptedValueOre = HEALTHY_ACCEPTED_ORE;
+      const failedEntered = dashboardDeferred<void>();
+      const healthyEntered = dashboardDeferred<void>();
+      const failedRelease = dashboardDeferred<void>();
+      const healthyRelease = dashboardDeferred<void>();
+      const completed: string[] = [];
+      const pending: Promise<Dashboard>[] = [];
+      let authorityReads = 0;
+      let readerCalls = 0;
+      try {
+        const failed = readDashboard({
+          client: failedClient, now: NOW,
+          resolveContext: async (options) => {
+            assert.equal(options?.client, failedClient);
+            authorityReads += 1;
+            return dashboardRequestContext("saljare", "tenant-overlap-failed", "user-overlap-failed");
+          },
+          readPipeline: async (_period, entitlements, deps) => {
+            assert.deepEqual(entitlements?.roles, ["saljare"]);
+            assert.equal(deps?.client, failedClient);
+            readerCalls += 1;
+            failedEntered.resolve(undefined);
+            await failedRelease.promise;
+            throw new Error(ERROR_DETAIL);
+          },
+        }).then((result) => { completed.push("failed"); return result; });
+        pending.push(failed);
+        const healthy = readDashboard({
+          client: healthyClient, now: NOW,
+          resolveContext: async (options) => {
+            assert.equal(options?.client, healthyClient);
+            authorityReads += 1;
+            return dashboardRequestContext("tenant_admin", "tenant-overlap-healthy", "user-overlap-healthy");
+          },
+          readPipeline: async (_period, entitlements, deps) => {
+            assert.deepEqual(entitlements?.roles, ["tenant_admin"]);
+            assert.equal(deps?.client, healthyClient);
+            readerCalls += 1;
+            healthyEntered.resolve(undefined);
+            await healthyRelease.promise;
+            return healthyInput;
+          },
+        }).then((result) => { completed.push("healthy"); return result; });
+        pending.push(healthy);
+        await awaitDashboardReaders(t.signal, [failedEntered.promise, healthyEntered.promise]);
+        assert.equal(authorityReads, 2);
+        assert.equal(readerCalls, 2);
+        assert.deepEqual(completed, []);
+        let healthyResult: Dashboard;
+        let failedResult: Dashboard;
+        if (failureCompletes === "first") {
+          failedRelease.resolve(undefined);
+          failedResult = await failed;
+          assert.deepEqual(completed, ["failed"]);
+          assertUnavailable(pipeline(failedResult));
+          const failedSerialized = JSON.stringify(failedResult);
+          healthyRelease.resolve(undefined);
+          healthyResult = await healthy;
+          assert.equal(JSON.stringify(failedResult), failedSerialized,
+            "later success must not fill a failed request's DTO with another identity's data");
+        } else {
+          healthyRelease.resolve(undefined);
+          healthyResult = await healthy;
+          assert.deepEqual(completed, ["healthy"]);
+          const healthySerialized = JSON.stringify(healthyResult);
+          failedRelease.resolve(undefined);
+          failedResult = await failed;
+          assert.equal(JSON.stringify(healthyResult), healthySerialized,
+            "later failure must not replace another identity's already returned successful DTO");
+        }
+        assert.deepEqual(completed, failureCompletes === "first" ? ["failed", "healthy"] : ["healthy", "failed"]);
+        assertUnavailable(pipeline(failedResult));
+        assert.doesNotMatch(JSON.stringify(failedResult), /31415926|tenant-overlap-healthy|user-overlap-healthy/);
+        const healthyData = success(pipeline(healthyResult));
+        assert.equal(healthyData.descriptor.data.sentCount, HEALTHY_SENT);
+        assert.equal(healthyData.descriptor.data.acceptedValueOre, HEALTHY_ACCEPTED_ORE);
+        assert.deepEqual(healthyData.descriptor.entitlements.withheld, []);
+        assert.equal(healthyData.completedAt, COMPLETED);
+        assert.doesNotMatch(JSON.stringify(healthyResult), /SQL|tenant-private|stack-fixture|tenant-overlap-failed|user-overlap-failed/);
+      } finally {
+        failedRelease.resolve(undefined);
+        healthyRelease.resolve(undefined);
+        await Promise.allSettled(pending);
+      }
+    });
+}
