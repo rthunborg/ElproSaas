@@ -389,7 +389,7 @@ Full tenant refresh remains necessary for peer and aggregate dependencies. The e
 
 ### Execution evidence and remaining blockers stay visible
 
-All four transferred P0/P1 obligations use actual commands and exact durable readbacks. The registration audit withdraws historical exhaustion/distinct-key execution claims; the current complete report actually executes both and all R1 regressions. Safe observers retain actual RPC responses and emit only guard booleans/time deltas. Current full verification passes; historical failures and their causal limits remain separate, and independent follow-up remains required (AC7–12).
+All four transferred P0/P1 obligations use actual commands and exact durable readbacks. The registration audit withdraws historical exhaustion/distinct-key execution claims; the current complete report actually executes both and all R1 regressions. Safe observers retain actual RPC responses and emit only guard booleans/time deltas. Current full verification passes; historical failures and their causal limits remain separate. R2 and independent narrow regression/trail inspections passed; exact empty-chain Epic CI remains required (AC7–12).
 
 Root authorized only immutable generated BMAD Markdown/JSON cache exclusion for canonical lint EPERM; application/test coverage remains intact. Applied migrations stay immutable and the new forward record preserves all94 prior ledger entries.
 
