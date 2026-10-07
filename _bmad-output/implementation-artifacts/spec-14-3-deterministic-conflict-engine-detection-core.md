@@ -2,8 +2,8 @@
 title: 'Story 14.3: Deterministic Conflict Engine (Detection Core)'
 type: 'feature'
 created: '2026-10-06'
-status: 'in-progress'
-baseline_revision: 'a9e2838e80afbd9718c6d907c5518a152b286b1f'
+status: 'in-review'
+baseline_revision: '719ffb2dc74807b9d8c1242e4d383f3e34f665f9'
 review_loop_iteration: 0
 followup_review_recommended: true
 context:
@@ -175,6 +175,10 @@ Routing: all five native reviewer layers and the external Codex reviewer use con
 
 All five native layers and the external Codex layer completed before triage or fixes; the external wrapper's forward-slash `type` retrieval failure was separately retained and its already-written reviewer output recovered with a bounded native-path read. The duplicate aggregate-participant finding was merged. R1 is one completed broad round; two broad rounds remain under the project cap. No additional review round or post-fix independent approval is credited. The same High implementation/fix author implemented all nine corrections, but cumulative patch verification remains blocked. Recommendation is true: three high patches; medium/low score `3 × 5 + 1 = 16`. `review_loop_iteration` remains 0 because no bad-spec re-derivation occurred.
 
+**Round 2 of 3**
+
+Scoped follow-up dispatch verifies the nine Round 1 fixes and regressions, including the current compatible dependency/diagnostic-import repairs. Round 1 remains the one completed broad round; Round 2 is pending reviewer returns and is not credited complete here. `review_loop_iteration: 0` remains the bad-spec re-derivation counter, not the review-round count. Root-approved review context retains original baseline `2a6c9e6d6859987590f2e875f695a75c16125af6`, with the pre-fix `5d61f44c30bbd6eb9e659966b50b69c4dd377d7d` supplemental diff and current working-tree repairs.
+
 ## Auto Run Result
 
 Status: blocked
@@ -282,10 +286,22 @@ CLI-generated immutable forward migration `20261006144057` was applied increment
 
 Affected10-suite diagnostic passes native0:143/143,0failed/skipped. Current full required eight-worker integration fails native1:1366total/1362passed/3failed/1intentional recovery skip; all four transfers and both corrected AC10 names pass in that report. A bounded three-suite diagnostic later fails native1:102total/101passed/1failed/0skipped, capturing genuine future-issued proof at exhaustion. The final authorized receipt workload also fails native1:102/101passed/1failed/0skipped at an original valid signed proof control. Its read-only sampler proves six database wall-clock reversals; same-proof receipt for that direct path remains unavailable. No filtered or later green diagnostic waives the full gate. Canonical source/unit/build/containment/audit/advisor checks pass with counts and exact safe failure diagnostics in [R1 evidence](../test-artifacts/story14-3-verification.md#r1-integrity-fixes-and-current-verification--2026-10-06). No security guard/time bound, timeout/assertion/CI, host time-sync or unrelated quote product behavior was weakened or changed. Root owns terminal status/lifecycle Stop; author result remains incomplete pending failed-gate diagnosis and follow-up inspection.
 
+### Stable-clock R1 verification continuation — 2026-10-07
+
+Canonical Step03 resume baseline was captured directly from Git as `719ffb2dc74807b9d8c1242e4d383f3e34f665f9` before this batch. Original implementation/review scope remains `2a6c9e6d6859987590f2e875f695a75c16125af6`; R1 remains one completed broad round, nine implemented patches and required scoped follow-up. Frozen intent, all historical failed reports and the unregistered-case correction remain intact.
+
+After the owner persistently disabled Ubuntu's competing timesyncd, one guarded read-only 55-second observation had 2,734 samples and zero backward steps; exact disabled/inactive/dead/MainPID0 state held before and after. Root verified saved lifecycle `48fc14f8-3810-46f8-ab4f-8c416abc7d57` ACTIVE/outcomeVerified true. Readiness at isolated API55421/DB55422 showed Auth/REST/Storage HTTP200, ledger95 with all94 prior records unchanged, and twenty positive same-connection DB clock deltas. This bounded contrast supports the co-discipline correction, not attribution of every historical failure or indefinite clock stability. This author made no service/clock/global change.
+
+Current focused affected verification returned native0: **143 total/143 passed/0 failed/0 skipped**. One complete required eight-worker file-parallel gate returned native0: **1,366 total/1,365 passed/0 failed/one intentional recovery skip**. Actual reports prove all60 conflict cases, all six integration IDs, all four transferred P0/P1 checks, both formerly unregistered AC10 cases, all eight consumed-writer classes and the R1 regressions executed. All14 unit IDs pass individually and repeat 14/14 in UTC, America/Los_Angeles and Asia/Tokyo. Current full units:1993total/1992passed/0failed/one inherited Windows xattr skip. [Named matrix audit](../test-artifacts/story14-3-r1-restabilized-named-audit.json) maps all seven matrix rows; [current checks](../test-artifacts/story14-3-r1-restabilized-check-summary.json) preserve native results and timing limits.
+
+Two concrete canonical source-gate failures were repaired after full integration ended. Owned diagnostic CJS require-imports became dynamic built-in imports without renaming files, executing old harnesses, altering recorded source hashes or excluding sources from lint. A new high-severity sharp/librsvg advisory required a security High route: the installed sharp0.35.4→0.35.5 patch fits Next16.3.6's existing ^0.35.4 range. Targeted supported pnpm refresh changes only sharp and its matching native/libvips closure, with no manifest/override/Next/API change. Frozen install, actual Next-resolved Windows encode/decode (librsvg2.63.2), audit-high, canonical lint, units, production build, source/bundle containment and lockfile guards pass. Final lint has0errors/13 inherited warnings; final audit has2moderate/0high. Initial lint10errors and audit1high remain recorded. Full integration preceded these diagnostic/native-only fixes; no booking/application/test/SQL change or new cumulative retry occurred.
+
+Final ledger95 retains the exact prior94 hash. No migration was added/applied this resume; immutable R1 forward version20261006144057 remains present. Exact empty-chain Epic CI, post-fix independent follow-up and final reviewer inspection remain required. Task9 is not completed until review/reconciliation. No14.4, hosted/browser, numeric coverage or performance/scalability gate is advanced by this author handoff; root/build delegate own terminal state and resource Stop.
+
 ## Suggested Review Order
 
 Author: `/root/build_14_3/author_14_3`, implementation/fix author; its explicitly owned High worker implemented the pure modules.
-Refreshed against uncommitted R1 fixes at HEAD `5d61f44c30bbd6eb9e659966b50b69c4dd377d7d`. Full implementation review scope remains baseline `2a6c9e6d6859987590f2e875f695a75c16125af6`, including checkpoint `c8d0a881`; first independent review completed and scoped high fixes require follow-up inspection.
+Refreshed against the final verification working tree at canonical resume HEAD `719ffb2dc74807b9d8c1242e4d383f3e34f665f9`, with the compatible sharp lock patch and diagnostic-only import corrections. Full implementation review scope remains baseline `2a6c9e6d6859987590f2e875f695a75c16125af6`, including checkpoint `c8d0a881`; first independent review completed and scoped high fixes require follow-up inspection.
 
 ### Actual saves preserve command and replay authority
 
@@ -325,15 +341,19 @@ Full tenant refresh remains necessary for peer and aggregate dependencies. The e
 
 ### Execution evidence and remaining blockers stay visible
 
-All four transferred P0/P1 obligations use actual commands and exact durable readbacks. The registration audit withdraws historical exhaustion/distinct-key execution claims; current reports distinguish executed failures from filtered diagnostics. Safe observers retain actual RPC responses and emit only guard booleans/time deltas; current full verification remains failed, so focused passes do not imply completion (AC7–12).
+All four transferred P0/P1 obligations use actual commands and exact durable readbacks. The registration audit withdraws historical exhaustion/distinct-key execution claims; the current complete report actually executes both and all R1 regressions. Safe observers retain actual RPC responses and emit only guard booleans/time deltas. Current full verification passes; historical failures and their causal limits remain separate, and independent follow-up remains required (AC7–12).
 
 Root authorized only immutable generated BMAD Markdown/JSON cache exclusion for canonical lint EPERM; application/test coverage remains intact. Applied migrations stay immutable and the new forward record preserves all94 prior ledger entries.
+
+The current high advisory is repaired within Next's declared compatible transitive range, so the lock changes only sharp/native closure rather than application APIs. Diagnostic scripts retain their historical filenames and unsupported warnings; dynamic built-in imports satisfy canonical lint without a new ignore or executing old WSL readers.
 
 - `eslint.config.mjs:19` — `_bmad/render/**`: narrow generated-cache ignore.
 - `tests/integration/commands/booking-conflicts.int.test.ts:157` — `14.3-INT-005`: exact CREATE/UPDATE rollback snapshots.
 - `tests/integration/commands/booking-conflicts.int.test.ts:177` — `14.3-INT-006`: actual stale save keeps original identity.
 - `docs/process/local-setup.md:129` — `Booking conflict attestation`: dedicated private key and synthetic local bootstrap.
+- `pnpm-lock.yaml:2096` — `sharp@0.35.5`: compatible patched native dependency; manifest/Next remain unchanged.
+- `_bmad-output/test-artifacts/story14-3-time-stability-runner.cjs:3` — `await import('node:fs')`: diagnostic-only import repair, preserving native-argv/stdin containment.
 
-Evidence: [author verification/AC mapping](../test-artifacts/story14-3-verification.md) and [registration audit](../test-artifacts/story14-3-r1-case-registration-audit.json). Current full8-worker parallel run is native1:1366total/1362passed/3failed/1intentional recovery skip. Focused10-suite diagnostic is native0:143/143,0failed/skipped; both later three-suite diagnostics are native1:102/101passed/1failed/0skipped; the final1210-sample read-only diagnostic observes six DB wall-clock reversals. Canonical lint is native0 with0errors/13inherited warnings; full units1993total/1992passed/0failed/1inherited Windows xattr skip; all14 named scheduling cases repeat under three host timezones. Historical failure evidence remains unchanged and unknown.
+Evidence: [author verification/AC mapping](../test-artifacts/story14-3-verification.md), [actual named matrix audit](../test-artifacts/story14-3-r1-restabilized-named-audit.json) and [current check summary](../test-artifacts/story14-3-r1-restabilized-check-summary.json). Current complete full8-worker parallel run is native0:1366total/1365passed/0failed/1intentional recovery skip; focused10-suite run is native0:143/143,0failed/skipped. All25 required named anchors, all14 units, seven matrix rows and all four transfers pass; three timezones each execute14/14 with zero skips. Final canonical lint0errors/13inherited warnings, units1993total/1992passed/0failed/1Windows xattr skip, audit2moderate/0high, frozen install/build/containment/lockfile checks and native sharp smoke pass. Initial source-gate failures, historical full1366/1362/3/1 and both102/101/1/0 failures remain preserved.
 
-Limits: failed cumulative verification remains unwaived. Database wall-clock regression is observed in the final workload; the direct failed proof lacks same-proof receipt and earlier causes remain unknown. Readbacks are postfailure, not the original rejection snapshot. Scoped follow-up review/trail inspection and exact empty-chain Epic CI remain required. No14.4 browser/editor/override, hosted/external, numeric coverage or performance/scalability claim is made.
+Limits: prior direct failed proof lacks same-proof receipt, its readback is postfailure and historical individual causes remain unknown. Owner correction plus bounded/current functional evidence does not promise indefinite clock stability. Full integration precedes the compatible sharp/native-only and diagnostic-import changes; subsequent units/build/audit/containment verify those changes without a blind cumulative rerun. Native sharp execution is Windows-only; Linux binary execution belongs to CI. Scoped follow-up review/trail inspection and exact empty-chain Epic CI remain required. No14.4 browser/editor/override, hosted/external, numeric coverage or performance/scalability claim is made.

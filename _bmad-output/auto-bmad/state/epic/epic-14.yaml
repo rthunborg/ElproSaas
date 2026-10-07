@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: codex/epic14-resume
 status: in-progress
-updated_at: "2026-10-07T09:55:37Z"
+updated_at: "2026-10-07T10:22:36Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
 active_seconds: 55474
@@ -139,7 +139,7 @@ overrides:
   schema_migration_seed_completed: true
   root_app_server_shutdown_verified: false
   schema_migration_seed_and_acceptance_pending: false
-  current_story_build_status: done
+  current_story_build_status: in-review
   required_full_integration_gate_passed: true
   resource_guard_browser_repair_owned_externally: true
   prerequisite_integration_repair_owner_approved_on: 2026-10-02
@@ -293,7 +293,18 @@ overrides:
   current_migration_ledger_count: 95
   prior_94_migration_ledger_hash_unchanged: true
   current_db_clock_backward_steps: 0
-  review_fixes_verification_complete: false
+  review_fixes_verification_complete: true
+  current_full_integration_passed: 1365
+  current_full_integration_failed: 0
+  current_full_integration_skipped: 1
+  current_full_integration_native_exit: 0
+  focused_review_fix_passed: 143
+  focused_review_fix_failed: 0
+  focused_review_fix_skipped: 0
+  sharp_security_patch_applied: true
+  current_audit_high_count: 0
+  canonical_lint_passed: true
+  generated_review_workflow_recovery_pending: true
 constraints:
   - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."

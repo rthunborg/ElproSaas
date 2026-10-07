@@ -1,6 +1,7 @@
 // One read-only run. Native argv and stdin source; no interpolated shell commands.
-const fs = require('node:fs');
-const cp = require('node:child_process');
+(async () => {
+const fs = await import('node:fs');
+const cp = await import('node:child_process');
 const prefix = ['--distribution', 'Ubuntu-24.04', '--user', 'root', '--exec'];
 const disabledMode = process.argv[2] === 'disabled';
 const result = { readOnly: true, serviceClockMutations: false, samplerRuns: 0, expectedUnitMode: disabledMode ? 'disabled' : 'active' };
@@ -56,3 +57,8 @@ try {
   console.log(JSON.stringify(result));
 }
 if (result.failure || result.samplerNativeExit !== 0 || !result.metrics || result.after?.nativeExit !== 0) process.exit(1);
+
+})().catch((error) => {
+  console.error('Diagnostic failure:', error?.code || error?.name || 'Error');
+  process.exitCode = 1;
+});

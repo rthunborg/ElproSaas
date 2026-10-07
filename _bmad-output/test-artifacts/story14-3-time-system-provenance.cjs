@@ -1,5 +1,6 @@
-const fs = require('node:fs');
-const cp = require('node:child_process');
+(async () => {
+const fs = await import('node:fs');
+const cp = await import('node:child_process');
 const list = cp.spawnSync('wsl.exe', ['--list', '--verbose'], { encoding: 'utf16le', timeout: 5000 });
 const help = cp.spawnSync('wsl.exe', ['--help'], { encoding: 'utf16le', timeout: 5000 });
 if (list.status !== 0 || !/Ubuntu-24\.04\s+Running\s+2/.test(list.stdout) || !/docker-desktop\s+Running\s+2/.test(list.stdout)) {
@@ -37,3 +38,8 @@ const resultPath = '_bmad-output/test-artifacts/story14-3-time-system-provenance
 if (fs.existsSync(resultPath)) output.priorIdentityPasses = [JSON.parse(fs.readFileSync(resultPath, 'utf8'))];
 fs.writeFileSync(resultPath, JSON.stringify(output, null, 2) + '\n');
 console.log(JSON.stringify(output));
+
+})().catch((error) => {
+  console.error('Diagnostic failure:', error?.code || error?.name || 'Error');
+  process.exitCode = 1;
+});

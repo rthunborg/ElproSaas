@@ -1,7 +1,8 @@
 // UNSUPPORTED FOR AUTOMATION: DO NOT EXECUTE AGAIN; retained refusal evidence.
 // --debug-shell is an interactive console; client kill does not contain guests.
-const fs = require('node:fs');
-const cp = require('node:child_process');
+(async () => {
+const fs = await import('node:fs');
+const cp = await import('node:child_process');
 const list = cp.spawnSync('wsl.exe', ['--list', '--verbose'], { encoding: 'utf16le', timeout: 5000 });
 const help = cp.spawnSync('wsl.exe', ['--help'], { encoding: 'utf16le', timeout: 5000 });
 if (list.status !== 0 || !/Ubuntu-24\.04\s+Running\s+2/.test(list.stdout) || !/docker-desktop\s+Running\s+2/.test(list.stdout)) {
@@ -73,3 +74,8 @@ if (fs.existsSync(resultPath)) output.priorReadAttempts = [JSON.parse(fs.readFil
 fs.writeFileSync(resultPath, JSON.stringify(output, null, 2) + '\n');
 console.log(JSON.stringify(output));
 if (run.status !== 0 || !output.readCompleted) process.exit(1);
+
+})().catch((error) => {
+  console.error('Diagnostic failure:', error?.code || error?.name || 'Error');
+  process.exitCode = 1;
+});

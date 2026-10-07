@@ -1,0 +1,175 @@
+{
+  "baseline": "719ffb2dc74807b9d8c1242e4d383f3e34f665f9",
+  "reviewBaseline": "2a6c9e6d6859987590f2e875f695a75c16125af6",
+  "rootLifecycle": "48fc14f8-3810-46f8-ab4f-8c416abc7d57",
+  "api": "http://127.0.0.1:55421",
+  "db": "127.0.0.1:55422/postgres",
+  "focused": {
+    "nativeExit": 0,
+    "total": 143,
+    "passed": 143,
+    "failed": 0,
+    "skipped": 0,
+    "durationSeconds": 82.01
+  },
+  "full": {
+    "nativeExit": 0,
+    "total": 1366,
+    "passed": 1365,
+    "failed": 0,
+    "skipped": 1,
+    "durationSeconds": 125.05,
+    "workers": 8,
+    "fileParallelism": true,
+    "required": true,
+    "diagnostic": true
+  },
+  "typecheck": {
+    "nativeExit": 0
+  },
+  "initialLint": {
+    "nativeExit": 1,
+    "errors": 10,
+    "warnings": 13,
+    "ownedDiagnosticCjsImports": true
+  },
+  "finalLint": {
+    "nativeExit": 0,
+    "errors": 0,
+    "warnings": 13
+  },
+  "unit": {
+    "nativeExit": 0,
+    "total": 1993,
+    "passed": 1992,
+    "failed": 0,
+    "skipped": 1,
+    "durationMs": 17614.1457
+  },
+  "timezoneRuns": [
+    {
+      "zone": "UTC",
+      "nativeExit": 0,
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "unitIds": [
+        "14.3-UNIT-001",
+        "14.3-UNIT-002",
+        "14.3-UNIT-003",
+        "14.3-UNIT-004",
+        "14.3-UNIT-005",
+        "14.3-UNIT-006",
+        "14.3-UNIT-007",
+        "14.3-UNIT-008",
+        "14.3-UNIT-009",
+        "14.3-UNIT-010",
+        "14.3-UNIT-011",
+        "14.3-UNIT-012",
+        "14.3-UNIT-013",
+        "14.3-UNIT-014"
+      ],
+      "nativeExitEvidence": "trusted exec_command completion"
+    },
+    {
+      "zone": "America-Los_Angeles",
+      "nativeExit": 0,
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "unitIds": [
+        "14.3-UNIT-001",
+        "14.3-UNIT-002",
+        "14.3-UNIT-003",
+        "14.3-UNIT-004",
+        "14.3-UNIT-005",
+        "14.3-UNIT-006",
+        "14.3-UNIT-007",
+        "14.3-UNIT-008",
+        "14.3-UNIT-009",
+        "14.3-UNIT-010",
+        "14.3-UNIT-011",
+        "14.3-UNIT-012",
+        "14.3-UNIT-013",
+        "14.3-UNIT-014"
+      ],
+      "nativeExitEvidence": "trusted exec_command completion"
+    },
+    {
+      "zone": "Asia-Tokyo",
+      "nativeExit": 0,
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "unitIds": [
+        "14.3-UNIT-001",
+        "14.3-UNIT-002",
+        "14.3-UNIT-003",
+        "14.3-UNIT-004",
+        "14.3-UNIT-005",
+        "14.3-UNIT-006",
+        "14.3-UNIT-007",
+        "14.3-UNIT-008",
+        "14.3-UNIT-009",
+        "14.3-UNIT-010",
+        "14.3-UNIT-011",
+        "14.3-UNIT-012",
+        "14.3-UNIT-013",
+        "14.3-UNIT-014"
+      ],
+      "nativeExitEvidence": "trusted exec_command completion"
+    }
+  ],
+  "lockfiles": {
+    "nativeExit": 0
+  },
+  "sourceContainment": {
+    "nativeExit": 0
+  },
+  "initialAuditHigh": {
+    "nativeExit": 1,
+    "high": 1,
+    "moderate": 2,
+    "advisory": "GHSA-wq5f-xc86-pv6w"
+  },
+  "finalAuditHigh": {
+    "nativeExit": 0,
+    "high": 0,
+    "moderate": 2
+  },
+  "targetedLockUpdate": {
+    "nativeExit": 0,
+    "command": "pnpm update sharp --depth=2 --no-save --lockfile-only"
+  },
+  "frozenInstall": {
+    "nativeExit": 0,
+    "command": "pnpm install --frozen-lockfile"
+  },
+  "sharpNative": {
+    "nativeExit": 0,
+    "installed": "0.35.5",
+    "range": "^0.35.4",
+    "librsvg": "2.63.2",
+    "platform": "win32-x64"
+  },
+  "build": {
+    "nativeExit": 0
+  },
+  "bundleContainment": {
+    "nativeExit": 0
+  },
+  "diagnosticSyntax": {
+    "nativeExit": 0,
+    "checked": 5,
+    "harnessesExecuted": 0
+  },
+  "securityAdvisors": "Historical R1 pass; no SQL/schema/migration change in this resume and no advisor rerun claimed.",
+  "fullRunTimingLimit": "Complete integration preceded compatible sharp lock patch and diagnostic-only import correction; no application/booking/test/SQL change. Final units/build/audit/containment execute after install; no blind full rerun.",
+  "emptyChain": "pending Epic CI before merge",
+  "independentFollowup": "required; R1 one completed broad round, two remain",
+  "historicalFailuresPreserved": true,
+  "productSqlAssertionClockBoundsChanged": false
+}

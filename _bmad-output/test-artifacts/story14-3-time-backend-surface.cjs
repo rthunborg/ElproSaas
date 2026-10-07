@@ -1,5 +1,6 @@
-const fs = require('node:fs');
-const cp = require('node:child_process');
+(async () => {
+const fs = await import('node:fs');
+const cp = await import('node:child_process');
 const list = cp.spawnSync('wsl.exe', ['--list', '--verbose'], { encoding: 'utf16le', timeout: 5000 });
 if (list.status !== 0 || !/docker-desktop\s+Running/.test(list.stdout)) throw new Error('approved backend not proven running');
 const shell = String.raw`
@@ -31,3 +32,8 @@ const output = { readOnly: true, nativeExit: run.status, stderrBytes: Buffer.byt
   identityLines: (run.stdout || '').trim().split('\n').filter(Boolean) };
 fs.writeFileSync('_bmad-output/test-artifacts/story14-3-time-backend-surface.json', JSON.stringify(output, null, 2) + '\n');
 console.log(JSON.stringify(output));
+
+})().catch((error) => {
+  console.error('Diagnostic failure:', error?.code || error?.name || 'Error');
+  process.exitCode = 1;
+});
