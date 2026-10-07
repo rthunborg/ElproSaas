@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/epic14-resume
 status: in-progress
-updated_at: "2026-10-07T11:02:12Z"
+updated_at: "2026-10-07T11:16:46Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
-active_seconds: 59760
-timing_anchor: 1791370932
+active_seconds: 60633
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -108,7 +108,7 @@ overrides:
   owner_authorized_guard_repair_and_failure_diagnosis: true
   local_guard_diagnostic_status: story_acceptance_completed
   isolated_service_and_schema_readiness_verified: true
-  root_guard_stop_requested: false
+  root_guard_stop_requested: true
   owner_confirmed_guard_fix_deployed: true
   root_guard_resource_id: 48fc14f8-3810-46f8-ab4f-8c416abc7d57
   owner_confirmed_all_prs_merged: true
@@ -140,7 +140,7 @@ overrides:
   schema_migration_seed_completed: true
   root_app_server_shutdown_verified: false
   schema_migration_seed_and_acceptance_pending: false
-  current_story_build_status: done
+  current_story_build_status: blocked
   required_full_integration_gate_passed: true
   resource_guard_browser_repair_owned_externally: true
   prerequisite_integration_repair_owner_approved_on: 2026-10-02
@@ -248,7 +248,7 @@ overrides:
   acceptance_contract_c_document: docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md
   current_compose_resource_id: 48fc14f8-3810-46f8-ab4f-8c416abc7d57
   current_compose_outcome_verified: true
-  current_compose_stop_requested: false
+  current_compose_stop_requested: true
   current_loopback_rest_auth_storage_http_200: true
   current_compose_healthy_services: 5
   owned_guard_resources_stop_requested: true
@@ -309,6 +309,7 @@ overrides:
   story14_3_current_verification_passed: true
   story14_3_completed_independent_review_rounds: 2
   all_four_transferred_checks_verified_before_14_4: true
+  story14_4_plan_blocking_condition: intent gap
 constraints:
   - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."
