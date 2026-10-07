@@ -20,7 +20,9 @@ class ParallelCli(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='parallel-cli-')
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        # Windows TEMP may use an 8.3 alias (for example RUNNER~1). Match the
+        # helper's canonical worktree paths before constructing fixture paths.
+        self.root = Path(self.temp.name).resolve()
         # Space and Unicode paths also exercise Windows subprocess argument handling.
         self.repo = self.root / 'integration å space'
         self.repo.mkdir()
