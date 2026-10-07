@@ -1,23 +1,25 @@
 # Epic 13 Hosted Rollout — 2026-09-29
 
-Status: **CONTROLLED ROLLOUT — code and schema aligned. The `epic-13-hosted-pilot-observation` automation is PAUSED after the completed 24-hour observation; `epic-13-seven-day-operating-review` remains ACTIVE. The 24-hour observation from `2026-09-29T08:15:21.049Z` is complete with a recorded producer/runner failure and evidence gaps; it is not a clean or stable-period finding, and it does not approve activation. The failure received its bounded diagnostic review within one business day, but its deeper root cause remains unestablished. The seven-day reassessment remains pending.**
+Status: **CONTROLLED ROLLOUT — September 29 code/schema alignment is recorded below; October 7 serving metadata and closure limits are in the completed review. The `epic-13-hosted-pilot-observation` automation is PAUSED after the completed 24-hour observation; `epic-13-seven-day-operating-review` remains ACTIVE. The 24-hour observation from `2026-09-29T08:15:21.049Z` is complete with a recorded producer/runner failure and evidence gaps; it is not a clean or stable-period finding, and it does not approve activation. The failure received its bounded diagnostic review within one business day, but its deeper root cause remains unestablished. The seven-day reassessment is completed with the same recorded incident and evidence gaps; see the October 7 review linked below.**
 
 This is the redacted operational record for the owner-approved closed Epic 13 rollout. It does not authorize real-recipient email, tenant provisioning, pilot activation, retention deletion, hosted integration tests, or manual migration-history repair.
 
-## State separation
+## September 29 rollout state (historical)
 
 | State | Result |
 | --- | --- |
-| Merged code | Complete. GitHub `main` is `78019af39d80627a14e11802ac5dafacd37ac9b5`, merged at `2026-09-29T07:37:01Z`. |
-| Deployed code | Complete. Production deployment `dpl_2DAG69cR31WeAVT8CQvF7MFh1Kuj` is `READY`, serves the production aliases, and was rebuilt from original deployment `dpl_DucLcfpDbC4YE7857XB4uSLuMCz6`. Vercel metadata identifies Git SHA `78019af39d80627a14e11802ac5dafacd37ac9b5` on `main`. |
+| Merged code | Complete at the September 29 rollout. GitHub `main` was `78019af39d80627a14e11802ac5dafacd37ac9b5`, merged at `2026-09-29T07:37:01Z`. |
+| Deployed code | Complete at the September 29 rollout. Production deployment `dpl_2DAG69cR31WeAVT8CQvF7MFh1Kuj` was `READY`, served the production aliases, and was rebuilt from original deployment `dpl_DucLcfpDbC4YE7857XB4uSLuMCz6`. Vercel metadata identifies Git SHA `78019af39d80627a14e11802ac5dafacd37ac9b5` on `main`. |
 | Applied schema | Complete. `elprosaas-demo` has all 80 repository migrations through `20260928110819_epic_13_reviewbot_followup_atomic_job_run_audit_and_config_recovery`; local and remote histories match with no local-only or remote-only versions. |
 | Scheduled execution | Enabled after schema verification. The project-level Vercel Cron Jobs control is enabled for `/api/jobs/run` at `*/5 * * * *` UTC. The first post-enable authentic scheduled request returned HTTP 200. |
-| Real-recipient email | Disabled. The deployed source has a fail-closed release evaluation and the production runner supplies a closed adapter; no real provider submission path is enabled. |
-| Tenant provisioning | Disabled after a bounded corrective change described below. No tenant was provisioned. |
+| Real-recipient email | Disabled at the September 29 rollout. The deployed source has a fail-closed release evaluation and the production runner supplies a closed adapter; no real provider submission path is enabled. |
+| Tenant provisioning | Verified disabled for the September 29 rollout after the bounded corrective change below. On October 7 the current project value again compares exactly to false, but the changed serving deployment's embedded environment is not independently verified. No tenant was provisioned by this review. |
 | Healthy observation | **24-hour observation completed with recorded failure and evidence gaps.** The window began at `2026-09-29T08:15:21.049Z` and reached its minimum cutoff at `2026-09-30T08:15:21.049Z`. It contains the documented `12:50Z` producer/runner failure; later ordinary successes do not make the period clean or establish stability, activation approval, full-invocation latency, loaded fairness, due-date business logic, recovery, or live-email behavior. |
-| Seven-day reassessment | Pending. It is due `2026-10-06T08:15:21.049Z`, measured from the same healthy start. |
+| Seven-day reassessment | Completed on October 7 for the exact cutoff `2026-10-06T08:15:21.049Z`, with the recorded failure and evidence gaps; see [the review](epic-13-seven-day-operating-review-2026-10-07.md). |
 
-## Exact hosted targets
+The code, deployment, schema alignment and scheduler/closure rows above record the September 29 rollout evidence. The observation rows include later dated checkpoints. Current October 7 serving metadata and the embedded-environment limitation are recorded in the completion section below and [the seven-day review](epic-13-seven-day-operating-review-2026-10-07.md); the historical deployment verification does not establish closure for the changed deployment.
+
+## September 29 exact hosted targets (historical)
 
 - Supabase project: `elprosaas-demo`, ref `wmqmzznmwpheswjjozhq`, region `eu-north-1`, status `ACTIVE_HEALTHY`, Postgres `17.6.1.155`.
 - Vercel project: `prj_QYRxEeUBlCStlPL0YZd72y8245rg`, team `team_jvgtCLGEU7h6atn0TyGLNncd` (`enhancior`).
@@ -231,3 +233,9 @@ The completed 24-hour observation preserves evidence of scheduled execution and 
 The approved one-tenant quote-email pilot remains preparation-only. The approved planning forecast is 5 quote emails per day with an occasional burst of 10 per hour; the two-times capacity benchmark is 10 per day and 20 per hour. Pilot tenant identity, recipient set, central From/domain evidence, provider configuration, named operations owner, and operational contacts remain unresolved. No recipient address or credential belongs in this repository record, and no activation is authorized.
 
 Retention cleanup remains deferred to E31's central tenant-scoped, dry-run-first, legal-hold-aware, idempotent, audited workflow. No deletion was performed. The separate local infrastructure diagnosis is outside this hosted record.
+
+## Seven-day operating review completion — 2026-10-07
+
+The [seven-day operating review](epic-13-seven-day-operating-review-2026-10-07.md) is completed for the exact interval `2026-09-29T08:15:21.049Z` through before `2026-10-06T08:15:21.049Z`, using `job_runs.started_at`. It records 6,384 runs, 6,382 completed and two failed; all audit pairs match exactly once. Maximum successful-runner gap remains 599.186 seconds, below the 15/30-minute warning/escalation thresholds. The 168 hourly reminder windows each visited two workspaces. Eligible-work freshness, full invocation runtime, loaded fairness/continuation, nonempty recovery and capacity remain unverified. Disabled email is excluded from delivery metrics, and the adopted forecast and benchmark remain planning inputs only.
+
+The continuing bounded snapshot at `2026-10-07T09:31:56.311499Z` adds 960 completed runs with coherent audits, zero errors and empty current outbox/recovery/notification counts. The serving alias has changed to READY `dpl_5dk9hhaakcRbJfdFQbjGbsF4ke9o` at `34c3b012837a5bf86395b927949f114989cca1ee`. Current project provisioning compares exactly to false and the project Supabase URL matches the authorized target; the deployment API omits embedded environment fields, so that snapshot is not independently reverified. Exact serving-SHA source retains the closed email path. No hosted change, workload or email was performed, and no activation or target adjustment is approved. The historical 12:50 Data API 504 and its unconfirmed deeper cause remain recorded; the prior 24-hour observation remains completed with failure and gaps. Automation bookkeeping is handled separately after this completed review.
