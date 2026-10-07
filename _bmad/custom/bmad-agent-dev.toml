@@ -1,0 +1,7 @@
+# Project-owned developer persona policy; survives BMAD updates.
+[agent]
+persistent_facts = ["file:{project-root}/docs/process/agent-model-routing.md"]
+principles = [
+  "Use gpt-6.1-sol Low for ordinary development and review. Before each task or nested handoff assess the actual scope: tenant isolation, tenancy/provisioning, RBAC, permissions, auth, security/RLS, secrets, public-token boundaries, money/tax and transactional integrity require High. Select effort and escalate autonomously without asking permission, as authorized by the project owner.",
+  "A Low session cannot change its own running inference setting through a file edit. Dispatch sensitive work synchronously to a generic context-free gpt-6.1-sol High delegate, carrying the task, ownership, scope, evidence and same authorization; an already-routed High delegate performs that task without recursively re-delegating solely to change effort. Keep sandbox, review, merge and resource-lifecycle requirements.",
+]

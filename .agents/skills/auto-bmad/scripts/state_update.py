@@ -701,32 +701,40 @@ _ROUTE_TIERS = ("subagents", "inline")
 _ROUTES = ("subagent", "inline", "cli:claude", "cli:codex", "cli:opencode")
 _CRITICAL_PHASES = {
     "security_layer", "architecture", "architecture_decision",
-    "conflict_resolution", "final_convergence",
+    "conflict_resolution",
 }
-_NESTED_OWNER_PHASES = {"build", "followup_review", "final_convergence"}
 _CODEX_ESCALATION = {
+    ("gpt-6.1-sol", "low"): 0,
+    ("gpt-6-astra", "low"): 0,
+    ("gpt-6.1-sol", "medium"): 1,
+    ("gpt-6.1-sol", "high"): 2,
+    # Historical resume capsules retain their ledger; migrate with a reason.
     ("gpt-5.6-luna", "medium"): 0,
     ("gpt-5.6-terra", "high"): 1,
     ("gpt-5.6-sol", "xhigh"): 2,
 }
 _GOVERNED_CODEX_ROUTES = {
-    "build": ("build-delegate", "standard", "gpt-5.6-terra", "high"),
-    "followup_review": ("primary-reviewer", "standard", "gpt-5.6-terra", "high"),
-    "final_convergence": ("final-convergence", "critical", "gpt-5.6-sol", "xhigh"),
-    "security_layer": ("security-reviewer", "critical", "gpt-5.6-sol", "xhigh"),
-    "cross_model_layer": ("independent-reviewer", "diverse_review", "gpt-5.6-luna", "xhigh"),
-    "tea_triage": ("test-risk-triage", "light", "gpt-5.6-luna", "medium"),
-    "tea_per_story": ("tea-delegate", "standard", "gpt-5.6-terra", "high"),
-    "tea_epic": ("tea-delegate", "critical", "gpt-5.6-sol", "xhigh"),
-    "tea_epic_audit": ("tea-delegate", "standard", "gpt-5.6-terra", "high"),
-    "retrospective": ("retrospective-delegate", "default", "gpt-5.6-terra", "medium"),
-    "deferred_reconcile": ("deferred-reconciler", "standard", "gpt-5.6-terra", "high"),
+    "build": ("build-delegate", "standard", "gpt-6.1-sol", "low"),
+    "followup_review": ("primary-reviewer", "standard", "gpt-6.1-sol", "low"),
+    "final_convergence": ("final-convergence", "standard", "gpt-6.1-sol", "low"),
+    "security_layer": ("security-reviewer", "critical", "gpt-6.1-sol", "high"),
+    "cross_model_layer": ("independent-reviewer", "diverse_review", "gpt-6.1-sol", "low"),
+    "tea_triage": ("test-risk-triage", "light", "gpt-6.1-sol", "low"),
+    "tea_per_story": ("tea-delegate", "standard", "gpt-6.1-sol", "low"),
+    "tea_epic": ("tea-delegate", "standard", "gpt-6.1-sol", "low"),
+    "tea_epic_audit": ("tea-delegate", "standard", "gpt-6.1-sol", "low"),
+    "retrospective": ("retrospective-delegate", "default", "gpt-6.1-sol", "low"),
+    "deferred_reconcile": ("deferred-reconciler", "standard", "gpt-6.1-sol", "low"),
+}
+_TASK_EFFORT_PHASES = {
+    "build", "followup_review", "final_convergence", "cross_model_layer", "tea_triage",
+    "tea_per_story", "tea_epic", "tea_epic_audit", "retrospective", "deferred_reconcile",
 }
 
 
 def _route_rank(model: str, effort: str) -> int | None:
     for (prefix, expected_effort), rank in _CODEX_ESCALATION.items():
-        if model.startswith(prefix) and effort == expected_effort:
+        if model == prefix and effort == expected_effort:
             return rank
     return None
 
@@ -749,25 +757,29 @@ def _validate_route_selection(payload: dict) -> dict:
         raise ContractError("route-select route must be one of: " + ", ".join(_ROUTES))
     model, effort, phase = selection["model"], selection["effort"], selection["phase"]
     codex_selected = selection["host"] == "codex" or selection["route"] == "cli:codex"
+    astra_planning = (model == "gpt-6-astra" and effort == "low"
+                      and phase in {"planning", "coordination", "readiness", "task_decomposition"})
+    if codex_selected and not astra_planning and (model != "gpt-6.1-sol" or effort not in ("low", "medium", "high")):
+        raise ContractError("Codex routes require gpt-6.1-sol with low, medium or high effort, or gpt-6-astra/low for planning and coordination")
     governed = _GOVERNED_CODEX_ROUTES.get(phase) if codex_selected else None
     if governed is not None:
         actual = (selection["role"], selection["profile"], model, effort)
-        if actual != governed:
+        valid = actual == governed
+        if phase in _TASK_EFFORT_PHASES:
+            valid = actual[:3] == governed[:3]
+        if not valid:
             expected = "/".join(governed)
             received = "/".join(actual)
             raise ContractError(
                 f"governed Codex phase {phase!r} requires exact "
                 f"role/profile/model/effort {expected}; got {received}")
-    if model.startswith("gpt-5.6-luna") and phase in _NESTED_OWNER_PHASES:
-        raise ContractError(
-            f"{model} is leaf-only and cannot own nested fan-out phase {phase!r}")
     if phase in _CRITICAL_PHASES:
         # Critical work always carries an explicit role/model/effort. On Codex,
-        # the policy pair is fixed and may not be downgraded by a user retune.
+        # the owner-approved policy pair is fixed and may not be downgraded.
         if codex_selected:
-            if not model.startswith("gpt-5.6-sol") or effort != "xhigh":
+            if model != "gpt-6.1-sol" or effort != "high":
                 raise ContractError(
-                    f"critical phase {phase!r} requires gpt-5.6-sol/xhigh on Codex")
+                    f"critical phase {phase!r} requires gpt-6.1-sol/high on Codex")
     return selection
 
 
@@ -806,16 +818,14 @@ def cmd_route_select(state_file: Path, payload: dict) -> dict:
             raise ContractError(
                 f"refusing noncanonical Codex route change for in-flight phase {selection['phase']!r}: "
                 f"{current['model']}/{current['effort']} -> {selection['model']}/{selection['effort']}; "
-                "same-phase changes must use Luna/medium -> Terra/high -> Sol/xhigh")
+                "same-phase changes must use an authorized model/effort pair")
         if old_rank is not None and new_rank is not None and new_rank < old_rank:
             raise ContractError(
                 f"refusing route downgrade for in-flight phase {selection['phase']!r}: "
                 f"{current['model']}/{current['effort']} -> {selection['model']}/{selection['effort']}")
-        if old_rank is not None and new_rank is not None and new_rank > old_rank + 1:
-            raise ContractError(
-                f"refusing non-stepwise route escalation for in-flight phase {selection['phase']!r}: "
-                f"{current['model']}/{current['effort']} -> {selection['model']}/{selection['effort']}; "
-                "use Luna/medium -> Terra/high -> Sol/xhigh")
+        # The owner authorizes immediate Low -> High for newly discovered
+        # sensitive work. A reason is still recorded; no intermediate run or
+        # permission checkpoint is needed. Same-phase downgrades remain refused.
         if not selection["escalation_reason"]:
             raise ContractError(
                 f"changing the persisted route for in-flight phase {selection['phase']!r} requires escalation_reason")
@@ -2052,67 +2062,58 @@ def _run_self_test() -> int:  # noqa: C901 — fixture-driven, intentionally exh
             assert lv2["code_review_iterations"] == 6, "legacy evidence must survive rewrite"
             assert lv2["legacy_artifact_path"] == "/impl/10-6-legacy.md", lv2
 
-            # V5: route selection is idempotent on resume, rejects Luna as a
-            # nested owner, rejects downgrades, and pins critical Codex work.
+            # V5: route selection is idempotent on resume, rejects same-task
+            # downgrades, and pins intrinsically sensitive security work.
             routef = tmp / "state" / "5-1-route.yaml"
             cmd_init(routef, {"story_key": "5-1-route"})
             terra = {"phase": "followup_review", "role": "primary-reviewer",
-                     "profile": "standard", "model": "gpt-5.6-terra",
+                     "profile": "standard", "model": "gpt-6.1-sol",
                      "effort": "high", "host": "codex", "tier": "subagents",
                      "route": "subagent", "escalation_reason": ""}
             r1 = cmd_route_select(routef, terra)
             r2 = cmd_route_select(routef, terra)
             assert r1["ledger_appended"] is True and r2["resumed"] is True, (r1, r2)
             rv = full_state(load_state(routef))
-            assert len(rv["routing_ledger"]) == 1 and rv["selected_model"] == "gpt-5.6-terra", rv
+            assert len(rv["routing_ledger"]) == 1 and rv["selected_model"] == "gpt-6.1-sol", rv
             try:
-                cmd_route_select(routef, {**terra, "model": "gpt-5.6-luna", "effort": "medium",
+                cmd_route_select(routef, {**terra, "model": "gpt-6.1-sol", "effort": "medium",
                                           "escalation_reason": "cheaper retry"})
                 assert False, "route downgrade must fail"
             except ContractError as exc:
-                assert "leaf-only" in str(exc) or "downgrade" in str(exc), exc
-            critical = {**terra, "phase": "final_convergence", "role": "final-convergence",
-                        "profile": "critical", "model": "gpt-5.6-sol", "effort": "xhigh",
+                assert "downgrade" in str(exc), exc
+            critical = {**terra, "phase": "security_layer", "role": "security-reviewer",
+                        "profile": "critical", "model": "gpt-6.1-sol", "effort": "high",
                         "escalation_reason": "follow-up remained unresolved"}
             rc = cmd_route_select(routef, critical)
             assert rc["ledger_appended"] is True, rc
             try:
-                cmd_route_select(routef, {**critical, "model": "gpt-5.6-terra", "effort": "high"})
+                cmd_route_select(routef, {**critical, "model": "gpt-6.1-sol", "effort": "medium"})
                 assert False, "critical downgrade must fail"
             except ContractError as exc:
-                assert "requires gpt-5.6-sol/xhigh" in str(exc), exc
+                assert "governed Codex phase" in str(exc), exc
 
-            # The controlled escalation ladder is stepwise and resumable. A
-            # same-phase Luna -> Sol jump is refused; Luna -> Terra -> Sol
-            # records each reason, and replaying the final selection is a noop.
+            # Direct Low -> High is authorized, reasoned, persisted and resumable.
             ladderf = tmp / "state" / "5-2-ladder.yaml"
             cmd_init(ladderf, {"story_key": "5-2-ladder"})
             luna = {"phase": "narrow_triage", "role": "triage",
-                    "profile": "light", "model": "gpt-5.6-luna",
-                    "effort": "medium", "host": "codex", "tier": "subagents",
+                    "profile": "light", "model": "gpt-6.1-sol",
+                    "effort": "low", "host": "codex", "tier": "subagents",
                     "route": "subagent", "escalation_reason": ""}
             cmd_route_select(ladderf, luna)
-            try:
-                cmd_route_select(ladderf, {**luna, "role": "conflict-resolver",
-                                           "profile": "critical", "model": "gpt-5.6-sol",
-                                           "effort": "xhigh", "escalation_reason": "triage conflict"})
-                assert False, "direct Luna -> Sol escalation must fail"
-            except ContractError as exc:
-                assert "non-stepwise" in str(exc), exc
             terra_step = {**luna, "role": "primary-reviewer", "profile": "standard",
-                          "model": "gpt-5.6-terra", "effort": "high",
+                          "model": "gpt-6.1-sol", "effort": "medium",
                           "escalation_reason": "triage remained unresolved"}
             sol_step = {**terra_step, "role": "conflict-resolver", "profile": "critical",
-                        "model": "gpt-5.6-sol", "effort": "xhigh",
-                        "escalation_reason": "Terra review found a policy conflict"}
+                        "model": "gpt-6.1-sol", "effort": "high",
+                        "escalation_reason": "Medium review left a policy conflict"}
             cmd_route_select(ladderf, terra_step)
             cmd_route_select(ladderf, sol_step)
             resumed = cmd_route_select(ladderf, sol_step)
             ladder = full_state(load_state(ladderf))
             assert resumed["resumed"] is True and resumed["ledger_appended"] is False, resumed
             assert len(ladder["routing_ledger"]) == 3, ladder["routing_ledger"]
-            assert ladder["selected_model"] == "gpt-5.6-sol" and ladder["selected_effort"] == "xhigh", ladder
-            assert ladder["escalation_reason"] == "Terra review found a policy conflict", ladder
+            assert ladder["selected_model"] == "gpt-6.1-sol" and ladder["selected_effort"] == "high", ladder
+            assert ladder["escalation_reason"] == "Medium review left a policy conflict", ladder
 
         print("SELF-TEST PASSED (all assertions)")
         return 0

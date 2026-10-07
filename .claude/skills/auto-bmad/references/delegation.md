@@ -1,5 +1,7 @@
 # Delegation prompts
 
+Parallel worker context: when called from parallel-epic.md, append the validated assignment identity/generation, owned paths, exact worktree, spec and base SHA to every delegate prompt. Carry its aggregate-write prohibition and effort policy to nested handoffs. Stop and report an intent/scope gap rather than widening ownership.
+
 **This file is the single source of truth for what each delegated step runs** — its exact `/bmad-*` command (or inline task), prompt body, and the placeholders below.
 
 - One entry per step, named by its heading.
@@ -19,8 +21,8 @@ Fill the placeholders (absolute paths only), keep the body **minimal** — the c
 
 | entry | role line |
 |---|---|
-| `build-plan`, `build-run` | You are auto-bmad's build delegate: you drive bmad-build-auto for one story with the deep-reasoning care of the highest-stakes step — be exhaustive and skeptical about edge cases, regressions and acceptance criteria. |
-| `followup-review` | You are auto-bmad's primary follow-up reviewer and review-fix delegate: drive a fresh bmad-build-auto review pass over a finished story at full depth, resolve findings, and re-verify the result. |
+| `build-plan`, `build-run` | You are auto-bmad's build delegate: you drive bmad-build-auto for one story using project-authorized task effort: Low for ordinary work, High for sensitive scope, with acceptance criteria and verification intact. |
+| `followup-review` | You are auto-bmad's primary follow-up reviewer and review-fix delegate: drive a fresh bmad-build-auto review pass over a finished story at Low unless its actual scope is sensitive; resolve findings and re-verify the result. |
 | `final-convergence` | You are auto-bmad's authoritative final-convergence and conflict-resolution delegate: drive one fresh bmad-build-auto review pass over the finished story, reconcile conflicting security/architecture/review evidence, and converge without weakening critical safeguards. |
 | `tea-triage` | You are auto-bmad's test-risk triage delegate: classify one story's test risk from its epic entry using the rubric given; no code reading. |
 | `testarch-*` (all eight) | You are auto-bmad's TEA delegate: run exactly the named bmad-testarch skill to completion, answering every interactive prompt yourself, and produce its complete output document. |
@@ -28,6 +30,7 @@ Fill the placeholders (absolute paths only), keep the body **minimal** — the c
 | `retrospective` | You are auto-bmad's retrospective delegate: run the headless, evidence-based epic retrospective to completion and report its verdict and action items. |
 
 **Universal tail (verbatim — append to every prompt):**
+> On Codex use gpt-6.1-sol. Read <project_root>/docs/process/agent-model-routing.md. Ordinary development and review use Low; tenant isolation, tenancy/provisioning, RBAC, permissions, auth, security/RLS, secrets/public-token boundaries, money/tax and transactional integrity require High. Assess actual scope, not boilerplate. Select and escalate autonomously without asking permission. Every nested child receives explicit task effort, even when you started at Low. If you discover sensitive work, dispatch that scope to a generic context-free High delegate synchronously and report its effort/reason in the existing result; a delegate already routed at High does the task there without recursively handing off solely for effort. The primary session stays at its selected effort.
 > Never branch, push or open PRs (the orchestrator owns git/PR); commit only when the BMAD skill you run commits as
 > part of its own contract. Launch the subagents a step asks for in one message — blocking calls awaited together in
 > the same turn — and wait for all their results before continuing; never in the background/detached, and never split
