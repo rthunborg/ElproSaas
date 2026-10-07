@@ -1,0 +1,70 @@
+{
+  "numTotalTestSuites": 1,
+  "numPassedTestSuites": 1,
+  "numFailedTestSuites": 0,
+  "numPendingTestSuites": 0,
+  "numTotalTests": 3,
+  "numPassedTests": 3,
+  "numFailedTests": 0,
+  "numPendingTests": 0,
+  "numTodoTests": 0,
+  "snapshot": {
+    "added": 0,
+    "failure": false,
+    "filesAdded": 0,
+    "filesRemoved": 0,
+    "filesRemovedList": [],
+    "filesUnmatched": 0,
+    "filesUpdated": 0,
+    "matched": 0,
+    "total": 0,
+    "unchecked": 0,
+    "uncheckedKeysByFile": [],
+    "unmatched": 0,
+    "updated": 0,
+    "didUpdate": false
+  },
+  "startTime": 1791383003593,
+  "success": true,
+  "testResults": [
+    {
+      "assertionResults": [
+        {
+          "ancestorTitles": [],
+          "fullName": "Round2 fresh preview denies archived-profile but existing assignment retains its checked exception",
+          "status": "passed",
+          "title": "Round2 fresh preview denies archived-profile but existing assignment retains its checked exception",
+          "duration": 2776.5164999999997,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "Round2 fresh preview denies disabled-membership but existing assignment retains its checked exception",
+          "status": "passed",
+          "title": "Round2 fresh preview denies disabled-membership but existing assignment retains its checked exception",
+          "duration": 1116.6164000000008,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        },
+        {
+          "ancestorTitles": [],
+          "fullName": "Round2 actual warnings distinguish collision UUIDs sharing the first eight characters",
+          "status": "passed",
+          "title": "Round2 actual warnings distinguish collision UUIDs sharing the first eight characters",
+          "duration": 1541.2221,
+          "failureMessages": [],
+          "meta": {},
+          "tags": []
+        }
+      ],
+      "startTime": 1791383005734,
+      "endTime": 1791383011168.2222,
+      "status": "passed",
+      "message": "",
+      "name": "C:/DEV/ElproSaas/tests/integration/commands/booking-editor-round2.int.test.ts"
+    }
+  ]
+}

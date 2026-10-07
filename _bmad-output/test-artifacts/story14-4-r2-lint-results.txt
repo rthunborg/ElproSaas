@@ -1,0 +1,27 @@
+
+C:\DEV\ElproSaas\scripts\verify\check-operator-console-isolation.mjs
+  2:19  warning  'relative' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\DEV\ElproSaas\src\features\operator-console\actions.ts
+  60:81   warning  '_' is defined but never used   @typescript-eslint/no-unused-vars
+  60:107  warning  '__' is defined but never used  @typescript-eslint/no-unused-vars
+  84:86   warning  '_' is defined but never used   @typescript-eslint/no-unused-vars
+  84:117  warning  '__' is defined but never used  @typescript-eslint/no-unused-vars
+  95:76   warning  '_' is defined but never used   @typescript-eslint/no-unused-vars
+  95:101  warning  '__' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\DEV\ElproSaas\tests\e2e\global-setup.ts
+   33:3  warning  'adminInsertLostQuoteVersionWithReason' is defined but never used  @typescript-eslint/no-unused-vars
+  797:5  warning  'evidenceVersionId' is assigned a value but never used             @typescript-eslint/no-unused-vars
+
+C:\DEV\ElproSaas\tests\factories\tenants\storage.ts
+  2:17  warning  'rethrowWithCode' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\DEV\ElproSaas\tests\unit\provisioning\operator-console.test.ts
+  11:6  warning  'ConsoleDto' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\DEV\ElproSaas\tests\unit\server\email\outbox.atdd.test.ts
+  57:635  warning  '_id' is defined but never used  @typescript-eslint/no-unused-vars
+  57:762  warning  '_id' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 13 problems (0 errors, 13 warnings)

@@ -24,6 +24,7 @@ async function openToolbar(page: Page): Promise<void> {
   await page.getByTestId("booking-entry-toolbar").click();
   await expect(editor(page)).toHaveAttribute("role", "dialog");
   await expect(editor(page)).toHaveAttribute("aria-modal", "true");
+  await expect(editor(page).getByTestId("booking-work-role-filter")).toBeFocused();
 }
 async function fillDraft(page: Page, scenario: Scenario, waitForPreview = true): Promise<void> {
   const sheet = editor(page);
@@ -76,9 +77,77 @@ async function saveConfirmed(page: Page, confirmed: Promise<void>): Promise<void
   await confirmed;
   await expect(page.getByTestId("booking-save-status")).toHaveText(/sparad|sparats/i);
   await expect(page.getByTestId("booking-save-status")).toHaveAttribute("role", "status");
+  expect(await page.evaluate(()=>!!document.activeElement?.closest('[role="dialog"]') && !document.activeElement.matches(":disabled"))).toBe(true);
 }
 
 test.describe("Story 14.4 booking editor retained browser acceptance", () => {
+  test("Round2 archived role clears explicitly and failed options retry retains the mounted draft",{annotation:[{type:"skipNetworkMonitoring",description:"Actual options-read transport failure"}]},async({resourcePage:page,bookingEditor:h})=>{
+    const s=await h.seed("conflict-free"), before=await bookingSnapshot(s.tenantIds);
+    await signIn(page,s); await openToolbar(page); await fillDraft(page,s);
+    const create=await h.observeNextConfirmedSave(); await saveConfirmed(page,create.confirmed);
+    const row=expectOneCreate(before,await bookingSnapshot(s.tenantIds),s,{jobId:null,customerId:null});
+    await editor(page).getByTestId("booking-close").click();
+    await adminQuery("update public.work_roles set is_active=false where id=$1 and tenant_id=$2",[s.workRoleId,s.tenantId]);
+    await page.reload(); await summary(page,row.id).getByTestId("booking-edit").click();
+    const role=editor(page).getByTestId("booking-work-role"); await expect(role).toHaveValue(s.workRoleId);
+    await expect(role.locator("option:checked")).toContainText("Nuvarande arbetsroll");await expect(role.locator("option:checked")).toHaveAttribute("disabled","");
+    await role.selectOption(""); await editor(page).getByTestId("booking-description").fill(s.description+" refreshed draft");
+    const failure=await h.failNextOptionsReadOnce(); await editor(page).getByTestId("booking-options-retry").click(); await failure.failed;
+    await expect(editor(page).getByTestId("booking-options-error")).toBeVisible();await expect(editor(page).getByTestId("booking-save")).toBeDisabled();
+    await expect(editor(page).getByTestId("booking-description")).toHaveValue(s.description+" refreshed draft");
+    await adminQuery("update public.work_roles set is_active=true where id=$1 and tenant_id=$2",[s.workRoleId,s.tenantId]);
+    await editor(page).getByTestId("booking-options-retry").click(); await expect(editor(page).getByTestId("booking-options-error")).toHaveCount(0);
+    await expect(role.locator(`option[value="${s.workRoleId}"]`)).toContainText(s.description);await expect(role).toHaveValue("");
+    const save=await h.observeNextConfirmedSave();await saveConfirmed(page,save.confirmed);
+    expect((await bookingSnapshot(s.tenantIds)).bookings.find(r=>r.id===row.id)).toMatchObject({work_role_id:null,description:s.description+" refreshed draft"});
+  });
+  test("Round2 facility-only contact choice and same-customer facility change retain compatible links",async({resourcePage:page,bookingEditor:h})=>{
+    const s=await h.seed("conflict-free"), extra=crypto.randomUUID();
+    try {
+      await adminQuery("insert into public.facilities(id,tenant_id,customer_id,name) values($1,$2,$3,$4)",[extra,s.tenantId,s.customerId,s.description+" second facility"]);
+      await adminQuery("update public.contacts set facility_id=null where id=$1 and tenant_id=$2",[s.contactId,s.tenantId]);
+      const before=await bookingSnapshot(s.tenantIds); await signIn(page,s); await openToolbar(page); await fillDraft(page,s);
+      await editor(page).getByTestId("booking-facility").selectOption(s.facilityId); const create=await h.observeNextConfirmedSave();await saveConfirmed(page,create.confirmed);
+      const row=expectOneCreate(before,await bookingSnapshot(s.tenantIds),s,{jobId:null,customerId:s.customerId});await editor(page).getByTestId("booking-close").click();
+      await adminQuery("update public.bookings set customer_id=null where id=$1 and tenant_id=$2",[row.id,s.tenantId]);
+      await page.reload();await summary(page,row.id).getByTestId("booking-edit").click();await expect(editor(page).getByTestId("booking-customer")).toHaveValue("");
+      await editor(page).getByTestId("booking-contact").selectOption(s.contactId);await expect(editor(page).getByTestId("booking-facility")).toHaveValue(s.facilityId);
+      await editor(page).getByTestId("booking-facility").selectOption(extra);await expect(editor(page).getByTestId("booking-contact")).toHaveValue(s.contactId);
+      const save=await h.observeNextConfirmedSave();await saveConfirmed(page,save.confirmed);
+      expect((await bookingSnapshot(s.tenantIds)).bookings.find(r=>r.id===row.id)).toMatchObject({facility_id:extra,customer_id:s.customerId,contact_id:s.contactId,job_id:null});
+    } finally {await adminQuery("update public.bookings set facility_id=null where tenant_id=$1 and facility_id=$2",[s.tenantId,extra]);await adminQuery("delete from public.facilities where id=$1 and tenant_id=$2",[extra,s.tenantId]);}
+  });
+  test("Round2 authorization-denied retry preserves a lost committed attempt until authority returns",{annotation:[{type:"skipNetworkMonitoring",description:"Lost response followed by real current authorization denial"}]},async({resourcePage:page,bookingEditor:h})=>{
+    const s=await h.seed("conflict-free"), loss=await h.loseNextCommittedSaveResponseOnce(), before=await bookingSnapshot(s.tenantIds);
+    try {
+      await signIn(page,s);await openToolbar(page);await fillDraft(page,s);await editor(page).getByTestId("booking-save").click();await loss.committed;
+      await expect(editor(page).getByTestId("booking-unresolved-save")).toBeVisible();const committed=await bookingSnapshot(s.tenantIds);expectOneCreate(before,committed,s,{jobId:null,customerId:null});
+      await adminQuery("update public.tenant_memberships set status='disabled' where id=$1 and tenant_id=$2",[s.actorMembershipId,s.tenantId]);
+      const denied=await h.observeNextSaveTransport();await editor(page).getByTestId("booking-retry").click();await denied.observed;
+      await expect(editor(page).getByTestId("booking-save-error")).toBeVisible();await expect(editor(page).getByTestId("booking-unresolved-save")).toBeVisible();
+      await expect(editor(page).getByTestId("booking-description")).toBeDisabled();await expect(editor(page).getByTestId("booking-close")).toBeDisabled();await expect(page.getByTestId("booking-save-status")).toHaveCount(0);
+      expect(await bookingSnapshot(s.tenantIds)).toEqual(committed);
+      await adminQuery("update public.tenant_memberships set status='active' where id=$1 and tenant_id=$2",[s.actorMembershipId,s.tenantId]);
+      const confirm=await h.observeNextConfirmedSave();await editor(page).getByTestId("booking-retry").click();await confirm.confirmed;
+      await expect(page.getByTestId("booking-save-status")).toHaveText(/sparad/i);expect(await bookingSnapshot(s.tenantIds)).toEqual(committed);
+    } finally {await adminQuery("update public.tenant_memberships set status='active' where id=$1 and tenant_id=$2",[s.actorMembershipId,s.tenantId]);}
+  });
+  test("Round2 genuine 1000-group issued review exceeds 1 MiB and saves through actual bounded HTTP action", async ({resourcePage:page,bookingEditor:h},testInfo)=>{
+    testInfo.setTimeout(180000);
+    const s=await h.seed("large-review"); await signIn(page,s); await openToolbar(page); await fillDraft(page,s);
+    const articles=editor(page).getByTestId("booking-conflict-panel").locator("article"); await expect(articles).toHaveCount(1000);
+    await articles.getByRole("checkbox").evaluateAll(inputs=>inputs.slice(0,1).forEach(input=>(input as HTMLInputElement).click()));
+    await editor(page).getByTestId("booking-review-current-warnings").check();
+    await editor(page).getByTestId("booking-override-reason").fill("Reviewed all genuine groups; selected one complete collision");
+    const before=await bookingSnapshot(s.tenantIds), transport=await h.observeNextSaveTransport(90000);
+    await editor(page).getByTestId("booking-save").click(); const measured=await transport.observed;
+    expect(measured.bodyBytes).toBeGreaterThan(1024*1024); expect(measured.bodyBytes).toBeLessThan(3*1024*1024); expect(measured.status).toBe(200);
+    await expect(page.getByTestId("booking-save-status")).toHaveText(/sparad/i);
+    const after=await bookingSnapshot(s.tenantIds), row=expectOneCreate(before,after,s,{jobId:null,customerId:null});
+    const conflicts=after.conflicts.filter(c=>c.booking_id===row.id||c.related_booking_id===row.id);
+    expect(conflicts).toHaveLength(1000); expect(conflicts.filter(c=>c.status==="accepted")).toHaveLength(1); expect(conflicts.filter(c=>c.status==="open")).toHaveLength(999);
+    await testInfo.attach("actual-save-transport-measurement",{body:JSON.stringify({...measured,groups:1000,selected:1}),contentType:"application/json"});
+  });
   test("Round1 endpoint-only mounted edits preserve the other PostgreSQL instant exactly", async ({resourcePage:page,bookingEditor:h})=>{
     const s=await h.seed("conflict-free"); const before=await bookingSnapshot(s.tenantIds);
     await signIn(page,s); await openToolbar(page); await fillDraft(page,s);
@@ -305,6 +374,8 @@ test.describe("Story 14.4 booking editor retained browser acceptance", () => {
       await expect(editor(page).getByTestId("booking-close")).toBeDisabled();
       await expect(editor(page).getByTestId("booking-save")).toBeDisabled();
       await page.keyboard.press("Escape");
+      for(const key of ["Tab","Shift+Tab","Tab","Shift+Tab"]) {await page.keyboard.press(key);
+        expect(await page.evaluate(()=>!!document.activeElement?.closest('[role="dialog"]')&&!document.activeElement.matches(":disabled"))).toBe(true);}
       await page.goBack();
       await expect(editor(page)).toBeVisible();
       await expect(editor(page).getByTestId("booking-description")).toHaveValue(s.description);

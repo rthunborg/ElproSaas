@@ -4,6 +4,7 @@ import { bookingConflictKeyFromEnv, canonicalConflictProofBytes } from "./confli
 import { snapshotBookingConflicts, deriveBookingConflicts, conflictClaims, type BookingRpcArgs, type BookingRpcClient,
   type LogicalConflictGroup, type DetectionSnapshot } from "./conflict-facts";
 import { CommandError } from "@/server/commands/command-errors";
+import { bookingActionFitsTransport } from "@/features/resources/booking-transport";
 
 export const BOOKING_EDITOR_DOMAIN = "elpro.booking-editor.review.v1";
 export type EditorClaims = import("./conflict-attestation").ConflictClaims & { readonly groups: readonly LogicalConflictGroup[] };
@@ -18,9 +19,11 @@ export function signEditorClaims(claims: EditorClaims, secret: string): string {
 }
 function receiptKey(secret: string): Buffer { return createHash("sha256").update(`${BOOKING_EDITOR_DOMAIN}\0${secret}`).digest(); }
 export function sealEditorReceipt(claims: EditorClaims, secret: string): string {
+  const plaintext = JSON.stringify(claims);
+  if (Buffer.byteLength(plaintext, "utf8") + 28 > 750000) throw new CommandError("VALIDATION_FAILED");
   const iv = randomBytes(12); const cipher = createCipheriv("aes-256-gcm", receiptKey(secret), iv);
   cipher.setAAD(Buffer.from(BOOKING_EDITOR_DOMAIN));
-  const encrypted = Buffer.concat([cipher.update(JSON.stringify(claims), "utf8"), cipher.final()]);
+  const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
   return Buffer.concat([iv, cipher.getAuthTag(), encrypted]).toString("base64url");
 }
 export function openEditorReceipt(receipt: string, secret: string): EditorClaims {
@@ -41,9 +44,28 @@ export async function previewBookingEditor(client: BookingRpcClient, args: Booki
   const key = bookingConflictKeyFromEnv();
   const snapshot = await snapshotBookingConflicts(client, args, key.keyId);
   if (snapshot.kind === "replay") throw new CommandError("COMMAND_CONFLICT");
+  validateBookingPreviewEligibility(snapshot);
   const { groups } = deriveBookingConflicts(snapshot);
-  return { receipt: sealEditorReceipt(editorClaims(snapshot, groups), key.secret), bookingId: snapshot.bookingId,
+  const receipt = sealEditorReceipt(editorClaims(snapshot, groups), key.secret);
+  const ids = groups.map(group => group.logicalId);
+  // Every selectable decision fits: all groups selected and the largest escaped reason.
+  if (!bookingActionFitsTransport({...args.p_payload, commandId: args.p_command_id,
+    ...(args.p_booking_id ? {bookingId: args.p_booking_id} : {proposedBookingId: snapshot.bookingId}),
+    editorReview: {receipt, decision: {acknowledged: true, reviewedLogicalIds: ids, selectedLogicalIds: ids, reason: "\u0001".repeat(2000)}}}))
+    throw new CommandError("VALIDATION_FAILED");
+  return { receipt, bookingId: snapshot.bookingId,
     warnings: groups.map(({ logicalId, personId, bookingIds, rule, startsAt, endsAt }) => ({ logicalId, personId, bookingIds,
       ruleLabel: labels[rule] ?? "Varning", startsAt, endsAt })),
     availability: snapshot.candidate.assigneeIds.map((personId) => ({ personId, available: !groups.some((g) => g.personId === personId) })) };
+}
+
+/** Same current checked facts and existing-assignment exception as the locked SQL commit. */
+export function validateBookingPreviewEligibility(snapshot: DetectionSnapshot): void {
+  const existing = snapshot.operation === "update" ? snapshot.facts.bookings.find(booking => booking.id === snapshot.bookingId) : undefined;
+  for (const id of snapshot.candidate.assigneeIds) {
+    const profile = snapshot.facts.profiles.find(person => person.id === id);
+    const member = profile && snapshot.facts.memberships.find(row => row.id === profile.membershipId);
+    if (!profile || !member || ((profile.archivedAt !== null || member.status !== "active") && !existing?.assigneeIds.includes(id)))
+      throw new CommandError("TENANT_ACCESS_DENIED");
+  }
 }

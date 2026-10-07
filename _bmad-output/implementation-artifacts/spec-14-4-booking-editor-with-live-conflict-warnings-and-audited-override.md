@@ -111,6 +111,29 @@ Official resumed Step 02 inspected the current files at root-verified full basel
 
 ## Review Triage Log
 
+**Round 2 of 3**
+
+Independent follow-up review started through the official Build Auto workflow. Actual authorization, encrypted review receipts and atomic conflict acceptance require `gpt-6.1-sol` High for every configured layer. Full change baseline: `b94be3d33b7161e31ff4e01da79dd36c5474fd73`; clean incoming revision: `edb628465ec1ac5356721b8ccb617d8ab11cf5eb`. All six layers are required; capacity refusals are recovered with synchronous foreground batches before triage.
+
+### 2026-10-07 — Review pass, Round 2
+- intent_gap: 0
+- bad_spec: 0
+- patch: 9: (high 1, medium 8, low 0)
+- defer: 0
+- reject: 5
+- addressed_findings:
+  - `[medium]` `[patch]` Issued reviews now fit explicit 4 MiB action transport and 3 MiB preflight bounds; genuine 1,120,245-byte HTTP save passes.
+  - `[medium]` `[patch]` Archived current work role is visible as a current-only option and can be deliberately cleared.
+  - `[medium]` `[patch]` Current-authorized options can retry in-sheet while retaining the mounted draft and renewing preview.
+  - `[medium]` `[patch]` Customer-level contact preserves a compatible facility-only connection.
+  - `[medium]` `[patch]` Same-customer facility change retains a compatible customer-level contact.
+  - `[medium]` `[patch]` Modal focus remains confined through pending/success; semantic disabled controls are excluded and first-field focus is explicit.
+  - `[medium]` `[patch]` Fresh preview rejects newly ineligible profiles/memberships using current checked facts, preserving existing assignment exceptions.
+  - `[medium]` `[patch]` Safe full booking references distinguish same-prefix collision identities.
+  - `[high]` `[patch]` An authorization-denied retry preserves the exact unresolved attempted command until its outcome can be determined.
+
+All six configured layers are terminal; exact external CLI native 0. Independent final narrow source/trail/evidence checks pass: one author section, 20 verified stops, all 53 current hashes matched, frozen intent byte-identical to this run's entry snapshot, and all four migration files matched their applied hashes. New retained artifacts passed a bounded credential/cookie/proof scan with zero findings; no values were printed. These checks do not constitute another broad review round. Follow-up recommendation: true, high 1/medium 8/low 0, score 24. The epic workflow completes this automatic follow-up without automatically starting Round 3; the recommendation remains reported for release/orchestration handling.
+
 **Round 1 of 3**
 
 ### 2026-10-07 — Review pass
@@ -159,55 +182,55 @@ Validate the author trail with `node scripts/verify/check-review-order.mjs _bmad
 
 ## Suggested Review Order
 
-Author: `/root/build_14_4/implementation_14_4`, implementation and fix author.
-Refreshed after the complete Round1 patch batch against baseline `b94be3d33b7161e31ff4e01da79dd36c5474fd73`, final uncommitted fingerprint `624e4347d9fd7ded2ec26164a7ec5655706ac597c20711b7aeeb395dde440fc8` and production build `TGBWaTwRYVJLLfZUysZQV`.
+Author: `/root/build_14_4/implementation_14_4`, original implementation and fix author.
+Refreshed after all nine Round2 patches against baseline `b94be3d33b7161e31ff4e01da79dd36c5474fd73`, incoming HEAD `edb628465ec1ac5356721b8ccb617d8ab11cf5eb`, final53-file fingerprint `f34ee23dc52a0f92f6de0ea24b0328946c5dbe96d1c6a34986abcef20e94712a` and production build `ZtvjBbekFSgZQChOruaeT`.
 
-### Current host entry and durable draft
+### Current host entry and recoverable connected draft
 
-Contract D retains standalone create/update through toolbar/job/customer entries; toolbar summaries now make standalone and disconnected bookings reopenable. Summary projection still excludes command-invalid metadata; each endpoint now tracks changes independently, and absent historical references render as current-only options without additional reads or new assignment authority.
+Contract D retains toolbar/job/customer create/update and standalone reopening; the toolbar summaries keep disconnected bookings reachable. Independent endpoint precision and current-only historical references remain; I added explicit archived-role clearing and checked in-sheet options retry to recover reads while preserving mounted input, and infer compatible contact/facility relationships from existing authorized options.
 
-- `src/app/(app)/jobs/page.tsx:42` — `BookingEntry`: exposes the entitled toolbar; job/customer hosts use the same editor.
-- `src/components/resources/BookingEntry.tsx:39` — `bookingSummaryDraft`: exposes authorized summaries and projects valid facts for every retained host.
-- `src/features/resources/booking-editor-input.ts:24` — `prepareBookingTimes`: preserves each untouched instant; all-day changes deliberately convert both endpoints.
-- `src/components/resources/BookingEditor.tsx:139` — `const optional`: shows missing current references distinctly without offering them for new assignment.
+- `src/app/(app)/jobs/page.tsx:42` — `BookingEntry`: exposes the entitled toolbar; job/customer hosts share the editor.
+- `src/components/resources/BookingEntry.tsx:39` — `bookingSummaryDraft`: makes authorized standalone and disconnected summaries reopenable.
+- `src/components/resources/BookingEditor.tsx:132` — `retryOptions`: rereads current-authorized options without replacing the candidate draft.
+- `src/components/resources/BookingEditor.tsx:159` — `currentCustomer`: preserves compatible facility-only and customer-level contact relationships.
 
-### Authorized preview without detector authority in the browser
+### Current eligibility and recognizable warning identities
 
-Reads/actions still resolve current authority independently of host permissions, and same-tenant candidate-reference validation remains before receipt issuance. Failed reads expose only generic retry; existing checked staff lookup now uses membership/Auth email identity for recognizable labels, with a deliberate UUID fallback only when identity is absent. Untitled jobs use current safe customer context and distinguishing existing job IDs.
+Actions still resolve current authority independently of host permissions, while candidate references and fresh profile/membership eligibility are checked before preview truth is issued. Existing assignments retain the SQL exception; recognizable same-tenant staff identity and distinguishing safe full booking references avoid ambiguous warnings without adding protected CRM facts or privileged reads.
 
-- `src/features/resources/bookings-read.ts:91` — `readBookingHost`: fails closed while returning sanitized summaries under current booking entitlement.
-- `src/features/resources/booking-actions.ts:33` — `previewBookingAction`: checks current tenant and management authority before preview.
-- `supabase/migrations/20261007131222_booking_editor_review_round1_fixes.sql:28` — `booking_editor_people`: projects same-tenant staff identity under the unchanged management gate and ACL.
-- `src/server/bookings/editor-preview.ts:26` — `openEditorReceipt`: authenticates the encrypted review transport separately from detector proof.
+- `src/features/resources/booking-actions.ts:34` — `previewBookingAction`: checks current tenant and management authority before preview.
+- `src/server/bookings/editor-preview.ts:63` — `validateBookingPreviewEligibility`: denies newly ineligible assignees while retaining existing assignments.
+- `supabase/migrations/20261007131222_booking_editor_review_round1_fixes.sql:28` — `booking_editor_people`: projects staff identity under the unchanged management gate and ACL.
+- `src/features/resources/booking-actions.ts:64` — `bookingLabels`: distinguishes actual collisions using safe full booking UUIDs.
 
-### One current, selective acceptance transaction and replay identity
+### Complete selective acceptance through a bounded transport
 
-Selected complete candidate groups are accepted; reviewed unselected groups stay open. I removed the unrelated description-size ceiling from human logical IDs after genuine95-participant preview/save failure, retaining exact signed group validation and the single atomic commit. Existing tenant-plus-command fallback identity correction and current-authority replay remain intact; transport expiry cannot turn a committed retry into another write.
+The sole detector and authenticated complete-group map still govern the atomic booking/assignment/conflict/outcome/audit write; selected groups are accepted and reviewed unselected groups stay open. After the genuine large-body failure, I aligned explicit4MiB Next transport with3MiB issuance/preflight bounds, including maximal selected IDs and escaped reason, so a known oversized input cannot become an unresolved attempt.
 
-- `src/server/bookings/save-with-conflicts.ts:26` — `saveWithConflicts`: binds current candidate/facts and reviewed business decision before fresh finalization.
-- `supabase/migrations/20261007121724_booking_editor_group_alias_fix.sql:3` — `booking_editor_groups_internal`: verifies complete signed candidate groups and every projected association.
-- `supabase/migrations/20261007120235_booking_editor_audited_override.sql:279` — `update public.booking_conflicts`: records selected acceptance with SQL actor/time before the single audit.
-- `supabase/migrations/20261007131222_booking_editor_review_round1_fixes.sql:2` — `booking_editor_decision_internal`: supports genuine large identities while preserving closed decisions, reason and subset validation.
+- `next.config.ts:4` — `bodySizeLimit`: explicitly bounds transport while retaining the default same-origin policy.
+- `src/server/bookings/editor-preview.ts:52` — `bookingActionFitsTransport`: refuses issuance when a supported reviewed decision cannot fit.
+- `src/server/bookings/save-with-conflicts.ts:26` — `saveWithConflicts`: binds current facts and reviewed decision before fresh finalization.
+- `supabase/migrations/20261007121724_booking_editor_group_alias_fix.sql:3` — `booking_editor_groups_internal`: validates complete signed groups and every projected association.
 
-### Resolve attempted saves before changing identity
+### Preserve uncertain replay and modal confinement
 
-An unknown save outcome now retains the exact attempted command, candidate and business decision for explicit replay; edits and dismissal stay locked until resolution, after which the confirmed booking can reopen as an update. Discard confirmation blocks submission, while preserving field focus during confirmation avoids the regression found by the diagnostic browser run; pending/unresolved discard remains guarded.
+An unknown attempt keeps its exact command/candidate/review/reason and blocks edits/dismissal until resolved; authorization-denied retry now retains that uncertainty rather than rotating identity, while definitive authorized stale/no-op still renews preview. Discard guards remain; Dialog now excludes semantically disabled controls and repairs focus through pending/success, with explicit first-field opening focus.
 
-- `src/components/resources/BookingEditor.tsx:63` — `function change`: prevents candidate identity rotation while an attempted save is unresolved.
-- `src/components/resources/BookingEditor.tsx:109` — `discard`: blocks submission while confirmation is open and requires current preview for fresh attempts.
-- `src/components/resources/BookingEditor.tsx:114` — `attempted.current`: retains the exact input for retry rather than accepting an edited decision.
-- `tests/e2e/booking-editor.e2e.spec.ts:349` — `E2E-005`: blocks attempted edits, replays once and reopens the confirmed booking for update.
+- `src/components/resources/BookingEditor.tsx:112` — `save`: reuses the exact attempted input and guards confirmation/pending submission.
+- `src/features/resources/booking-editor-input.ts:25` — `retainUnresolvedBookingAttempt`: retains prior uncertainty across current-authorization denial.
+- `src/components/resources/BookingEditor.tsx:126` — `wasUnresolved`: preserves retry identity without treating fresh definitive denial as unknown.
+- `src/components/crm/Dialog.tsx:87` — `useLayoutEffect`: restores a valid focus target inside the modal after transitions.
 
-### Assertions and operational limits
+### Executed invariants and operational limits
 
-AC3/4 real SQL asserts large/third-candidate group selection, open/unrelated groups and exact rollback; AC6 browser replay compares exact durable snapshots. The matrix maps every accepted patch and AC to executed assertions, including mounted endpoints/connections and authorization labels; historical diagnostics and structural/mocked limits remain explicit.
+AC2/7 real preview regressions assert eligibility truth, existing-assignment exceptions, distinguishing labels and exact no-op state; AC3/4 real large HTTP save asserts complete selected/open groups and one attributable write. AC5/6 mounted focus, read retry, compatible links and denied-authority replay execute; the verification matrix maps all nine fixes and preserves R1 rollback/precision/group assertions and historical failures.
 
-- `tests/integration/commands/booking-editor-review-fixes.int.test.ts:12` — `95 peers`: proves complete large-group acceptance and signed-partial/forged no-op negatives.
-- `tests/integration/commands/booking-editor.int.test.ts:361` — `after_acceptance`: covers create/update faults and exact acceptance/outcome/audit rollback.
-- `tests/e2e/booking-editor.e2e.spec.ts:82` — `endpoint-only`: proves production handlers persist the untouched endpoint exactly.
-- `_bmad-output/test-artifacts/story14-4-verification.md:1` — `Story 14.4 implementation verification`: records the full AC matrix, final gates and material limits.
+- `tests/integration/commands/booking-editor-round2.int.test.ts:8` — `existing assignment`: proves fresh denial and retained assignment against actual checked facts.
+- `tests/e2e/booking-editor.e2e.spec.ts:135` — `genuine 1000-group`: measures actual large HTTP save and accepted1/open999 durable rows.
+- `tests/integration/commands/booking-editor.int.test.ts:361` — `after_acceptance`: proves create/update acceptance/outcome/audit rollback across fault boundaries.
+- `_bmad-output/test-artifacts/story14-4-verification.md:1` — `Story 14.4 implementation verification`: records commands, nine-fix/AC mapping, diagnostics and evidence limits.
 
-Evidence: required full integration1455 passed/0 failed/1 existing recovery skip, including affected actual169/0/0; final browser15/0/0/0 flaky; unit2032/0/1 existing xattr skip; final component/read25/0/0. Type/lint/build/containment pass; audit remains unchanged dependency evidence. No retained Story14.4 acceptance is skipped. Limits include synthetic fixtures, serialized transport, unidentified original setup fixtures, pending15.1 calendar acceptance and mandatory empty-DB Epic CI. The post-integration focus-only correction passed affected components and final-build browser; narrow fix/trail inspection is not broad-round credit or approval.
+Evidence: required full integration1460 passed/0 failed/1 existing recovery skip, including actual affected172/0/0; browser18 successful bodies plus corrected affected1/1 in a separate run on the same final build (not a single19-pass run); unit2035/0/1 existing Windows xattr skip; final component/read27/0/0. Type/lint/build/containment pass; dependency audit/lockfile evidence is unchanged. No retained Story14.4 acceptance is skipped. Limits: synthetic fixtures and helper envelopes, structural/mocked probes, serialized action transport, different900/select300 red versus1000/select1 green payloads, original unidentified setup fixtures, pending15.1 calendar acceptance and mandatory empty-DB Epic CI. Post-build test-only90s interceptor wait passed type/lint and real HTTP; product source is unchanged. The checker validates references, not correctness; narrow inspection is separate from broad review and approval.
 
 ## Planning Gate
 
@@ -242,7 +265,27 @@ Options: (A) explicitly review all candidate warnings and accept selected logica
 
 ## Auto Run Result
 
-### Current canonical result — 2026-10-07: done
+### Current canonical result — Round 2, 2026-10-07: done
+
+Status: done
+Blocking condition: none
+Follow-up review recommended: true
+Deferred count: 0
+Baseline: `b94be3d33b7161e31ff4e01da79dd36c5474fd73`; incoming HEAD: `edb628465ec1ac5356721b8ccb617d8ab11cf5eb`.
+
+The second official independent review completed all six configured layers over the whole Story 14.4 change. The original High implementation author fixed all nine accepted findings in one batch: bounded review transport, explicit archived-role clearing, draft-preserving option retry, compatible contact/facility retention, modal focus, current preview eligibility, distinguishing collision references, and exact unresolved retry preservation across authorization denial. Current authorization, sole detector, complete logical-group acceptance and atomic booking/assignee/conflict/outcome/audit remain authoritative. No SQL, dependency, hosted or scope-manifest change was needed; all four applied migration bytes are unchanged.
+
+Triage: intent_gap 0, bad_spec 0, patch 9 (high 1, medium 8, low 0), defer 0, reject 5. All nine patches are addressed. Follow-up score `3 × 8 + 0 = 24`; both the high patch and score require `followup_review_recommended: true`. Broad review rounds completed: 2 of 3. The normative epic workflow completes this one automatic follow-up and continues; the remaining recommendation does not automatically start a third broad pass.
+
+Executed author evidence: required full integration native 0, 1461 registered / 1460 passed / 0 failed / 1 existing CI-only recovery Storage skip; actual affected API/predecessor/RLS/schema 172 passed / 0 failed / 0 skipped; units native 0, 2036 registered / 2035 passed / 0 failed / 1 existing Windows xattr skip; component/read 27 passed / 0 failed / 0 skipped. Typecheck/build/source and bundle containment pass; lint 0 errors/13 inherited warnings. Unchanged lockfile/audit evidence is reused. Skips are not acceptance.
+
+Browser coverage is explicitly two runs on final build `ZtvjBbekFSgZQChOruaeT`: 19-case diagnostic 18 passed / 1 inherited 15-second interceptor timeout / 0 skipped / 0 flaky, followed by the affected genuine large-save case native 0, 1 passed / 0 failed / 0 skipped / 0 flaky with a bounded 90-second test-interceptor wait. Actual POST 1,120,245 bytes, HTTP 200, one booking/audit, 1000 complete candidate groups, one accepted and 999 open. Product source/build stayed unchanged; ordinary probes retain their default timeout. This covers all 19 unique bodies across two runs, not a single 19-pass run. Original old-build 900/select300 HTTP 500, first unit 2034/1/1 and lint diagnostics remain preserved; no identical-input counterfactual or specific old 500 cause is claimed.
+
+Independent narrow checks pass: all 53 recorded hashes and recomputed fingerprint `f34ee23dc52a0f92f6de0ea24b0328946c5dbe96d1c6a34986abcef20e94712a` match current files; frozen intent matches the entry snapshot byte-for-byte; all four migration hashes match applied evidence. Exactly one original-author Suggested Review Order has 20 verified stops and zero checker errors. Retained new evidence passed a bounded credential/cookie/proof scan without values printed. These are narrow checks, not another broad round. The root re-engages the author for the mandatory completion hook on the exact final commit.
+
+The [author verification matrix](../test-artifacts/story14-4-verification.md), [six-layer provenance and triage](../test-artifacts/story14-4-r2-review-provenance-triage.md), and [absolute changed-file manifest with one-line descriptions](../test-artifacts/story14-4-r2-finalization-manifest.json) hold the complete evidence and file list. Historical source/setup failures and serialized transport limits remain. Mandatory empty-DB Epic CI before merge and only the transferred Story 15.1 click/drag acceptance before calendar exposure/completion remain operational work. Root-owned orchestration bookkeeping is explicitly excluded from this skill's commit; reviewed paths must be clean and no unknown dirty file is tolerated. No owner question or accepted finding remains unresolved.
+
+### Historical canonical result — Round 1, 2026-10-07: done
 
 Status: done
 Blocking condition: none

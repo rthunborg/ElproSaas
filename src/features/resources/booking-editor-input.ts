@@ -21,6 +21,10 @@ export function normalizeBookingDecision(raw: unknown): { ok: true; data: Bookin
   return { ok: true, data: { acknowledged: value.acknowledged, reviewedLogicalIds: reviewed, selectedLogicalIds: selected, reason } };
 }
 export const EMPTY_BOOKING_DECISION: BookingDecision = Object.freeze({ acknowledged: false, reviewedLogicalIds: [], selectedLogicalIds: [], reason: "" });
+/** A denied retry cannot resolve a previously unknown committed outcome. */
+export function retainUnresolvedBookingAttempt(code: string, wasUnresolved: boolean): boolean {
+  return code === "SERVER_ERROR" || (wasUnresolved && ["UNAUTHENTICATED", "TENANT_MEMBERSHIP_REQUIRED", "PERMISSION_DENIED", "TENANT_ACCESS_DENIED"].includes(code));
+}
 export function prepareBookingTimes(input: { original: Pick<BookingFacts, "startsAt" | "endsAt">;
   startChanged: boolean; endChanged: boolean; allDay: boolean; startsAtLocal: string; endsAtLocal: string }): Pick<BookingFacts, "startsAt" | "endsAt"> {
   const local = (value: string) => input.allDay ? `${value.slice(0, 10)}T00:00:00` : value.length === 16 ? `${value}:00` : value;

@@ -58,6 +58,10 @@ beforeEach(() => {
 });
 
 describe("booking browser read/action boundaries (mocked transport)", () => {
+  test("Round2 known oversized input returns a pre-execution failure without command/authority reads",async()=>{
+    expect(await saveBookingAction({description:"界".repeat(1100000)})).toMatchObject({status:"error",code:"VALIDATION_FAILED"});
+    expect(harness.command).not.toHaveBeenCalled();expect(harness.resolve).not.toHaveBeenCalled();expect(reads).toEqual([]);
+  });
   test("CRM host access alone cannot query bookings or editor pickers", async () => {
     context("saljare");
     expect((await readBookingHost({ customerId: CUSTOMER })).canView).toBe(false);

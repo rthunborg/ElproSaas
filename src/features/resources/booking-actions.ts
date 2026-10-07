@@ -13,7 +13,8 @@ import { previewBookingEditor } from "@/server/bookings/editor-preview";
 import { validateBookingCandidateReferences } from "@/server/bookings/candidate-references";
 import type { BookingRpcClient } from "@/server/bookings/conflict-facts";
 import type { BookingActionError, BookingPreviewActionResult, BookingSaveActionResult } from "./booking-action-state";
-import { bookingPersonLabel, readBookingPeople } from "./bookings-read";
+import { bookingPersonLabel, readBookingPeople, readBookingEditorOptions } from "./bookings-read";
+import { bookingActionFitsTransport } from "./booking-transport";
 
 function failure(code: CommandErrorCode): BookingActionError {
   return { status: "error", code, message: COMMAND_MESSAGES[code] };
@@ -60,7 +61,7 @@ export async function previewBookingAction(input: unknown): Promise<BookingPrevi
     return { status: "success", preview: { receipt: preview.receipt, bookingId: preview.bookingId,
       warnings: preview.warnings.map((warning) => ({ logicalId: warning.logicalId, ruleLabel: warning.ruleLabel,
         personId: warning.personId, personLabel: bookingPersonLabel(warning.personId, people.find(person => person.id === warning.personId)?.label),
-        bookingIds: warning.bookingIds, bookingLabels: warning.bookingIds.map((id) => id === preview.bookingId ? "Den här bokningen" : `Bokning ${id.slice(0, 8)}`),
+        bookingIds: warning.bookingIds, bookingLabels: warning.bookingIds.map((id) => id === preview.bookingId ? "Den här bokningen" : `Bokning ${id}`),
         startsAt: warning.startsAt, endsAt: warning.endsAt })),
       availability: preview.availability.map(({ personId, available }) => ({ personId, available })) } };
   } catch (error) { return failure(errorCode(error)); }
@@ -69,6 +70,7 @@ export async function previewBookingAction(input: unknown): Promise<BookingPrevi
 /** Save returns success only after the checked atomic command confirms persistence. */
 export async function saveBookingAction(input: unknown): Promise<BookingSaveActionResult> {
   try {
+    if (!bookingActionFitsTransport(input)) return failure("VALIDATION_FAILED");
     const client = await createSupabaseServerClient(); const update = isUpdate(input);
     const validated = update ? validateUpdateBooking(input) : validateCreateBooking(input);
     if (!validated.ok) return failure(validated.code);
@@ -87,3 +89,6 @@ export async function saveBookingAction(input: unknown): Promise<BookingSaveActi
     return { status: "success", bookingId: result.data.bookingId, message: "Bokningen har sparats." };
   } catch (error) { return failure(errorCode(error)); }
 }
+
+/** Refresh only current authorized, sanitized options; no draft or write authority is supplied. */
+export async function reloadBookingEditorOptionsAction() { return readBookingEditorOptions(); }

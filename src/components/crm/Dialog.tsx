@@ -14,10 +14,10 @@
  * Presentation only — it is NOT a security boundary. The actual mutation authority is
  * the 3.1 envelope command behind the form's server action.
  */
-import { useCallback, useEffect, useId, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useId, useRef } from "react";
 
 const FOCUSABLE =
-  'a[href], button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  'a[href], button:not(:disabled), input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"]):not([aria-disabled="true"])';
 
 export function Dialog({
   open,
@@ -48,6 +48,7 @@ export function Dialog({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   // The element that had focus when the dialog opened — focus returns here on close.
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  const focusInitialized = useRef(false);
   const titleId = useId();
 
   // Capture the invoking control and move focus INTO the dialog on open; lock body
@@ -65,6 +66,7 @@ export function Dialog({
   useEffect(() => {
     if (!open) return;
     returnFocusRef.current = document.activeElement as HTMLElement | null;
+    focusInitialized.current = true;
     const target =
       initialFocusRef?.current ??
       contentRef.current?.querySelector<HTMLElement>(FOCUSABLE) ??
@@ -74,11 +76,21 @@ export function Dialog({
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
+      focusInitialized.current = false;
       document.body.style.overflow = previousOverflow;
       // Return focus to the control that opened the dialog (predictable focus, AC3).
       returnFocusRef.current?.focus();
     };
   }, [open, initialFocusRef]);
+
+  // Disabling/removing a focused form control must not release focus to the page.
+  useLayoutEffect(() => {
+    if (!open || !focusInitialized.current || !panelRef.current) return;
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && panelRef.current.contains(active) && !active.matches(":disabled")) return;
+    const fallback = closeButtonRef.current && !closeButtonRef.current.matches(":disabled") ? closeButtonRef.current : panelRef.current;
+    (contentRef.current?.querySelector<HTMLElement>(FOCUSABLE) ?? fallback).focus();
+  });
 
   // Close the dialog ONLY when not busy — the single guard shared by every chrome dismiss path
   // (Escape, backdrop, header X). A mid-flight dismissal would reset the caller's local state while
@@ -101,12 +113,12 @@ export function Dialog({
       const focusables = panel.querySelectorAll<HTMLElement>(
         FOCUSABLE,
       );
-      if (focusables.length === 0) return;
+      if (focusables.length === 0) {event.preventDefault(); panel.focus(); return;}
       const first = focusables[0];
       const last = focusables[focusables.length - 1];
-      if (!panel.contains(document.activeElement)) {
+      if (![...focusables].includes(document.activeElement as HTMLElement)) {
         event.preventDefault();
-        first.focus();
+        (event.shiftKey ? last : first).focus();
         return;
       }
       if (event.shiftKey && document.activeElement === first) {
@@ -135,6 +147,7 @@ export function Dialog({
       <div
         ref={panelRef}
         role="dialog"
+        tabIndex={-1}
         aria-modal="true"
         aria-labelledby={titleId}
         onKeyDown={onKeyDown}

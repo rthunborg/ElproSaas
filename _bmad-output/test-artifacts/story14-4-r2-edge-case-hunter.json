@@ -1,0 +1,14 @@
+[
+  {
+    "location": "src/components/resources/BookingEditor.tsx:118-119",
+    "trigger_condition": "Authorization is revoked before retrying a save whose committed response was lost.",
+    "guard_snippet": "if (unresolved && ['UNAUTHENTICATED','TENANT_MEMBERSHIP_REQUIRED','PERMISSION_DENIED','TENANT_ACCESS_DENIED'].includes(result.code)) { setUnresolved(true); } else { /* existing handling */ }",
+    "potential_consequence": "Editing loses the original replay command; the committed create ID then prevents confirmation."
+  },
+  {
+    "location": "src/components/resources/BookingEditor.tsx:150",
+    "trigger_condition": "An existing booking references a work role subsequently archived through the authorized lifecycle command.",
+    "guard_snippet": "{facts.workRoleId && !options.workRoles.some(r => r.id === facts.workRoleId) && <option value={facts.workRoleId} disabled>Nuvarande arbetsroll (arkiverad)</option>}",
+    "potential_consequence": "The picker displays no assigned role while preview rejects the retained archived role ID."
+  }
+]

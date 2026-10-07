@@ -68,7 +68,7 @@ export interface BookingEditorHarness {
    * Unique description and IDs per test; no broad seed/reset or unrelated edits.
    * Capture affected existing rows and restore only owned changes in dispose.
    */
-  seed(mode: "conflict-free" | "conflicted" | "persisted-conflict-states"): Promise<Scenario>;
+  seed(mode: "conflict-free" | "conflicted" | "persisted-conflict-states" | "large-review"): Promise<Scenario>;
   /** Register actual production save observation BEFORE navigation/action. */
   observeNextConfirmedSave(): Promise<{ readonly confirmed: Promise<void> }>;
   /** Hold actual request before writes; release is idempotent and always cleaned. */
@@ -89,6 +89,8 @@ export interface BookingEditorHarness {
    */
   raceNextPreviews(): Promise<PreviewRace>;
   failNextPreviewOnce(): Promise<{ readonly failed: Promise<void> }>;
+  failNextOptionsReadOnce(): Promise<{ readonly failed: Promise<void> }>;
+  observeNextSaveTransport(timeoutMs?: number): Promise<{ readonly observed: Promise<{bodyBytes: number;status: number}> }>;
   /** Remove routes/holds/listeners and only per-test SQL rows; never stop browser. */
   dispose(): Promise<void>;
 }
@@ -115,6 +117,9 @@ async function bindBookingEditorHarness(
   const releases: (() => void)[] = [];
   const pendingRoutes = new Set<Promise<void>>();
   const confirmations: (() => void)[] = [];
+  const transports: ((value: {bodyBytes:number;status:number}) => void)[] = [];
+  let observedSaveTimeout: number | undefined;
+  let optionsFailure: (() => void) | undefined;
   let saveHold: { started: () => void; wait: Promise<void> } | undefined;
   let saveFailure: (() => void) | undefined;
   let saveLoss: (() => void) | undefined;
@@ -143,17 +148,24 @@ async function bindBookingEditorHarness(
     const request = route.request();
     if (request.method() !== "POST" || !request.headers()["next-action"]) { await route.continue(); return; }
     const input = actionInput(request.postData());
+    if (!input && request.postData() === "[]" && optionsFailure) {const done=optionsFailure; optionsFailure=undefined; await route.abort("failed"); done(); return;}
     if (!input) { await route.continue(); return; }
     const save = "editorReview" in input;
     if (save && saveFailure) { const done = saveFailure; saveFailure = undefined; await route.abort("failed"); done(); return; }
     if (!save && previewFailure) { const done = previewFailure; previewFailure = undefined; await route.abort("failed"); done(); return; }
     if (save && saveHold) { const gate = saveHold; saveHold = undefined; gate.started(); await gate.wait; }
     // The response is obtained from the actual Next action; no facts/results are fabricated.
-    const response = await route.fetch();
+    const fetchTimeout = save ? observedSaveTimeout : undefined;
+    if (save) observedSaveTimeout = undefined;
+    const response = await route.fetch(fetchTimeout ? {timeout: fetchTimeout} : undefined);
     if (save) {
-      await saveCommitted(input, response);
-      for (const confirm of confirmations.splice(0)) confirm();
-      if (saveLoss) { const done = saveLoss; saveLoss = undefined; await route.abort("failed"); done(); return; }
+      for (const observe of transports.splice(0)) observe({bodyBytes:Buffer.byteLength(request.postData() ?? ""),status:response.status()});
+      // A denied replay/413 is an actual error response, not confirmation of an existing row.
+      if (response.ok() && /"status":"success"/.test(await response.text())) {
+        await saveCommitted(input, response);
+        for (const confirm of confirmations.splice(0)) confirm();
+        if (saveLoss) { const done = saveLoss; saveLoss = undefined; await route.abort("failed"); done(); return; }
+      }
     } else if (previewRace && scenario && input.description === scenario.description && input.workRoleId === scenario.workRoleId &&
       (input.assigneeIds as string[]).length === scenario.assigneeIds.length) {
       const race = previewRace; const index = race.index++;
@@ -207,7 +219,7 @@ async function bindBookingEditorHarness(
       const jobId = randomUUID();
       owned.jobId = jobId;
       await adminQuery("insert into public.jobs(id,tenant_id,customer_id,title) values($1,$2,$3,$4)", [jobId, tenantId, customerId, token]);
-      const conflicted = mode !== "conflict-free";
+      const conflicted = mode === "conflicted" || mode === "persisted-conflict-states";
       const start = conflicted ? "2026-10-12T13:00:00.000000Z" : "2026-10-12T07:00:00.000000Z";
       const end = conflicted ? "2026-10-12T14:30:00.000000Z" : "2026-10-12T08:00:00.000000Z";
       const person = labels[0]!;
@@ -223,6 +235,14 @@ async function bindBookingEditorHarness(
         expectedConflictRowCount: 3, expectedAcceptedRowCount: 1, expectedOpenRowCount: mode === "persisted-conflict-states" ? 1 : 2,
         selectedLogicalId: "", olderWarning: warning("2026-10-12T14:00:00Z", end), newerWarning: warning("2026-10-12T14:00:00Z", "2026-10-12T15:00:00Z") };
       (scenario.olderWarning as { text: string }).text = scenario.olderWarning.window;
+      if (mode === "large-review") {
+        await adminQuery(`insert into public.bookings(id,tenant_id,starts_at,ends_at,description,create_command_id,create_payload_digest,create_result)
+          select id,$1,'2026-10-12T07:00:00Z'::timestamptz+n*interval '1 second',
+          '2026-10-12T07:00:00Z'::timestamptz+(n+1)*interval '1 second',$2,gen_random_uuid(),repeat('a',64),jsonb_build_object('bookingId',id::text)
+          from (select gen_random_uuid() id,generate_series(0,999) n) peers`,[tenantId,`${token} large peer`]);
+        await adminQuery("insert into public.booking_assignees(tenant_id,booking_id,person_profile_id) select tenant_id,id,$3 from public.bookings where tenant_id=$1 and description=$2",[tenantId,`${token} large peer`,profiles[0]]);
+        scenario={...scenario,endsLocal:"2026-10-12T09:20",expectedEndsAt:"2026-10-12T07:20:00+00:00",expectedConflictRowCount:1000,expectedAcceptedRowCount:1,expectedOpenRowCount:999};
+      }
       if (conflicted) {
         await createReviewed({ ...bookingInput([profiles[0]!], { startsAt: "2026-10-12T13:15:00.000000Z", endsAt: "2026-10-12T13:45:00.000000Z", description: `${token}-peer` }), proposedBookingId: randomUUID() });
       }
@@ -238,6 +258,9 @@ async function bindBookingEditorHarness(
     async failNextSaveOnce() { const done = deferred(); saveFailure = done.resolve; return { failed: done.promise }; },
     async loseNextCommittedSaveResponseOnce() { const done = deferred(); saveLoss = done.resolve; return { committed: done.promise }; },
     async failNextPreviewOnce() { const done = deferred(); previewFailure = done.resolve; return { failed: done.promise }; },
+    async failNextOptionsReadOnce() { const done = deferred(); optionsFailure = done.resolve; return { failed: done.promise }; },
+    async observeNextSaveTransport(timeoutMs?: number) { observedSaveTimeout=timeoutMs; let resolve!: (value:{bodyBytes:number;status:number})=>void;
+      const observed=new Promise<{bodyBytes:number;status:number}>(done=>{resolve=done;}); transports.push(resolve); return {observed}; },
     async raceNextPreviews() {
       const race = { older: deferred(), newer: deferred(), releaseOlder: deferred(), releaseNewer: deferred(), olderDone: deferred(), newerDone: deferred(), index: 0 };
       previewRace = race; releases.push(race.releaseOlder.resolve, race.releaseNewer.resolve);

@@ -1,0 +1,5 @@
+- **Browser evidence retains complete credential-bearing server environment**
+
+  `_bmad-output/test-artifacts/story14-4-booking-browser-diagnostic-Sfin.json:71`, `story14-4-booking-browser-diagnostic-f9-setup.json:67`, `story14-4-final-booking-browser.json:71`, `story14-4-r1-booking-browser-diagnostic.json:71`, `story14-4-r1-booking-browser-final.json:71`, `story14-4-r1-booking-browser-preflight.json:67`.
+
+  **Conditional / defense-in-depth; confidence high for serialization, medium for private-credential exposure.** The reports retain `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and three attestation HMAC fields. All present values match existing public local-demo/synthetic defaults; no new private-secret exposure is established. The service-role token grants RLS-bypassing authority against the local stack. Retaining equivalent reports from a run using private overrides would disclose those credentials to artifact readers. Sanitize credential fields before retaining reports. Current-only sanitization leaves existing values in Git history, although these observed public defaults do not establish a private credential rotation requirement.

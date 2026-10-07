@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { Dialog } from "@/components/crm/Dialog";
 import type { BookingFacts } from "@/features/resources/booking-types";
 import type { BookingEditorOptions } from "@/features/resources/booking-action-state";
-import { previewBookingAction, saveBookingAction } from "@/features/resources/booking-actions";
-import { prepareBookingTimes } from "@/features/resources/booking-editor-input";
+import { previewBookingAction, saveBookingAction, reloadBookingEditorOptionsAction } from "@/features/resources/booking-actions";
+import { prepareBookingTimes, retainUnresolvedBookingAttempt } from "@/features/resources/booking-editor-input";
+import { bookingActionFitsTransport } from "@/features/resources/booking-transport";
 import { BookingConflictPanel, advanceBookingPreview, type BookingPreviewDisplay } from "./BookingConflictPanel";
 
 const fieldClass = "min-h-12 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600";
@@ -15,11 +16,13 @@ export function bookingLocalInput(value: string): string {
   const parts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", {timeZone: "Europe/Stockholm", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23"}).formatToParts(new Date(value)).map(p => [p.type,p.value]));
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
 }
-export function BookingEditor({open, onClose, draft, options, bookingId, prefill, initialPreview}: {
+export function BookingEditor({open, onClose, draft, options: initialOptions, bookingId, prefill, initialPreview}: {
   readonly open: boolean; readonly onClose: () => void; readonly draft: BookingFacts;
   readonly options: BookingEditorOptions; readonly bookingId?: string; readonly prefill?: BookingPrefill;
   readonly initialPreview?: BookingPreviewDisplay;
 }) {
+  const [options, setOptions] = useState(initialOptions);
+  const [optionsLoading, setOptionsLoading] = useState(false);
   const [facts, setFacts] = useState<BookingFacts>(() => ({...draft, startsAt: prefill?.startsAt ?? draft.startsAt, endsAt: prefill?.endsAt ?? draft.endsAt, assigneeIds: prefill?.personId ? [prefill.personId] : draft.assigneeIds}));
   const [start, setStart] = useState(() => bookingLocalInput(prefill?.startsAt ?? draft.startsAt));
   const [end, setEnd] = useState(() => bookingLocalInput(prefill?.endsAt ?? draft.endsAt));
@@ -48,6 +51,7 @@ export function BookingEditor({open, onClose, draft, options, bookingId, prefill
   const identity = useRef<{commandId: string; proposedBookingId: string} | null>(null);
   const proposedCreateId = useRef<string | null>(null);
   const keepEditing = useRef<HTMLButtonElement>(null);
+  const initialField = useRef<HTMLSelectElement>(null);
   const discardReturnFocus = useRef<HTMLElement | null>(null);
   const closeRef = useRef(onClose);
   const busyRef = useRef(pending);
@@ -108,18 +112,35 @@ export function BookingEditor({open, onClose, draft, options, bookingId, prefill
   async function save(event: React.FormEvent) {
     event.preventDefault(); if (pending || success || discard || (!attempted.current && (preview.status !== "ready" || !receipt.current))) return;
     if (!attempted.current && preview.warnings.length && (!reviewed || !reason.trim())) {setError("Granska aktuella varningar och ange en orsak."); return;}
+    const wasUnresolved = unresolved;
+    let input: unknown;
+    try {input = attempted.current ?? {...candidate(), editorReview: {receipt: receipt.current, decision: {acknowledged: preview.warnings.length > 0 && reviewed, reviewedLogicalIds: preview.warnings.map(w => w.logicalId), selectedLogicalIds: selected, reason: preview.warnings.length ? reason.trim() : ""}}};}
+    catch {setError("Kontrollera bokningens tider innan du försöker igen."); return;}
+    if (!bookingActionFitsTransport(input)) {setError("Granskningen är för stor för att skickas. Inget sparförsök har gjorts."); return;}
     setPending(true); setError(null);
     try {
-      const input = attempted.current ?? {...candidate(), editorReview: {receipt: receipt.current, decision: {acknowledged: preview.warnings.length > 0 && reviewed, reviewedLogicalIds: preview.warnings.map(w => w.logicalId), selectedLogicalIds: selected, reason: preview.warnings.length ? reason.trim() : ""}}};
       attempted.current = input;
       const result = await saveBookingAction(input);
       if (result.status === "success") {attempted.current = null; setUnresolved(false); setSuccess(true); setDirty(false);} else {
         setError(result.message);
-        if (result.code === "SERVER_ERROR") setUnresolved(true);
+        if (retainUnresolvedBookingAttempt(result.code, wasUnresolved)) setUnresolved(true);
         else {attempted.current = null; setUnresolved(false);}
         if (result.code === "PREVIEW_STALE") {setReviewed(false); setSelected([]); setReason(""); receipt.current = null; setPreview({requestId: "stale",status: "pending",warnings: [],availabilityLabel: "Okänd"}); setRetry(n => n+1);}
       }
     } catch {setUnresolved(true); setError("Bokningen kunde inte sparas. Behåll utkastet och försök igen.");} finally {setPending(false);}
+  }
+  async function retryOptions() {
+    if (pending || unresolved || optionsLoading) return;
+    setOptionsLoading(true);
+    try {
+      const fresh = await reloadBookingEditorOptionsAction();
+      if (fresh.error || !fresh.canManage) setOptions(value => ({...value,error: fresh.error ?? "Bokningsvalen kunde inte läsas. Försök igen."}));
+      else {
+        setOptions(fresh); receipt.current = null; setReviewed(false); setSelected([]); setReason("");
+        setPreview({requestId: "options",status: "pending",warnings: [],availabilityLabel: "Okänd"}); setRetry(n=>n+1);
+      }
+    } catch {setOptions(value => ({...value,error: "Bokningsvalen kunde inte läsas. Försök igen."}));}
+    finally {setOptionsLoading(false);}
   }
   function connection(name: "jobId" | "customerId" | "facilityId" | "contactId", value: string) {
     if (name === "jobId") {
@@ -129,25 +150,30 @@ export function BookingEditor({open, onClose, draft, options, bookingId, prefill
       change({customerId: value || null,jobId: null,facilityId: null,contactId: null});
     } else if (name === "facilityId") {
       const facility = options.facilities.find(item => item.id === value);
-      change({facilityId: value || null,contactId: null,jobId: null,...(facility ? {customerId: facility.customerId} : {})});
+      const contact = options.contacts.find(item => item.id === facts.contactId);
+      const customerId = facility?.customerId ?? facts.customerId;
+      const compatibleContact = contact && contact.customerId === customerId && (!contact.facilityId || contact.facilityId === (value || null));
+      change({facilityId: value || null,contactId: compatibleContact ? contact.id : null,jobId: null,...(facility ? {customerId: facility.customerId} : {})});
     } else {
       const contact = options.contacts.find(item => item.id === value);
+      const currentCustomer = facts.customerId ?? options.facilities.find(item => item.id === facts.facilityId)?.customerId;
       change({contactId: value || null,jobId: null,...(contact ? {customerId: contact.customerId,
-        facilityId: contact.facilityId ?? (contact.customerId === facts.customerId ? facts.facilityId : null)} : {})});
+        facilityId: contact.facilityId ?? (contact.customerId === currentCustomer ? facts.facilityId : null)} : {})});
     }
   }
   const optional = (name: "jobId" | "customerId" | "facilityId" | "contactId", label: string, entries: readonly {id: string; label: string}[]) => <label className="space-y-1"><span className="text-sm font-medium">{label}</span><select name={name} data-testid={`booking-${name.replace("Id", "")}`} value={facts[name] ?? ""} className={fieldClass} onChange={e => connection(name, e.target.value)}><option value="">Ingen koppling</option>{facts[name] && !entries.some(item => item.id === facts[name]) && <option value={facts[name]!} disabled>Nuvarande koppling (ej tillgänglig för nya val) · {facts[name]}</option>}{entries.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>;
-  return <Dialog open={open} onClose={requestClose} title={bookingId ? "Redigera bokning" : "Ny bokning"} busy={pending} variant="sheet">
+  return <Dialog open={open} onClose={requestClose} title={bookingId ? "Redigera bokning" : "Ny bokning"} busy={pending} variant="sheet" initialFocusRef={initialField}>
     <form onSubmit={save} data-testid="booking-editor" className="space-y-5" aria-busy={pending}>
       <div data-testid="booking-editor-sheet" className="space-y-5"><div data-testid="booking-editor-scroll-body" className="space-y-5">
       {success ? <p role="status" data-testid="booking-save-status" className="rounded-md bg-green-50 p-3 text-green-900">Sparad i systemet</p> : <>
       <p data-testid="booking-unsent" className="text-sm text-zinc-600">Utkast ej skickat</p>
       {unresolved && <p role="status" data-testid="booking-unresolved-save">Sparresultatet är okänt. Försök igen med samma utkast innan du ändrar eller stänger bokningen.</p>}
-      {options.error && <p role="alert">{options.error}</p>}
+      {options.error && <p role="alert" data-testid="booking-options-error">{options.error}</p>}
+      <button type="button" data-testid="booking-options-retry" className={buttonClass} disabled={pending || unresolved || optionsLoading} onClick={retryOptions}>{optionsLoading ? "Läser bokningsval…" : options.error ? "Läs bokningsval igen" : "Uppdatera bokningsval"}</button>
       <fieldset disabled={pending || unresolved} className="space-y-4"><legend className="font-semibold">Tilldelade</legend>
-      <label className="block space-y-1"><span className="text-sm">Filtrera arbetsroll</span><select data-testid="booking-work-role-filter" className={fieldClass} value={roleFilter} onChange={e => setRoleFilter(e.target.value)}><option value="">Alla arbetsroller</option>{options.workRoles.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}</select></label>
+      <label className="block space-y-1"><span className="text-sm">Filtrera arbetsroll</span><select ref={initialField} data-testid="booking-work-role-filter" className={fieldClass} value={roleFilter} onChange={e => setRoleFilter(e.target.value)}><option value="">Alla arbetsroller</option>{options.workRoles.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}</select></label>
       {people.filter(p => !roleFilter || p.defaultWorkRoleId === roleFilter || p.workRoleIds.includes(roleFilter) || facts.assigneeIds.includes(p.id)).map(p => <label key={p.id} className="flex min-h-11 items-center gap-3 text-sm"><input name="assigneeIds" type="checkbox" value={p.id} data-testid={`booking-assignee-option-${p.id}`} checked={facts.assigneeIds.includes(p.id)} onChange={e => change({assigneeIds: e.target.checked ? [...facts.assigneeIds,p.id] : facts.assigneeIds.filter(id => id !== p.id)})} /><span>{p.label} · {preview.status === "ready" && availability.find(a => a.personId === p.id) ? availability.find(a => a.personId === p.id)!.available ? "Tillgänglig" : "Upptagen" : "Okänd"}</span></label>)}
-      <label className="block space-y-1"><span>Arbetsroll</span><select name="workRoleId" data-testid="booking-work-role" className={fieldClass} value={facts.workRoleId ?? ""} onChange={e => change({workRoleId: e.target.value || null})}><option value="">Ingen arbetsroll</option>{options.workRoles.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}</select></label>
+      <label className="block space-y-1"><span>Arbetsroll</span><select name="workRoleId" data-testid="booking-work-role" className={fieldClass} value={facts.workRoleId ?? ""} onChange={e => change({workRoleId: e.target.value || null})}><option value="">Ingen arbetsroll</option>{facts.workRoleId && !options.workRoles.some(role => role.id === facts.workRoleId) && <option value={facts.workRoleId} disabled>Nuvarande arbetsroll (ej tillgänglig för nya val) · {facts.workRoleId}</option>}{options.workRoles.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}</select></label>
       <label className="flex min-h-11 items-center gap-3"><input name="allDay" data-testid="booking-all-day" type="checkbox" checked={facts.allDay} onChange={e => {if (!e.target.checked) {setStart(value => value.length === 10 ? `${value}T00:00` : value); setEnd(value => value.length === 10 ? `${value}T00:00` : value);} setStartChanged(true); setEndChanged(true); change({allDay: e.target.checked});}} />Heldag</label>
       <p className="text-xs text-zinc-600">Tid i Stockholm. För heldag är slutdatum den första dagen efter bokningen.</p>
       <div className="grid gap-3 sm:grid-cols-2"><label className="space-y-1"><span>Start</span><input name="startsAt" data-testid="booking-start" type={facts.allDay ? "date" : "datetime-local"} className={fieldClass} value={facts.allDay ? start.slice(0,10) : start} onChange={e => {setStart(e.target.value); setStartChanged(true); change({});}} required /></label><label className="space-y-1"><span>Slut</span><input name="endsAt" data-testid="booking-end" type={facts.allDay ? "date" : "datetime-local"} className={fieldClass} value={facts.allDay ? end.slice(0,10) : end} onChange={e => {setEnd(e.target.value); setEndChanged(true); change({});}} required /></label></div>
@@ -161,7 +187,7 @@ export function BookingEditor({open, onClose, draft, options, bookingId, prefill
       </>}
       </div></div>
       {discard && <div role="alertdialog" aria-label="Kasta utkast?" data-testid="booking-discard-confirmation" className="space-y-3 rounded-md border border-amber-300 p-3"><p>Kasta osparade ändringar?</p><div className="flex flex-wrap gap-2"><button type="button" data-testid="booking-keep-editing" ref={keepEditing} className={buttonClass} onClick={() => setDiscard(false)}>Fortsätt redigera</button><button type="button" data-testid="booking-discard" className={buttonClass} disabled={pending || unresolved} onClick={() => {if (!pending && !attempted.current) onClose();}}>Kasta utkast</button></div></div>}
-      <div className="sticky bottom-0 flex flex-wrap justify-end gap-2 border-t border-zinc-200 bg-white py-3"><button type="button" data-testid="booking-close" className={buttonClass} disabled={pending || unresolved} onClick={requestClose}>{success ? "Stäng" : "Avbryt"}</button>{!success && <button type="submit" data-testid={error ? "booking-retry" : "booking-save"} disabled={pending || discard || (!unresolved && preview.status !== "ready") || !!options.error} className={`${buttonClass} bg-blue-700 text-white`}>{pending ? "Sparar…" : error ? "Försök igen" : preview.warnings.length ? "Boka ändå" : "Spara bokning"}</button>}</div>
+      <div className="sticky bottom-0 flex flex-wrap justify-end gap-2 border-t border-zinc-200 bg-white py-3"><button type="button" data-testid="booking-close" className={buttonClass} disabled={pending || unresolved} onClick={requestClose}>{success ? "Stäng" : "Avbryt"}</button>{!success && <button type="submit" data-testid={error ? "booking-retry" : "booking-save"} disabled={pending || discard || (!unresolved && preview.status !== "ready") || !!options.error || optionsLoading} className={`${buttonClass} bg-blue-700 text-white`}>{pending ? "Sparar…" : error ? "Försök igen" : preview.warnings.length ? "Boka ändå" : "Spara bokning"}</button>}</div>
     </form>
   </Dialog>;
 }

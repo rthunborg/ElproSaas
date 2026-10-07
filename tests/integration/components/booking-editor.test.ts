@@ -23,6 +23,12 @@ const production = {
 };
 function binding<K extends keyof typeof production>(name: K): (typeof production)[K] { return production[name]; }
 describe("Story 14.4 booking editor — structural and state semantics", () => {
+  test("Round2 archived current work role remains explicit with no active alternatives",()=>{
+    const html=renderToStaticMarkup(createElement(BookingEditor,{open:true,onClose:()=>{},bookingId:PERSON_2,draft:{...booking(),workRoleId:PERSON_2},
+      options:{canManage:true,error:null,people:[],workRoles:[],jobs:[],customers:[],facilities:[],contacts:[]}}));
+    expect(html).toContain("Nuvarande arbetsroll (ej tillgänglig för nya val)");expect(html).toMatch(/option value="[^"]+" disabled="" selected=""/);
+    expect(html).toContain('option value="">Ingen arbetsroll');expect(html).toContain('data-testid="booking-options-retry"');
+  });
   test("Round1 failed host authority renders safe retry without booking controls or data", () => {
     const html=renderToStaticMarkup(createElement(BookingEntry,{canManage:false,canView:false,error:"Bokningsuppgifterna kunde inte läsas.",
       bookings:[],openConflictCount:0,options:{canManage:false,error:null,people:[],workRoles:[],jobs:[],customers:[],facilities:[],contacts:[]}}));

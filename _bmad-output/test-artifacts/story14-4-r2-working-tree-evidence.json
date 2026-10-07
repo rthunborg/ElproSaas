@@ -1,0 +1,225 @@
+{
+  "baseline": "b94be3d33b7161e31ff4e01da79dd36c5474fd73",
+  "incomingHead": "edb628465ec1ac5356721b8ccb617d8ab11cf5eb",
+  "buildId": "ZtvjBbekFSgZQChOruaeT",
+  "sourceFiles": [
+    {
+      "path": "next.config.ts",
+      "sha256": "139c31a58ffc086652fe1d9816e51249080b89bc38f952b2a0ee7b492e2b2a92"
+    },
+    {
+      "path": "src/app/(app)/customers/[customerId]/page.tsx",
+      "sha256": "4db8c3f247e6aba0d9b0ba066fbbe74e9c116d943ff32a70f272ea7a3330f916"
+    },
+    {
+      "path": "src/app/(app)/jobs/[jobId]/page.tsx",
+      "sha256": "fbf3d595a369d7ef9e5c323ffb0bddc57b4da5721d8a977182ea28b7edc8e1f6"
+    },
+    {
+      "path": "src/app/(app)/jobs/page.tsx",
+      "sha256": "78f2d31a3b6da3893bf154b0bf736b1323c108535c46ba749f31964b26e743ce"
+    },
+    {
+      "path": "src/components/crm/CustomerDetail.tsx",
+      "sha256": "633969ccd979fdb2a628a511d504853445919bfce50f6fd234f72b913189fce1"
+    },
+    {
+      "path": "src/components/crm/Dialog.tsx",
+      "sha256": "aeadf776bc44d4fc8f5b0a6f6b315a68d6afebc76ce6a94dcf66a89d6a9366d3"
+    },
+    {
+      "path": "src/components/jobs/JobDetailView.tsx",
+      "sha256": "2fc2d49b1796009f016383d95b5519c1c5fdadd668068c6390b795a0fa1a4847"
+    },
+    {
+      "path": "src/components/jobs/JobList.tsx",
+      "sha256": "3ebcb86ddbe104522403df32d3c3a25df2f212847beb27c9fdec5923540e27f4"
+    },
+    {
+      "path": "src/components/resources/BookingConflictChip.tsx",
+      "sha256": "06e74e77da667e564b06ef7e97ce464fa8c460b00b4b629869c0f2db43970d0f"
+    },
+    {
+      "path": "src/components/resources/BookingConflictPanel.tsx",
+      "sha256": "5e3e0061a36d53663a087226935db8d75ee9285434a8d40af58637fbbb1a88ad"
+    },
+    {
+      "path": "src/components/resources/BookingEditor.tsx",
+      "sha256": "0446e8ca8e4fba6272913d7ed3dc2228253817e67f8c7306389af196d154d1a6"
+    },
+    {
+      "path": "src/components/resources/BookingEntry.tsx",
+      "sha256": "bbea07eb4fac0bf1863300b658590cc578d8c5f641c35d162cf952536dded173"
+    },
+    {
+      "path": "src/features/resources/booking-action-state.ts",
+      "sha256": "8755bd9c744a65dbef16566a6c69d0a1672a3e86c61bec04b33659833eefd2b0"
+    },
+    {
+      "path": "src/features/resources/booking-actions.ts",
+      "sha256": "d01bdde7130827f498e92abf765d6bb73ad2699df54f69568a1456701917f8d3"
+    },
+    {
+      "path": "src/features/resources/booking-editor-input.ts",
+      "sha256": "15b31de28b285983abe2783f8b9117e4d873b6d49a841dba0d3fb134d064127c"
+    },
+    {
+      "path": "src/features/resources/booking-transport.ts",
+      "sha256": "474b89fbafd3ac9782d338b301fc495a4ae9019619259c36bdb39c84618c5eda"
+    },
+    {
+      "path": "src/features/resources/booking-types.ts",
+      "sha256": "75173466e2a425f103da1a618b6f38e841b205eae9192333242ca9906e81763e"
+    },
+    {
+      "path": "src/features/resources/bookings-read.ts",
+      "sha256": "692f762faa50ff3ff14b39d45f0b1d6868cad1be3b3aef37cc3016717fb593e8"
+    },
+    {
+      "path": "src/server/bookings/candidate-references.ts",
+      "sha256": "604c1899bd723d6643f07594ea1c1e268598051f45d92a87122ed5d2616387c0"
+    },
+    {
+      "path": "src/server/bookings/conflict-facts.ts",
+      "sha256": "53f1dc70778b24f6adde19099fe3d388695877dea1d6625b224a3e5b04e8afc2"
+    },
+    {
+      "path": "src/server/bookings/create-identity.ts",
+      "sha256": "dc116dd190936b18b4e92f39b4d9fb21680a78460df67206cf3f9416f052eb94"
+    },
+    {
+      "path": "src/server/bookings/editor-preview.ts",
+      "sha256": "ebc1311d442a76f12b700848c7b9aa5827209911e22bdd5ab73d90a827a5b1d2"
+    },
+    {
+      "path": "src/server/bookings/save-with-conflicts.ts",
+      "sha256": "41b57502095284164ea126869b70cc0090f8d5a19110dbbc9a6f55ea935277ae"
+    },
+    {
+      "path": "src/server/commands/bookings/booking-db.ts",
+      "sha256": "065de3e24baf29513827374d5fc7bc6cef0b376ad54f5da71076a85e6ae0ce75"
+    },
+    {
+      "path": "src/server/commands/bookings/create-booking.ts",
+      "sha256": "fe416c8f577668a5e46d25ab09a8bad167408464e8a9410d30efa9ecadd6a7a2"
+    },
+    {
+      "path": "src/server/commands/bookings/update-booking.ts",
+      "sha256": "f9f3d99b17ad17e6616246d4df75fd049a4a0b2624a3b5ab2a9c0766765a8c26"
+    },
+    {
+      "path": "src/server/commands/bookings/validation.ts",
+      "sha256": "d8334eab3e8b5f8baf134818cd301642165cf6e72c34a0d49974e34fc3448a57"
+    },
+    {
+      "path": "src/server/commands/command-errors.ts",
+      "sha256": "7468a82c6294f9c0287bfa524a8f053199ac0563ba8fe2c477cb3586021b0df4"
+    },
+    {
+      "path": "supabase/migrations/20261007120235_booking_editor_audited_override.sql",
+      "sha256": "9d1f90d225b8e48155188e400ec8219571b4688cd750ca805957c92213ec8d65"
+    },
+    {
+      "path": "supabase/migrations/20261007121034_booking_editor_whole_group_validation.sql",
+      "sha256": "69bf6228788fed83f7c2a17cf3bc4406283c02ad2363a3242e77163b20c03063"
+    },
+    {
+      "path": "supabase/migrations/20261007121724_booking_editor_group_alias_fix.sql",
+      "sha256": "9fa04470b0fc2fe08f7e835a24fb51eb699410c10213d66345a27698c3393c6c"
+    },
+    {
+      "path": "supabase/migrations/20261007131222_booking_editor_review_round1_fixes.sql",
+      "sha256": "c9743b6df4e7ee24e9541220dce171bd7865d70f72144a8560eb86e9823066c0"
+    },
+    {
+      "path": "tests/e2e/booking-editor.e2e.spec.ts",
+      "sha256": "a2036d1034634071f8376995061e60b3add06dd52a2f0165cf54321f47089128"
+    },
+    {
+      "path": "tests/e2e/support/booking-editor-atdd.ts",
+      "sha256": "56b688acb0e4f752ba2ca2181183420e32fdaa006b3d1b90a80240f0215e308c"
+    },
+    {
+      "path": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "sha256": "f998e6a977600cbfe60bdfde24fcfdf3bc0dc802af88ffd95f34324408a6b3e2"
+    },
+    {
+      "path": "tests/integration/commands/booking-editor-review-fixes.int.test.ts",
+      "sha256": "e6ab178f5c79c4f684e8d5fccce069db669d62733f7d5438c722a3c079c30beb"
+    },
+    {
+      "path": "tests/integration/commands/booking-editor-round2.int.test.ts",
+      "sha256": "800cd980ba04db0b2acb9bca862bb38dd6b05c58691215139a7f20516dde038f"
+    },
+    {
+      "path": "tests/integration/commands/booking-editor.int.test.ts",
+      "sha256": "6f5997d0e830a3c1bf89afa70265efe259bc97b039e4dc4c9aa8e6684f2b84d5"
+    },
+    {
+      "path": "tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "sha256": "332a32a25674e1e3e9a4bdbaef580ee90209fd7ee5aedda84c1cfb4d4019377a"
+    },
+    {
+      "path": "tests/integration/commands/bookings.int.test.ts",
+      "sha256": "cd9d40701a176b71948cd7a4db0cec3bb3974c878b079d8d728eee15e9f8a785"
+    },
+    {
+      "path": "tests/integration/components/booking-editor.test.ts",
+      "sha256": "9320f5ace1446ba2c5da02621b5022c2995c09115cacc32596612b2a3bc4a062"
+    },
+    {
+      "path": "tests/integration/features/booking-read-actions.test.ts",
+      "sha256": "635a842dd310eeb98be024e52e1088be02908d24fe0cbdc931805a7a75d6772e"
+    },
+    {
+      "path": "tests/integration/rls/bookings.rls.test.ts",
+      "sha256": "ce48a522751eafa6c1f880ebaed16ae60ebd54f53a40b1c8220d38a57b5c77a4"
+    },
+    {
+      "path": "tests/integration/rls/migration-reset.int.test.ts",
+      "sha256": "94a8b50078b5b55e976f9a3ccd46bfc1d98faae79bbd93b0e007be73bb9fbd44"
+    },
+    {
+      "path": "tests/support/booking-conflict-attestation.ts",
+      "sha256": "614aa5b29780e004d627dab902ed55d6c2d76715de1b1317420dcab77f6a4060"
+    },
+    {
+      "path": "tests/support/booking-editor-atdd.ts",
+      "sha256": "f956002d233af096bbcbb297b75c99025b063d22e667c9e91fa553523e39ff2c"
+    },
+    {
+      "path": "tests/support/booking-editor-production.ts",
+      "sha256": "bfd51d321114f0d22c3de3c3ef6a7a244889dc385e1f6e3990c033d7a95fd1db"
+    },
+    {
+      "path": "tests/support/bookings-atdd.ts",
+      "sha256": "20de5c5f3cca6e42c93c20e4908b6b554eb3235e408d8c4c4ea35da20092286a"
+    },
+    {
+      "path": "tests/unit/features/resources/booking-attempt-transport.test.ts",
+      "sha256": "c8fc55495e5e1451c4a00a44469103bdc80e906b82dd285fcf4f6808bb563448"
+    },
+    {
+      "path": "tests/unit/features/resources/booking-editor-input.test.ts",
+      "sha256": "9bbb9d7ad515ff6dea2d4db384cbf50932221af9dd50e294ef47b05c4fee364d"
+    },
+    {
+      "path": "tests/unit/scope/booking-editor-scope.test.ts",
+      "sha256": "b54041b7dd9d6abac8828843bf1b0971e2f272e5ef272a419ea813ebd5b139a3"
+    },
+    {
+      "path": "tests/unit/security-headers.test.ts",
+      "sha256": "63f23f136f9bac35333737aae99e697f13b544ac387bf793a315de2b18827ba6"
+    },
+    {
+      "path": "tests/unit/server/commands/bookings-validation.test.ts",
+      "sha256": "5a2fe7f57af470129f9f41f532484148ce0381e0e3e04ebfe1172e7cff213318"
+    }
+  ],
+  "sourceFingerprint": "f34ee23dc52a0f92f6de0ea24b0328946c5dbe96d1c6a34986abcef20e94712a",
+  "frozenIntentUnchanged": true,
+  "state": "uncommitted original-author Round2 fixes; no source change after final production build",
+  "serverLifecycle": "395a78d3-7e48-4edd-a4e1-76e156313251",
+  "testOnlyAfterBuild": "Bounded90s interceptor wait for the measured large save only; typecheck/targeted lint and actual focused HTTP rerun native0. Production source unchanged.",
+  "fingerprintEncoding": "SHA256 of JSON.stringify(sourceFiles), matching Round1 convention"
+}
