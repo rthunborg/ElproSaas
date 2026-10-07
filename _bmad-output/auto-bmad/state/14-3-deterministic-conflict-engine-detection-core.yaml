@@ -8,10 +8,10 @@ story_source: sprint
 spec_folder: null
 story_id: null
 branch: codex/epic14-resume
-status: in-progress
-updated_at: "2026-10-07T11:01:05Z"
+status: done
+updated_at: "2026-10-07T16:15:20Z"
 started_at: "2026-10-06T11:47:14Z"
-completed_at: null
+completed_at: "2026-10-07T16:15:20Z"
 active_seconds: 15979
 timing_anchor: null
 is_first_in_epic: false
@@ -73,7 +73,7 @@ retro:
   verdict: null
   open_action_items: 0
 bmad_status_flipped_at: null
-pr_url: null
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/86"
 ci_run_url: null
 ci_status: unknown
 pr_merged: false

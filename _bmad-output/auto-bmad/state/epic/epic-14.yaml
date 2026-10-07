@@ -8,10 +8,10 @@ story_source: sprint
 spec_folder: null
 story_id: null
 branch: codex/epic14-resume
-status: in-progress
-updated_at: "2026-10-07T16:14:02Z"
+status: done
+updated_at: "2026-10-07T16:15:18Z"
 started_at: "2026-09-29T08:23:21Z"
-completed_at: null
+completed_at: "2026-10-07T16:15:18Z"
 active_seconds: 77845
 timing_anchor: null
 is_first_in_epic: false
@@ -56,7 +56,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 4
 stories_after_in_epic: null
-completed_phases: [0, 1, 2, 5, 81, 82]
+completed_phases: [0, 1, 2, 5, 9, 81, 82]
 spec_path: null
 spec_approved: false
 build:
@@ -76,7 +76,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170, a957911, 4c8d0b6, 0eaa367, de5cfbe4, 1fce0b49, 8db3b22, 7c434b04, cd0b677, 4d2f29a5, 4947dbb4, e1f2c7d6, 079e1053, afb4ef9d, dc2c0c89, 1f7bfcd8, c76f81d5, d0e9cc3e, ad4642a1, 0c4ab83f, 0d1ff3a3, e92e0ec1, d13dfa72]
+commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170, a957911, 4c8d0b6, 0eaa367, de5cfbe4, 1fce0b49, 8db3b22, 7c434b04, cd0b677, 4d2f29a5, 4947dbb4, e1f2c7d6, 079e1053, afb4ef9d, dc2c0c89, 1f7bfcd8, c76f81d5, d0e9cc3e, ad4642a1, 0c4ab83f, 0d1ff3a3, e92e0ec1, d13dfa72, 7f26abd3]
 phase8_steps:
   trace_gate: done
   nfr: done
@@ -92,8 +92,8 @@ retro:
   verdict: rejected
   open_action_items: 6
 bmad_status_flipped_at: null
-pr_url: null
-ci_run_url: null
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/86"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions?query=branch%3Acodex%2Fepic14-resume"
 ci_status: unknown
 pr_merged: false
 merge_method: null
@@ -366,6 +366,10 @@ overrides:
   deferred_archive_judgment: "Only six new explicit fully-resolved bullets moved; all 27 heuristic-only hints retained after self-vouch review."
   deferred_archive_heuristic_false_positives_retained: 27
   epic_ci_wait_skipped_reason: "Draft completion from retained review recommendations; pipeline links CI without waiting. Empty-chain/seed/required full CI still mandatory before merge."
+  draft_pr_number: 86
+  ci_registration_observed: false
+  ci_wait_skipped: true
+  merge_prompt_skipped_reason: "Caveated draft; no automatic merge."
 constraints:
   - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."
