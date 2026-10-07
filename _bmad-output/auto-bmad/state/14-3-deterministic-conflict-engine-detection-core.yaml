@@ -9,10 +9,10 @@ spec_folder: null
 story_id: null
 branch: codex/epic14-resume
 status: in-progress
-updated_at: "2026-10-07T11:00:22Z"
+updated_at: "2026-10-07T11:01:05Z"
 started_at: "2026-10-06T11:47:14Z"
 completed_at: null
-active_seconds: 15977
+active_seconds: 15979
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -37,7 +37,7 @@ tea_selected: [atdd, automate]
 tea_rationale: Scheduling/DST boundaries and authoritative atomic conflict persistence.
 epic_story_count: 4
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
 spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-3-deterministic-conflict-engine-detection-core.md"
 spec_approved: true
 build:
@@ -48,7 +48,7 @@ build:
   deferred_count: 0
   warnings: [oversized]
 followup_passes: 0
-hitl_halt: null
+hitl_halt: "auto-continued (epic â€” no halt)"
 review_unverified: false
 story_trace: null
 legacy_review_resume: false
@@ -57,7 +57,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [d0e9cc3e, ad4642a1, 0c4ab83f, 007fe3cc, 2a6c9e6d, c8d0a881, 44247fc8, a9e2838e, 5d61f44c, 3e8e337a, f20ea393, 7f6c691d, 526c54b4]
+commits: [d0e9cc3e, ad4642a1, 0c4ab83f, 007fe3cc, 2a6c9e6d, c8d0a881, 44247fc8, a9e2838e, 5d61f44c, 3e8e337a, f20ea393, 7f6c691d, 526c54b4, b1eb2474]
 phase8_steps:
   trace_gate: null
   nfr: null

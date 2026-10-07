@@ -9,10 +9,10 @@ spec_folder: null
 story_id: null
 branch: codex/epic14-resume
 status: in-progress
-updated_at: "2026-10-07T11:00:21Z"
+updated_at: "2026-10-07T11:01:05Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: null
-active_seconds: 59759
+active_seconds: 59760
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -139,7 +139,7 @@ overrides:
   schema_migration_seed_completed: true
   root_app_server_shutdown_verified: false
   schema_migration_seed_and_acceptance_pending: false
-  current_story_build_status: in-review
+  current_story_build_status: done
   required_full_integration_gate_passed: true
   resource_guard_browser_repair_owned_externally: true
   prerequisite_integration_repair_owner_approved_on: 2026-10-02
@@ -255,7 +255,7 @@ overrides:
   acceptance_contract_c_all_four_equivalents_mandatory_before_14_4: true
   latest_full_integration_skipped: 1
   empty_chain_ci_required: true
-  latest_full_integration_passed: 1304
+  latest_full_integration_passed: 1367
   empty_chain_ci_executed: false
   latest_full_integration_failed: 0
   resume_checkpoint: 60339ed8
@@ -305,14 +305,18 @@ overrides:
   current_audit_high_count: 0
   canonical_lint_passed: true
   generated_review_workflow_recovery_pending: true
+  story14_3_current_verification_passed: true
+  story14_3_completed_independent_review_rounds: 2
+  all_four_transferred_checks_verified_before_14_4: true
 constraints:
   - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."
   - "Preserve populated user-owned local data and existing processes; new persistent test resources require the actor's resource guard context."
 epic_slug: wave-b1b-resource-and-scheduling-foundation
-active_story: 14-3-deterministic-conflict-engine-detection-core
+active_story: 14-4-booking-editor-with-live-conflict-warnings-and-audited-override
 stories_landed:
   - 14-1-scheduling-activation-person-profiles-and-work-hours
   - 14-2-bookings-and-assignees-schema-and-transactional-commands
+  - 14-3-deterministic-conflict-engine-detection-core
 stories_skipped: []
 batch_flip_done: false
