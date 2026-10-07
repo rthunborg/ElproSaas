@@ -9,17 +9,17 @@ spec_folder: null
 story_id: null
 branch: codex/19-1-widget-registry-and-dashboard-framework
 status: in-progress
-updated_at: "2026-10-07T14:15:08Z"
+updated_at: "2026-10-07T14:33:35Z"
 started_at: "2026-10-07T14:07:05Z"
 completed_at: null
-active_seconds: 481
-timing_anchor: null
+active_seconds: 1586
+timing_anchor: 1791383615
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: tea_epic
-selected_role: tea-delegate
+selected_phase: build
+selected_role: build-delegate
 selected_profile: standard
 selected_model: gpt-6.1-sol
 selected_effort: high
@@ -30,16 +30,18 @@ escalation_reason: "Automatic sensitive-task escalation: permissions, tenant-iso
 routing_ledger:
   - "{\"effort\":\"low\",\"escalation_reason\":\"Ordinary task uses Low effort\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: permissions, tenant-isolation\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_epic\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: permissions, tenant-isolation\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: permissions, tenant-isolation\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: high
 tea_selected: [atdd, automate]
 tea_rationale: Required capability and quote-amount entitlement gates are authorization-sensitive
 epic_story_count: 2
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2, 3]
-spec_path: null
-spec_approved: false
+completed_phases: [0, 1, 2, 3, 4]
+spec_path: "C:/Users/Rasmus/.codex/worktrees/story19-1-dashboard/ElproSaas/_bmad-output/implementation-artifacts/spec-19-1-dashboard-framework-and-quote-pipeline.md"
+spec_approved: true
 build:
-  status: null
+  status: ready-for-dev
   blocking_condition: null
   followup_review_recommended: false
   review_loop_iteration: 0
@@ -55,7 +57,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: []
+commits: [e0fb33c5, 659139d4, a97c11bf]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -93,8 +95,3 @@ constraints:
   - "Only dashboard framework and live quote pipeline; no 19.2 widgets, E20 or Epic19 completion"
   - "No bookings/scheduling/person/migration/permission-matrix changes; use existing integrated contracts"
   - "Dedicated guarded mutable test resources; preserve independent review and merge approval gates"
-set:
-  spec_path: "C:/Users/Rasmus/.codex/worktrees/story19-1-dashboard/ElproSaas/_bmad-output/implementation-artifacts/spec-19-1-dashboard-framework-and-quote-pipeline.md"
-  spec_approved: true
-  _append: "{\"commits\": [\"659139d4\"]}"
-  build: "{\"status\": \"ready-for-dev\"}"
