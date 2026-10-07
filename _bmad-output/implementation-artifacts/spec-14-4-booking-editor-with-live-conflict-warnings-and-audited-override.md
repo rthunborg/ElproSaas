@@ -131,5 +131,3 @@ The canonical Build Auto planning run halted before development. Both unanswered
 Baseline: `246c8402fec01fa5f4e46cfaf5466e78c0b9cd5c` on `codex/epic14-resume`; clean tree and writable Git metadata verified before planning. One canonical renderer invocation loaded the installed workflow; Step 01 loaded the valid Epic 14 cache and completed 14.3 continuity; official Step 02 used a fresh context-free `gpt-6.1-sol` High author and synchronous High authority exploration. Final workflow/spec reread confirmed the blocked intent-gap gate.
 
 Completion hook: planning/blocked result preserved per `docs/process/review-order.md`; no completed implementation trail or validation was manufactured. No product tests, implementation, resource lifecycle operations, hosted actions, or root bookkeeping changes occurred. ATDD and implementation remain deferred until the owner decisions resolve the intent gap.
-
-
