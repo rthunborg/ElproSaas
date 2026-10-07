@@ -439,6 +439,22 @@ test.describe("19.1 onboarding composition and accessible responsive layout", ()
         expect(bounds!.x).toBeGreaterThanOrEqual(0);
         expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport.width);
       }
+      const bell = header.getByRole("button", { name: /^Notiser/ });
+      await hydrated(bell);
+      await bell.click();
+      const notifications = header.getByRole("dialog", { name: "Notiser", exact: true });
+      await expect(notifications).toBeVisible();
+      const notificationBounds = (await notifications.boundingBox())!;
+      expect(notificationBounds.width).toBeGreaterThan(0);
+      expect(notificationBounds.x).toBeGreaterThanOrEqual(0);
+      expect(notificationBounds.x + notificationBounds.width).toBeLessThanOrEqual(viewport.width);
+      const allNotifications = notifications.getByRole("link", { name: "Visa alla", exact: true });
+      await expect(allNotifications).toBeVisible();
+      await expect(allNotifications).toHaveAttribute("href", "/notifications");
+      await allNotifications.click({ trial: true });
+      await page.keyboard.press("Escape");
+      await expect(notifications).toHaveCount(0);
+      await expect(bell).toBeFocused();
       const profile = header.getByRole("button", { name: "Profil", exact: true });
       await profile.click();
       const preferences = header.getByRole("link", { name: "Notisinställningar", exact: true });

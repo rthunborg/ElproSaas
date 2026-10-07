@@ -9,7 +9,7 @@ phase: 'Phase B / Legacy Parity Release'
 baseline_revision: 'b8ccf1575ae94b33487470a08899f10022a8c3dc'
 baseline_ref: 'origin/main'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - 'AGENTS.md'
   - '_bmad-output/project-context.md'
@@ -279,8 +279,8 @@ The root owns the resource guard lifecycle and uses its exact latest trusted con
 
 ## Suggested Review Order
 
-Author: original Story 19.1 implementation delegate (gpt-6.1-sol / High), with the verification/fix delegate (gpt-6.1-sol / High) owning the guarded-browser, payload-capture, query-fault, responsive-header and Round 1 corrections.
-Refreshed against HEAD `798f1f601663f355ca9622716ef4713bb5ee9d80` plus the final uncommitted Round 1 working tree, 2026-10-07. Review the full original implementation from `b8ccf1575ae94b33487470a08899f10022a8c3dc`; original recorded rationale is retained. Current evidence appears in Round 1 Patch Verification below.
+Author: original Story 19.1 implementation delegate (gpt-6.1-sol / High), with the verification/fix delegate (gpt-6.1-sol / High) owning the guarded-browser, payload-capture, query-fault, responsive-header and Round 1 corrections. Phase 6 test author (gpt-6.1-sol / High) owns the appended overlap and successive-retry rationale below.
+Refreshed against HEAD `27a21dad196e21c1cfd9aedb9b0afd9d28563d2c` plus this author-owned trail refresh, 2026-10-07. Review the full original implementation from `b8ccf1575ae94b33487470a08899f10022a8c3dc`; original recorded rationale is retained. Historical Round 1 evidence is preserved; current Phase 6 evidence is linked below.
 
 ### Operational entry and usable explanations
 
@@ -323,7 +323,7 @@ Round 1 separates the newly enabled dashboard cases from the ordinary suite beca
 
 ### Acceptance evidence and operational limits
 
-Registry negatives cover AC1; DTO/RLS/revocation assertions cover AC2/4/5/7. Reader-result units exercise clock/money validation and every stage/page/batch failure (AC3/5/6), live RLS adds source/batch evidence, and 50 dashboard browser cases plus six existing regressions cover secrecy, failure/retry, onboarding and accessible responsive behavior (AC2–9).
+Registry negatives cover AC1; DTO/RLS/revocation assertions cover AC2/4/5/7. Reader-result units exercise clock/money validation and every stage/page/batch failure (AC3/5/6), live RLS adds source/batch evidence, and 51 dashboard browser cases plus six existing regressions cover secrecy, failure/retry, onboarding and accessible responsive behavior (AC2–9).
 
 - `tests/unit/scope/widget-registry.test.ts:50` — `19.1-UNIT-001`: checks actual registration against the active manifest.
 - `tests/unit/server/read-models/dashboard.test.ts:216` — `19.1-UNIT-004`: asserts DTO allowlist and withheld amount absence.
@@ -332,12 +332,32 @@ Registry negatives cover AC1; DTO/RLS/revocation assertions cover AC2/4/5/7. Rea
 - `tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts:165` — `19.1-E2E-003`: checks observed HTML/RSC/DOM for withheld values.
 - `tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts:387` — `steps: 12`: exercises actual pointer passage into the explanation.
 - `tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts:392` — `hover tooltip dismisses Escape`: proves dismissal while focus remains elsewhere.
-- `tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts:446` — `menuBounds`: checks the opened profile link on phone/tablet/desktop.
+- `tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts:462` — `menuBounds`: checks the opened profile link on phone/tablet/desktop.
 - `tests/unit/e2e/server-read-proxy.test.ts:19` — `before any forwarding`: exercises the actual handler with zero upstream calls for denied targets.
+
+- `tests/unit/server/read-models/dashboard.test.ts:415` — `19.1-AUTO-API-001`: isolates concurrent authority, counts and serialized money in reverse completion order.
+- `tests/unit/server/read-models/dashboard.test.ts:508` — `19.1-AUTO-API-002`: prevents overlapping failed reads from corrupting another request's result.
+- `tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts:508` — `19.1-E2E-011`: keeps successive failed retries usable before same-session recovery.
+
+Phase 6 adds controlled overlap because sequential identity/failure tests cannot expose completion-order contamination (AC2/4/5/6), and one same-session two-failure-to-recovery journey because separate single-retry cases cannot prove sustained retry usability (AC7). Existing factories and private server-read plans make these additions deterministic without new product seams or duplicated arithmetic/RLS truth tables.
 
 Evidence: Round 1 final browser 56 passed/0 failed/0 skipped (51.6s), full units 2,048 passed/0 failed/one existing Linux-xattrs skip; prior required RLS 27 passed/0 failed/0 skipped remains applicable because reader/DB source did not change. Seller capture again observed seven responses (one initial navigation, one HTML, five later RSC). Production build, typecheck, full lint (0 errors/13 existing warnings), source/bundle containment, lockfile and diff checks passed. Fresh real-fixture collection proved root 178 cases with zero dashboard cases and official CI configuration 56 cases (50 dashboard); all four pre-existing CI jobs remained structurally identical.
 
-Limits: local execution consumed the official CI configuration through an ignored wrapper removing only its webServer startup; root-owned services supplied the matching build and browser. The remote GitHub job and its automatic fresh server startup have not run because this batch cannot push. Injected query faults and synthetic money fixtures supplement live RLS; the Linux-xattrs skip is not coverage. Three payload-observation cases pause response bodies and do not prove streaming/loading, which separate unpaused hold/release cases exercise. Local fixtures do not establish hosted/demo behavior. Round 1 review and independent narrow trail reconciliation completed; configured root follow-up remains pending. Story 19.2 and full Epic 19 remain incomplete.
+Evidence: Phase 6 full Node units: 2,052 passed/0 failed/one existing Linux-xattrs skip (2,053 total); guarded official-CI-config browser launcher with retries disabled: 57 passed/0 failed/0 skipped (49.1s, 51 dashboard plus six regressions). Focused Node 92/0/0, dashboard burn-in 10 × 29 = 290/0/0, added browser 1/0/0 then repeat-each 3/0/0, typecheck, focused lint and diff checks passed. Prior required RLS 27/0/0 is inherited, not rerun in Phase 6; application/reader/DB source did not change. See [Phase 6 commands, logs and limits](../test-artifacts/automation-summary-story-19-1.md).
+
+Limits: local execution consumed the official CI configuration through an ignored wrapper removing only its webServer startup; root-owned services supplied the matching build and browser. The remote GitHub job and its automatic fresh server startup have not run because this batch cannot push. Injected query faults and synthetic money fixtures supplement live RLS; the Linux-xattrs skip is not coverage. Three payload-observation cases pause response bodies and do not prove streaming/loading, which separate unpaused hold/release cases exercise. Local fixtures do not establish hosted/demo behavior. Phase 6 overlap cases inject resolver/reader outcomes and prove orchestration/DTO independence, not database isolation; the browser case uses actual production-server reads through held subject-bound proxy plans released in finally. Round 1 review and independent narrow trail reconciliation completed; configured Round 2 follow-up is in progress. Story 19.2 and full Epic 19 remain incomplete.
+### Round 2 phone notification bounds
+
+Round 2 fix author: gpt-6.1-sol / Low, ordinary responsive layout route. The full-width phone header puts the bell on the left, so its existing right-anchored 320px dialog opened outside the viewport. I retained the width and notification behavior, anchoring the dialog left below sm and right from sm upward. The existing three viewport cases now open the actual dialog, assert both edges, trial-click the actual Visa alla link, and close with Escape while preserving profile-menu, header and card assertions (AC9).
+
+- `src/components/notifications/NotificationBell.tsx:84` — `sm:left-auto sm:right-0`: restores responsive popup anchoring without domain changes.
+- `tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts:449` — `notificationBounds.x`: detects the reproduced phone clipping.
+- `tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts:454` — `trial: true`: verifies the real center link is actionable.
+
+Executed on HEAD `27a21dad196e21c1cfd9aedb9b0afd9d28563d2c` plus this narrow uncommitted patch, 2026-10-07: before the class fix, `node tmp/private/story19-runtime/run-ci-browser.mjs --grep 'live full-width row fits'` produced 2 passed/1 failed/0 skipped, with mobile dialog x=-266.03125. After the matching production rebuild, the same command passed 3/0/0 (10.0s), then the full guarded CI browser wrapper passed 57/0/0 (51.7s), with test count unchanged. Logs: ignored `tmp/private/story19-runtime/round2-focused-browser.log` and `round2-full-browser.log`.
+
+Current full Node units passed 2,052/0 failed/one existing Linux-xattrs skip (2,053 total, 7.1s; `round2-unit.log`). Typecheck, full lint (0 errors/13 existing warnings), production build, source/bundle containment, lockfile and diff checks passed. Required RLS 27/0/0 remains inherited because this patch changes only responsive classes and browser assertions; reader/DB/permissions are unchanged. Root supplied and restarted the guarded matching production app; this author launched or stopped no resources. Trial-click verifies browser actionability and the real `/notifications` href without navigating into the notification center. Remote CI startup and hosted/demo behavior remain untested; the existing synthetic-fixture and platform-skip limits above remain applicable. Original author and Phase 6 rationale are preserved.
+
 ## Historical Auto Run Result
 
 Historical halted invocation; superseded by the current Auto Run Result and Round 1 Patch Verification below. This result is preserved as provenance, not the current verification gate.
@@ -430,6 +450,21 @@ The author has no active DB/browser consumers. Root owns lifecycle Stop requests
 - External result: High Sol 6.1, approval never, read-only sandbox, exact worktree root. Complete final UTF-8 artifact 681 bytes; full diff SHA256 8E8BB58D6A1DF798B4923180FED0A2699BEA8E2FF4BDA5362A05E39A008A29BC. Original Codex success is evidenced by conditional display invocation; Windows forward-slash display failed, canonical backslash display exited 0. Redundant same-diff provider retry was cancelled after this completed artifact was validated; transport failure is separate from the completed review round.
 - Fix route selected before dispatch: gpt-6.1-sol / high for the actual proxy boundary and full mixed batch. Coordinator reserves playwright.config.ts and .github/workflows/ci.yml only for a required isolated dashboard CI partition; preserve existing jobs/assertions/gates and E14 exclusions.
 
+### 2026-10-07 — Review pass
+
+**Round 2 of 3**
+
+- intent_gap: 0
+- bad_spec: 0
+- patch: 1: (high 0, medium 1, low 0)
+- defer: 0
+- reject: 0
+- addressed_findings:
+  - `[medium]` `[patch]` Phone notification popup clipping: retained existing dialog width/behavior and added responsive left-phone/right-desktop anchoring. Three viewport cases now open the dialog, check both edges and real link actionability, then verify Escape/focus; existing profile/header/card assertions remain. Reproduced before fix (2 passed/1 failed/0 skipped; phone x=-266.03125), then rebuilt focused 3/0/0 and full browser 57/0/0.
+- All six independent configured layers completed before triage. Blind and external claims deduplicated once; edge/verification/security reported no findings; intent reported no material divergence.
+- Independent narrow regression/trail check passed after fixes: additive assertions, preserved original/Phase 6 rationale, exactly one section, 34 stops/0 reference errors. This is not a third broad review round.
+- Current pass recommendation: false; patched high 0, medium 1, low 0; score 3. Prior Round 1 history and review_loop_iteration 0 preserved.
+
 ## Round 1 Patch Verification
 
 Author: same High verification/fix delegate; full baseline and frozen intent unchanged. The coordinator reserved root `playwright.config.ts` and `.github/workflows/ci.yml` only for the required isolated CI partition, plus new `tests/e2e/dashboard/playwright.ci.config.ts` and `tests/unit/e2e/server-read-proxy.test.ts`. AppShell ownership remains limited to responsive controls/menu positioning; QuotePipelineWidget changes are mask interaction only. Existing CI jobs, browser assertions, skip markers, permission matrix and database/application reader source are preserved.
@@ -453,10 +488,10 @@ Local guarded execution imported the official CI config and omitted only its web
 No active DB/browser consumers remain. Root owns lifecycle requests and preserves runtime/profile/data. Round 1 remains the single completed broad review (five patches:one High, four Medium); followup_review_recommended remains true for the root's configured follow-up. No broad Round 2 review, commit, push, deployment or full-epic completion occurred in this fix lane.
 ## Auto Run Result
 
-Status: done — Phase 5 implementation, Round 1 patch batch and independent narrow trail review complete.
+Status: done — Round 2 follow-up, responsive patch verification and independent narrow regression/trail check complete.
 blocking_condition: none
-trail_narrow_check_status: passed — independent reviewer verified all 28 stops, rationale, evidence and limits with no consequential mismatch. Completion-hook author reconciliation is complete.
-Review breakdown: patch 5 (High 1 / Medium 4 / Low 0); defer 0; reject 0; followup_review_recommended: true; severity score 12 (High present).
+trail_narrow_check_status: passed — independent reviewer verified the final narrow patch and all 34 stops, preserving original and Phase 6 rationale, current evidence and limits. No consequential mismatch; author reconciliation complete.
+Current Round 2 breakdown: patch 1 (High 0 / Medium 1 / Low 0); intent_gap 0; bad_spec 0; defer 0; reject 0; followup_review_recommended: false; severity score 3. Round 1 five-patch history is retained above; two completed broad rounds of three.
 Implementation: Story 19.1 delivers the operational dashboard framework and full-width quote-pipeline widget while preserving onboarding. The manifest-coherent registry contains actual loader/presentation functions; the dashboard server resolves current authority and serializes a browser DTO allowlist that withholds unauthorized money and server-only fields. The result-bearing quote source shares legacy query semantics, distinguishes unavailable reads from empty data, and retains the compatible reader. Presentation covers loading, empty, success, withheld money and explicit failure/retry with refreshed authority. All five Round 1 findings are addressed: required isolated dashboard CI partition, responsive profile menu bounds, composite tooltip hover, focus-independent Escape, and strict test-proxy targets. Full baseline and frozen intent remain unchanged.
 
 Files changed (whole author-owned code/test/spec inventory since `b8ccf1575ae94b33487470a08899f10022a8c3dc`; excludes root auto-bmad report/state files):
@@ -466,6 +501,7 @@ Files changed (whole author-owned code/test/spec inventory since `b8ccf1575ae94b
 - `_bmad-output/implementation-artifacts/spec-19-1-dashboard-framework-and-quote-pipeline.md` — Records implementation, verification, review triage and the single authored review trail.
 - `src/app/(app)/dashboard/page.tsx` — Composes operational dashboard and existing onboarding with server-derived widget state.
 - `src/components/app-shell/AppShell.tsx` — Keeps phone header controls, tenant identity and opened profile menu within the viewport.
+- `src/components/notifications/NotificationBell.tsx` — Keeps its opened phone notification dialog within the viewport.
 - `src/components/dashboard/DashboardGrid.tsx` — Provides the responsive full-width dashboard widget layout.
 - `src/components/dashboard/WidgetCard.tsx` — Provides semantic widget framing and authorized navigation.
 - `src/components/dashboard/QuotePipelineWidget.tsx` — Renders pipeline states, authorized money and accessible mask interactions.
@@ -491,8 +527,22 @@ Files changed (whole author-owned code/test/spec inventory since `b8ccf1575ae94b
 - `tests/e2e/dashboard/server-read-proxy.mjs` — Forwards real local responses with bounded planned faults and strict upstream target validation.
 - `tests/e2e/auth/role-aware-phase-a-surface.atdd.e2e.spec.ts` — Uses the guarded fixture import while preserving existing role assertions.
 - `tests/e2e/onboarding/first-admin-checklist.e2e.spec.ts` — Uses the guarded fixture import while preserving existing onboarding assertions.
-Verification: Current full units 2,048 passed / 0 failed / 1 existing Linux-xattrs skip; current official-CI-config guarded browser 56 passed / 0 failed / 0 skipped (51.6s); prior required integration/RLS 27 passed / 0 failed / 0 skipped remains applicable. Live proxy ordinary forwarding 200 and three invalid target forms 400. Typecheck, lint (0 errors / 13 existing warnings), production build, source/bundle containment, lockfile and diff checks passed.
-Final artifact correction: CI HTML reporter now uses an absolute repository-root output path matching the workflow's ignored artifact destination. The earlier generated report was preserved in ignored private runtime storage after path-containment checks. A final bounded focused browser run passed 1 / 0 failed / 0 skipped (8.5s), wrote playwright-report/dashboard/index.html, and git check-ignore confirmed it is ignored. Reporter-only amendment did not change collection, fixture or assertions; the final 56-case run remains applicable.
-Review trail: Exactly one implementation-author section refreshed after fixes; 28 verified path/line/literal stops, 0 reference errors. Round 1 of 3 and external first-artifact provenance retained; review_loop_iteration remains 0 because no spec-fix loop occurred. followup_review_recommended remains true for the configured root follow-up; no broad Round 2 executed here.
-Residual limits: Remote GitHub CI and its automatic fresh webServer startup were not executed; local verification imports that exact configuration while root owns the matching services. Synthetic faults/money fixtures, three paused payload-observation cases and one explicit platform skip have the limits recorded above. Root's later phases remain outstanding. Story 19.2, full Epic 19, push and deployment remain outside this completion.
-Resource handoff: No active DB/browser consumers. Root owns retained service/browser lifecycle and Stop requests; this author launched no raw resources and deleted no runtime/data/profile state.
+Verification: Current Round 2 full Node units 2,052 passed / 0 failed / 1 existing Linux-xattrs skip (2,053 total, 7.1s); focused three-viewport browser 3/0/0 (10.0s), full official-CI-config guarded browser 57/0/0 (51.7s). Typecheck, full lint (0 errors / 13 existing warnings), matching production build, source/bundle containment, lockfiles and diff checks passed. Required RLS 27/0/0 is inherited, not rerun: the Round 2 fix changes responsive classes and browser assertions only. Prior dependency-install/audit and Phase 6 focused/burn-in evidence remain historical; dependencies are unchanged.
+
+Review trail: Exactly one authored section, preserving original implementation and Phase 6 test rationale with this actual fix author's responsive rationale and evidence. Reference and independent narrow checks passed: 34 stops, 0 errors, no consequential mismatch. Two completed broad rounds; no Round 3 started. review_loop_iteration remains 0 because no spec repair loop occurred. Current pass recommendation is false (one Medium patch, score 3).
+
+Residual limits: Remote GitHub CI and its automatic fresh webServer startup remain unexecuted. Local execution imports that configuration with root-owned matching guarded services. Synthetic fixtures, paused payload-observation cases and the explicit Linux skip retain the recorded limits. Story 19.2, full Epic 19, Phase 8, PR/push and deployment remain outside this result; the root owns Phase 7 human review.
+
+Resource handoff: No active DB/browser consumers remain. Root owns app df471365-4c7b-430c-9d38-ae6d0745c9a2 and the retained proxy/Chrome/Compose lifecycle; this delegate launched/stopped no resource and deleted no runtime/data/profile state.
+
+## Follow-up Review Routing
+
+### 2026-10-07 — Round 2 of 3
+
+All six configured Build Auto layers retained: blind, edge, verification, intent, security, external Codex CLI. Selected gpt-6.1-sol / high before dispatch for full changed scope including tenant authority, revocation, payload and money boundaries. Ordinary trail-reference reconciliation is Low. Baseline b8ccf1575ae94b33487470a08899f10022a8c3dc; prior Round 1 and repair-loop counter preserved. Host-capacity batches defer triage until all layers have launched and completed.
+
+### 2026-10-07 — Round 2 triage and patch route
+
+All six configured independent layers completed against the full baseline. Blind and external independently identified the same phone notification-dialog clipping regression; edge and verification returned no findings, intent found no material divergence, security returned No findings. Deduplicated one Medium patch; intent_gap 0, bad_spec 0, defer 0, reject 0. AppShell's new full-width phone row moved the bell left while its existing right-anchored 320px popup became offscreen; this is reachable on the shipped 360px shell. Coordinator reserved NotificationBell.tsx narrowly for responsive bounds, with no notification domain/API/permission changes. Ordinary layout fix route selected gpt-6.1-sol / low before dispatch. Preserve all other edits and the single original-author trail; this fix author will append its own rationale and verified evidence.
+
+External provenance: resolved configured gpt-6.1-sol / high, approval_policy never, read-only sandbox and exact worktree. Successful invocation exit 0, 589-byte UTF-8 final artifact, SHA256 of review input 900A5BB1709B9D9F5B3552D28F2CDE84A17380B5D2963FB383260AE616DE411C, 1200-second subprocess cap. First Windows argument-quoting attempt was refused before Codex executed (20:08:52 UTC); one corrected provider invocation completed 20:12:47 UTC, under 235 seconds after that refusal. Exact provider launch instant was not separately logged. No duplicate provider review or display retry occurred.
