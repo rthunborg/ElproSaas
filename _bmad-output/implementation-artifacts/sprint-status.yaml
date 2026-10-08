@@ -309,6 +309,9 @@ development_status:
   # N-1 migration classification round 2 precedes each module's data-migration
   # story (Rule 4, NFR52).
   epic-20: backlog  # Documents center — 3 candidates; aggregation only, no tables (PB-D6)
+  20-1-documents-activation-and-source-authorized-aggregation: backlog
+  20-2-search-filters-preview-and-archive-restore: backlog
+  20-3-entity-panel-links-and-contextual-navigation: backlog
   epic-20-retrospective: optional
   epic-21: backlog  # Rentals — 6 candidates; feeds E26; migration story [gated: N-1]
   epic-21-retrospective: optional

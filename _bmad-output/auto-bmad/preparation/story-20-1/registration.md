@@ -1,3 +1,13 @@
+# Current registration follow-up (2026-10-08)
+
+The coordinator applied the reviewed three-row patch on `codex/documents-backlog-registration`, based on integrated main `8a7debbee83c9a4f6eb8ec4496ba2f7ad7db4b4b`. The registration PR is not merged. All three actual canonical lookups now resolve the authorized keys and titles as backlog. E20 has three stories; 20.1 is first=true, last=false, stories_after=2. Epic14 and 14.1–14.4 plus 19.1 remain done. Actual evidence is recorded separately in registration.json under actual_registration_followup.
+
+A minimal epics title/key amendment supplies parser-readable headings for the existing three slots; existing scope and checkpoint gates remain. The spec hash is unchanged. Registration resolves the local lookup gate only; status remains blocked and approval, implementation authorization and executable-plan flags remain false. Registration PR merge, oracle disposition, checked-contract review, checkpoint closure, exact ownership and fresh integrated-base validation remain open. The patch and original failed/prospective checks below are historical evidence and must not be applied twice.
+
+---
+
+# Historical preparation record (before coordinator application)
+
 # E20 prospective canonical registration
 
 This isolated package proposes registration of all three owner-authorized E20 stories as backlog. It does not apply the patch, promote readiness, authorize implementation or initialize claims. The actual canonical lookup still fails because the actual sprint contains no E20 story rows.

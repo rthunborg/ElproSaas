@@ -1670,6 +1670,20 @@ AC sketch: the remaining five widgets on live B1 data (PB-A11): `Uppföljningar`
 - Story 20.2 (candidate): Documents UI — search/filter surface, preview pane, archive/restore per archive-over-delete (P55 thinned trash disposition); no folder tree (UXB-A13).
 - Story 20.3 (candidate, expanded in the early checkpoint): Entity-panel cross-links ("Visa i Dokument") and authorized contextual navigation. The nav swap belongs to 20.1 activation, not this later story.
 
+> Backlog registration amendment (2026-10-08): the owner-authorized titles and keys below register the three existing E20 slots only. They do not approve readiness, expand acceptance criteria or close the early checkpoint.
+
+### Story 20.1: Documents activation, source-authorized aggregation and minimal destination
+
+Canonical backlog key: `20-1-documents-activation-and-source-authorized-aggregation`. Existing candidate scope and checkpoint gates above remain applicable.
+
+### Story 20.2: Search, filters, preview and archive/restore
+
+Canonical backlog key: `20-2-search-filters-preview-and-archive-restore`. Existing candidate scope and checkpoint gates above remain applicable.
+
+### Story 20.3: Entity-panel links and contextual navigation
+
+Canonical backlog key: `20-3-entity-panel-links-and-contextual-navigation`. Existing candidate scope and checkpoint gates above remain applicable.
+
 ## Epic 21 [Wave B2]: Rentals — candidates
 
 **Scope line:** Rental register through returns and history, with billing records feeding E26 (P39–P40). **Key dependency:** E13 (notifications); feeds E26. **N-1 note:** rentals classification before 21.6. **Oracle:** `Följesedel`/`Retur`.
