@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "mode": "parallel-readiness-preparation",
+  "story_reference": "20.1",
+  "canonical_resolution": "blocked: not found in sprint-status",
+  "branch": "codex/story20-1-documents-preparation",
+  "worktree": "C:\\Users\\Rasmus\\.codex\\worktrees\\dbe6\\ElproSaas",
+  "base_sha": "ab1ca0445b58f5f496be0d938906c744b6dff87e",
+  "base_verified": "git fetch origin main; origin/main unchanged",
+  "workflow_version": "d061782354238883c72fc96d0c9affe418a505f7f414459826a4335161c222e1",
+  "overrides": [
+    "preparation only",
+    "no implementation or claims",
+    "no shared planning writes",
+    "no merge or deploy"
+  ],
+  "routes": [
+    {
+      "phase": "preparation-design",
+      "role": "documents_spec",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_spec",
+      "escalation_reason": "Current source authorization, revocation and private storage design",
+      "recorded_after_dispatch": true
+    },
+    {
+      "phase": "independent-spec-authorization-audit",
+      "role": "documents_audit",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_audit",
+      "escalation_reason": "Independent sensitive authorization design and specification review",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "owner-option-A-spec-amendment",
+      "role": "documents_spec",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_spec",
+      "escalation_reason": "Record owner-selected source authorization boundary",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "owner-option-A-targeted-review",
+      "role": "documents_audit",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_audit",
+      "escalation_reason": "Independent review of changed authorization contract",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "canonical-registration-artifact",
+      "role": "registration_plan",
+      "profile": "standard",
+      "model": "gpt-6.1-sol",
+      "effort": "low",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/registration_plan",
+      "escalation_reason": "",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "registration-targeted-audit",
+      "role": "documents_audit",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_audit",
+      "escalation_reason": "Preserve prior sensitive spec contract while verifying metadata-only registration binding",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "bounded-oracle-access-recheck",
+      "role": "oracle_recheck",
+      "profile": "standard",
+      "model": "gpt-6.1-sol",
+      "effort": "low",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/oracle_recheck",
+      "escalation_reason": "",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "preparation-merge-handoff-evidence-review",
+      "role": "documents_audit",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_audit",
+      "escalation_reason": "Targeted evidence review to preserve distinction between preparation completion and sensitive implementation admission",
+      "recorded_after_dispatch": false
+    }
+  ],
+  "reservations": [
+    {
+      "chat": "Checkpoint preview Epic 14 PR 86",
+      "thread_id": "01a1179a-9f1f-7ee2-a35b-95864cbe74ba",
+      "worktree": "C:\\Users\\Rasmus\\.codex\\worktrees\\b3cc\\ElproSaas",
+      "domains": [
+        "scheduling",
+        "person schema",
+        "permissions",
+        "shared APIs",
+        "test fixtures"
+      ],
+      "release_verified": false
+    },
+    {
+      "chat": "Assess Phase B parallel readiness",
+      "thread_id": "01a1160d-b5b1-7623-a8e8-54ef3dc537ed",
+      "worktree": "C:\\Users\\Rasmus\\.codex\\worktrees\\story19-1-dashboard\\ElproSaas",
+      "domains": [
+        "dashboard",
+        "widget registry",
+        "manifest",
+        "quote reader",
+        "AppShell",
+        "NotificationBell",
+        "CI",
+        "tests"
+      ],
+      "release_verified": false
+    },
+    {
+      "chat": "Shared security repair",
+      "thread_id": "01a11aeb-9946-7af3-b2ee-865c34db6c24",
+      "worktree": "C:\\Users\\Rasmus\\.codex\\worktrees\\9cd1\\ElproSaas",
+      "domains": [
+        "Next",
+        "package.json",
+        "package-lock.json",
+        "lock files"
+      ],
+      "release_verified": false
+    }
+  ],
+  "later_integrated_baseline": {
+    "sha": "23c48b34c8a6c9158eeaf0edfca74e628d575cbc",
+    "verified": "git fetch origin main and git log",
+    "security_pr": 89,
+    "preparation_branch_rebased": false,
+    "integration_before_implementation_required": true
+  }
+}
