@@ -183,6 +183,32 @@
       "agent_identity": "/root/registration_plan",
       "escalation_reason": "",
       "recorded_after_dispatch": true
+    },
+    {
+      "phase": "later-e20-specifications-preparation",
+      "role": "documents_spec",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_spec",
+      "escalation_reason": "Archive/restore, preview and contextual navigation source authorization",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "later-e20-specifications-independent-review",
+      "role": "documents_audit",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_audit",
+      "escalation_reason": "Independent source-authority and cross-story contract review",
+      "recorded_after_dispatch": false
     }
   ],
   "reservations": [
@@ -270,6 +296,24 @@
       "Final independent High contract/spec pin and checkpoint closure",
       "Physical migration timestamp and exact implementation write-path admission",
       "Current-base revalidation and successful coordinator worker claims; no run exists"
+    ]
+  },
+  "later_story_preparation_lane": {
+    "branch": "codex/documents-later-story-preparation",
+    "base_sha": "8ba0150cc60ac17ac378edac5ad77405e907d3bf",
+    "upstream_pr91_merge": "8ba0150cc60ac17ac378edac5ad77405e907d3bf",
+    "scope": "20.2 and20.3 specifications and bounded cross-story checkpoint/handoff evidence",
+    "oracle_observations": 0,
+    "implementation_authorized": false,
+    "merge_authority": "coordinator after exact-head review and required CI",
+    "current_status": "All three full specs and bounded handoffs reviewed and pinned; product admission blocked",
+    "exact_root_plan": "_bmad-output/auto-bmad/orchestration/phase-b-lanes-2026-10-08.md",
+    "remaining_gates": [
+      "Authorized oracle target and actual evidence or explicit owner disposition",
+      "Checkpoint closure on reviewed specs and oracle disposition",
+      "Physical migration timestamps and exact admitted write paths before claims",
+      "Current integrated-base and resource/ownership revalidation, validated coordinator plan and successful assignments",
+      "Implementation and combined-integration checks at exact product revisions"
     ]
   }
 }

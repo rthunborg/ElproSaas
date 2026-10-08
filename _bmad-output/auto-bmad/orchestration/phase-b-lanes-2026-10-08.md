@@ -2,6 +2,31 @@
 
 The owner authorized executing these bounded lanes in separate sessions until complete. This plan records orchestration and ownership; it does not admit product workers for unapproved stories.
 
+## Current status — integrated 8ba0150c, later Documents specification preparation
+
+This section is the current orchestration status. The sections below retain chronological dispatch and closeout history; old active reservations and unmerged states there are historical, not current admission blockers.
+
+| Completed lane | Integrated merge |
+| --- | --- |
+| Epic 14, PR86 | `8a7debbee83c9a4f6eb8ec4496ba2f7ad7db4b4b` |
+| Story19.1, PR87 | `7db3ded1e903131122eedbf9abd27548bc9c3375` |
+| Documents initial preparation, PR88 | `7da9e8f3b63ffe6ed243f3f9ecc413fb56fe25a7` |
+| Next security repair, PR89 | `23c48b34c8a6c9158eeaf0edfca74e628d575cbc` |
+| Three-story Documents backlog registration, PR90 | `42f5cf60d1ded6d814c2c0f61b70b312144ce10e` |
+| Documents selected-link contract preparation, PR91 | `8ba0150cc60ac17ac378edac5ad77405e907d3bf` |
+
+The owner has standing authorization for continued unblocked development and coordinator merge after exact-head review/CI. Option A is approved; no repeated general authorization or A/B choice is missing. Preparation does not itself admit implementation. Epic14's shared sprint writer was explicitly released, and all three canonical E20 stories are registered as backlog;20.1 is first of3, not last. No implementation run/assignment/claim exists.
+
+Current bounded lane: `codex/documents-later-story-preparation`, owned dbe6 checkout, from integrated `8ba0150cc60ac17ac378edac5ad77405e907d3bf`. Full20.2/20.3 specifications, independent High source-authority/archive/restore/navigation review, LF pins and bounded handoffs alongside reviewed20.1 are complete. See later-story-admission.json and docs/quality/story-20-2-20-3-preparation-review-2026-10-08.md for exact reviewed pins, future paths and checks. Required CI for this preparation PR must pass at its exact pushed head before coordinator merge. This PR includes admission/checkpoint/root-plan evidence; no product code, SQL/migration, dependency, worker claim or ready promotion. Prior branches/checkouts are preserved. Coordinator alone merges serially after final-head CI.
+
+Precise remaining admission gates:
+
+- No authorized Lovable URL/tab/session or actual behavior evidence exists. The oracle question is pending with the owner in the coordinator chat; no duplicate credential request, browser recheck or inferred waiver. All three specs must record exact unverified behavior gaps.
+- The approved early-E20 checkpoint requires complete, independently reviewed and pinned canonical20.1–20.3 specifications before first dispatch. All three full canonical specification drafts now exist, are independently High-reviewed and LF-pinned; this bounded preparation gate is complete. All remain blocked pending oracle/checkpoint closure. This is not a requirement to implement later stories first.
+- Record checkpoint closure on the final reviewed specifications and authoritative oracle disposition. Spec status remains blocked until these gates close.
+- Allocate/pin the physical CLI migration timestamp and exact implementation action/command/helper/test/write paths before claims. The selected-link logical migration contract is designed, not implemented.
+- Revalidate current integrated contracts and ownership, validate the coordinator plan, and obtain successful explicit assignments/claims. Merged former reservations are historical; no existing run may be invented or adopted.
+- Implementation/runtime and combined-integration checks remain future obligations. Green preparation CI does not certify unimplemented Documents behavior. Full E20/wave gates and PhaseC exclusions remain in force.
 ## Active lanes
 
 | Lane | Session and worktree | Authorized work | Completion gate |

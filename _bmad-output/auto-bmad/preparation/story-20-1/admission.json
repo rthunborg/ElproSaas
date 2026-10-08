@@ -9,9 +9,9 @@
   "approved": false,
   "preparation_intent_approved": true,
   "implementation_authorized": false,
-  "branch": "codex/documents-selected-link-contract-preparation",
+  "branch": "codex/documents-later-story-preparation",
   "worktree": "C:\\Users\\Rasmus\\.codex\\worktrees\\dbe6\\ElproSaas",
-  "base_sha": "42f5cf60d1ded6d814c2c0f61b70b312144ce10e",
+  "base_sha": "8ba0150cc60ac17ac378edac5ad77405e907d3bf",
   "workflow_version": "d061782354238883c72fc96d0c9affe418a505f7f414459826a4335161c222e1",
   "spec_path": "_bmad-output/implementation-artifacts/spec-20-1-documents-activation-and-source-authorized-aggregation.md",
   "spec_revision": "ad9ae965b3cadbe5def211a7e1adc2e2bd77ceab81986930444b05844f96bef0",
@@ -205,13 +205,13 @@
   ],
   "remaining_gates": [
     "Authorized Lovable URL/tab/session and actual behavior evidence, or explicit owner oracle disposition; no waiver recorded",
-    "Complete canonical Story20.2 and20.3 specifications with review and LF pins, before first E20 dispatch per approved checkpoint",
-    "Record early-E20 checkpoint closure on all three reviewed specifications and current base",
-    "Merge this contract preparation and revalidate current integrated base before implementation",
-    "Allocate physical migration timestamp/path and pin exact admitted write paths before implementation claims",
-    "Coordinator validates parallel plan and obtains explicit successful worker assignments/claims; none exist",
-    "Execute implementation and combined-integration required checks at exact result SHA; current documents are design only",
-    "Retain full E20/wave gates; registration and option A owner decision are already satisfied"
+    "Record early-E20 checkpoint closure on all three reviewed specifications and authoritative oracle disposition; all specs remain blocked",
+    "Merge this later-story preparation and revalidate current integrated base before implementation",
+    "Allocate physical CLI migration timestamps/paths and pin exact admitted write paths before claims; no SQL files created",
+    "Coordinator validates current ownership/resources and plan, then obtains successful assignments/claims; none exist",
+    "20.2 requires verified20.1 product integration, and20.3 requires verified20.1/20.2 product integration; preparation merges do not satisfy product prerequisites",
+    "Execute per-story and combined-integration required checks at exact product revisions; no runtime Documents evidence claimed",
+    "Retain full E20/wave and PhaseC scope gates; registration, option A and bounded specification preparation are satisfied"
   ],
   "parallel_helper_plan": {
     "executed": false,
@@ -248,10 +248,10 @@
     "merge_sha": "42f5cf60d1ded6d814c2c0f61b70b312144ce10e"
   },
   "latest_integrated_base_observation": {
-    "sha": "42f5cf60d1ded6d814c2c0f61b70b312144ce10e",
+    "sha": "8ba0150cc60ac17ac378edac5ad77405e907d3bf",
     "verified": "git fetch origin main",
     "integrated_into_preparation": true,
-    "registration_pr": 90
+    "contract_preparation_pr": 91
   },
   "preparation_delivery": {
     "status": "complete",
@@ -261,7 +261,7 @@
     "handoff_path": "_bmad-output/auto-bmad/preparation/story-20-1/preparation-merge-handoff.md",
     "oracle_waived": false,
     "registration_applied": true,
-    "current_scope": "Selected-link contract design and checkpoint reconciliation complete and independently reviewed; implementation still blocked"
+    "current_scope": "All three full canonical specs and bounded handoffs complete, independently reviewed and pinned; implementation admission remains blocked"
   },
   "preparation_history": {
     "branch": "codex/story20-1-documents-preparation",
@@ -579,7 +579,7 @@
     "contract_path": "_bmad-output/auto-bmad/preparation/story-20-1/selected-link-contract-design.md",
     "contract_sha256_lf": "dd11f47be7bc97f1cfff26340d6b6f2e49f4bf2956c6396290c288c6c8e7a9f8",
     "checkpoint_path": "_bmad-output/auto-bmad/preparation/story-20-1/checkpoint-reconciliation.md",
-    "checkpoint_sha256_lf": "732b784196520f80798ca0a3f7532d34316c5b29caf0817a6befecca40272509",
+    "checkpoint_sha256_lf": "b429e74d9bb86346aaf453304fffd740e987c2dce40fa1b43fe374e043ad7012",
     "migration_logical_basename": "story_20_1_documents_selected_link_access.sql",
     "physical_migration_path": "supabase/migrations/<CLI-generated-timestamp>_story_20_1_documents_selected_link_access.sql",
     "physical_timestamp_condition": "Allocate and pin before validated implementation claims; no migration created in preparation",
@@ -596,5 +596,16 @@
     },
     "not_yet_integrated_into_preparation": false,
     "fresh_contract_validation_complete": false
+  },
+  "later_story_preparation": {
+    "status": "reviewed-preparation-complete",
+    "metadata_path": "_bmad-output/auto-bmad/preparation/story-20-1/later-story-admission.json",
+    "reviewer": "/root/documents_audit",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "report_path": "docs/quality/story-20-2-20-3-preparation-review-2026-10-08.md",
+    "full_specs_present": 3,
+    "ready_specs": 0,
+    "implementation_authorized": false
   }
 }
