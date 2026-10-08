@@ -1,41 +1,50 @@
-# Phase B parallel lanes — 2026-10-08
+# Phase B orchestration — 2026-10-08
 
-Owner authorized orchestration of the recommended lanes until completion. This is a bounded execution plan, not a product-worker admission plan.
+The owner authorized executing these bounded lanes in separate sessions until complete. This plan records orchestration and ownership; it does not admit product workers for unapproved stories.
 
-## Lanes and completion
+## Active lanes
 
-| Lane | Owner/session | Authorized next work | Completion gate |
+| Lane | Session and worktree | Authorized work | Completion gate |
 | --- | --- | --- | --- |
-| Story 19.1 | Assess Phase B parallel readiness; story19-1-dashboard worktree | Resolve existing human checkpoint, publish PR, execute required CI, request separate merge choice | Reviewed PR and exact-head CI evidence; merge only if explicitly approved |
-| Documents 20.1 | New preparation session, pending client-new-thread:1ce1fd24-e500-4ba9-8752-bd31ac3b1309 | Oracle checks, active-source authorization inventory, independent High design/spec review, canonical pinned spec and preparation PR | Audited ready-for-dev package or exact owner/external blockers; no product implementation |
-| Epic 14 | Checkpoint preview Epic 14 PR 86; 01a1179a-9f1f-7ee2-a35b-95864cbe74ba; b3cc worktree | Continue its existing authorized fixes, review and required verification | Existing Epic 14 completion, CI and human gates; integration remains separate |
+| Story 19.1 | This coordinator; story19-1-dashboard | Finish reviewed implementation through PR and required CI | PR87 with executed required gates, then separate owner merge decision |
+| Documents 20.1 preparation | 01a11ae8-4100-7042-9c22-d1aca188e683; dbe6 | Behavioral oracle checks, active-source authorization inventory, canonical spec, independent High design/spec review and preparation PR | Audited pinned preparation package or exact blockers; no product implementation |
+| Shared Next.js security repair | 01a11aeb-9946-7af3-b2ee-865c34db6c24; 9cd1 | Compatible advisory-backed dependency patch, tests, independent High review and maintenance PR | Reviewed exact result and required CI; owner merge gate, then serialized carry-forward |
+| Epic 14 closeout | 01a1179a-9f1f-7ee2-a35b-95864cbe74ba; b3cc | Existing authorized PR86 fixes, conflict resolution, review and guarded verification | Its retained Epic14 completion/CI/merge gates; no later epic work |
 
-Accepted integrated base: ab1ca0445b58f5f496be0d938906c744b6dff87e. Neither Epic14 eef577ca nor Story19.1 7954ff48 is integrated at this checkpoint.
+All worktrees above are under C:/Users/Rasmus/.codex/worktrees/, with the ElproSaas checkout below each named directory. Accepted integrated base: ab1ca0445b58f5f496be0d938906c744b6dff87e. Neither Epic14 eef577ca nor Story19.1 7954ff48 was integrated at dispatch.
 
-## Reservations and sequencing
+## Progress and blockers
 
-- Reserve Epic14 scheduling/person/schema/permissions/shared APIs/fixtures and mutable resources, including PR86 follow-up repairs.
-- Reserve Story19.1 dashboard/widget registry/manifest/coherence/quote reader/AppShell/NotificationBell/CI/Playwright/tests until integrated. Author implementation/review complete at7954ff48; browser57/0/0, units2052/0/1existingLinuxskip, inheritedRLS27/0/0; two full six-layer rounds, no unresolved findings.
-- Documents preparation uses integrated sources only. No migration, app code, manifest activation or unfinished Epic14 dependency.
-- Serialize any shared-file integration (especially manifest, CI, permissions and aggregate planning). All schema writers serialize. Separate worktrees do not isolate mutable databases.
-- Story19.2 and Epics15–18 remain planning-only until their actual contracts are integrated and full approved specs exist. E20.2/20.3 wait for integrated E20.1 and their own gates.
-- Preserve Sol6.1 Low ordinary and High sensitive delegates, recorded routes, independent review, three-round cap, author review order, required executed/skipped counts and all CI gates.
+- Story19.1 implementation/TEA/follow-up complete at7954ff48. Two full six-layer review rounds; no unresolved findings; authored review order34 references/0 errors. Browser57 passed/0 failed/0 skipped; units2052 passed/0 failed/1 existing Linux-only skip; inherited requiredRLS27/0/0. Owner continued Phase7 checkpoint.
+- Draft PR87: https://github.com/rthunborg/ElproSaas/pull/87. Required run37759212463 failed audit-high for Next.js image optimization SSRF GHSA-cjq9-62q9-8jv4. Database/recovery/e2e/dashboard jobs skipped and receive no acceptance credit. No audit waiver. Authentication failure in the Python subprocess helper was bypassed only for observation using authenticated direct gh and its deterministic JSON classifier.
+- The shared security session verifies current official advisory and compatible published patch before editing. It alone owns package.json/pnpm-lock.yaml for this repair.
+- Documents preparation branch: codex/story20-1-documents-preparation. Its author and independent High reviewer are active. Implementation remains unauthorized; approval/pinning and real prerequisite integration determine later admission.
+- Epic14 cached BMAD render access failed. Read-only diagnosis made no ACL/cache changes. The owner explicitly approved “Continue with direct closeout” in that chat; it resumed under unchanged scope/gates and retains dependency ownership exclusions.
 
-## Coordinator procedure
+## Reservations and integration order
 
-Inspect actual session/PR/head status. Wait for changed progress using compact snapshots. Advance unblocked work; send bounded coordination messages only under this owner's orchestration authorization. Never interrupt, take over or modify another session's checkout. Never treat a queued client ID as a real thread ID or create a duplicate task.
+1. Reserve Epic14 person/scheduling/schema/permissions/shared APIs/fixtures and its mutable test resources. Do not interrupt it, reuse its checkout or adopt its resources.
+2. Reserve Story19.1 dashboard/widget registry/manifest/coherence/quote reader/AppShell/NotificationBell/CI/Playwright/tests until integrated.
+3. Reserve package and lockfile changes for the shared security writer. Documents preparation consumes integrated sources only and writes its own spec/design/evidence; no migrations, app code, manifest activation or dependencies.
+4. Shared manifest, permissions, CI and aggregate planning changes require serialized reconciliation and exact-head combined checks. All migration writers serialize. Separate worktrees do not isolate mutable databases.
+5. After independent maintenance review and required CI, obtain the owner's concrete merge choice. Carry the integrated repair into active branches serially; author resolves conflicts, independent reviewer verifies consequential reconciliation, then rerun required CI.
+6. Story19.2 and Epics15–18 remain planning-only until actual upstream contracts are integrated and full approved specs exist. Documents20.2/20.3 require integrated20.1 and their own approved gates. No speculative worker chains.
 
-Before integration, obtain exact result SHA and evidence, check file and semantic overlap, and serialize reconciliation. Product merge/deployment approval remains separate. Documents implementation needs its approved/pinned spec and a new explicit admission decision.
+## Coordinator operation
 
-Heartbeat: coordinate-phase-b-parallel-lanes, every30minutes. Quiet while unchanged; notify meaningful progress, completion, failure or required owner decision. Pause when all bounded lanes are complete and required choices resolved.
+Use Sol6.1 Low for ordinary tasks and explicit High delegates for security/RLS/auth/permissions/money/critical conflicts. Preserve recorded routes, independent review, three-round cap, author review order, required executed/skipped counts and merge/deploy gates.
 
-## Current status
+Inspect actual chat/head/PR status using compact changed-status snapshots. Advance unblocked work and send bounded coordination messages under this owner's authorization. Do not mistake a queued client ID for a real thread ID or duplicate a queued task. Creation requests were resolved to the actual session IDs above.
 
-- Story19.1 human checkpoint continued by the owner; Phase7 complete, Phase8 inapplicable; pre-push report/PR/CI next.
-- Documents creation accepted but actual thread/worktree setup is pending.
-- Epic14 follow-up active; owner chat received lane boundaries and reservations.
+Persist exact result SHAs, PRs, evidence and blockers. Never merge or deploy without the existing explicit owner gate. Product implementation for20.1 needs audited approval and a new admitted assignment; this preparation request does not grant it.
 
-## Shared dependency repair admitted
+Heartbeat: coordinate-phase-b-parallel-lanes, every30 minutes. Continue unblocked work; remain quiet while unchanged. Notify meaningful progress, completion, failure or a necessary owner decision. Pause when all bounded lanes are complete and required decisions resolved.
 
-Story19.1 PR87 published and converted to draft. Required run37759212463 failed audit-high (Next.js GHSA-cjq9-62q9-8jv4); database/browser jobs skipped and receive no coverage credit. Dedicated High security repair session queued: client-new-thread:1b8f3141-769b-49cc-b06e-7ad5dd07c843, from integratedorigin/main. Sole package.json/pnpm-lock writer; reviewed maintenancePR and requiredCI, ownermergegate, then serialcarry-forward to both19.1 andEpic14. No auditwaiver. Epic14 follow-up was informed. Ordinary subprocess CI helper had authentication failure; authenticated direct gh snapshot plus deterministic classifier supplies failure evidence.
+## Reviewed preparation and next serialized actions
 
+- Documents draft PR88: https://github.com/rthunborg/ElproSaas/pull/88. Initial preparation commit920602960583c34e697386dca972fa169da20285, independently reviewed spec hash5b5d437acc08e3c4005f615b859fca1a7be55806379941d9bebd2e4dfc699964. The owner subsequently approved recommended OptionA directly in that chat (“Follow your recommendation”); targeted author/review amendment is in progress, so the final amended hash must be collected before admission.
+- OptionA enforces current source authority in Documents listing/opening and explicitly preserves the limits of existing generic file/Storage grants and issued signed URLs. No broader shared-file policy was inferred. The coordinator's earlier access-choice question is superseded by the verified approval; the accessible Lovable URL/session question remains pending.
+- Live oracle evidence is absent: the bounded browser call stalled and produced no usable result. Keep implementation blocked until valid evidence or an explicitly authorized disposition. Do not count preparation checks as runtime product tests.
+- Sprint registration is a separate mechanical blocker. The existing spec is uniquely discoverable. Registering only20.1 would incorrectly make it last-in-epic; all three approved candidate IDs need backlog entries so counts remain3/first-not-last. Documents prepares isolated title/key mapping and spec binding; coordinator serializes shared sprint integration with current Epic14 status ownership. No ready promotion, placeholder specs or worker claims.
+- Next maintenance repair8ba353320687adbd476ba750144ddee03e040dcb is pushed on codex/next-image-ssrf-maintenance. Four-file repair passed frozen install, audit-high (zero high/critical), compatibility tests, typecheck,1948 units (one existing platform skip), production build/containment and framework probes. Three independent High reviews found no consequential defect. Canonical local lint remained limited by generated-workflow access; supplemental lint is not a waiver. Publication/required CI remain pending host tool approval.
+- Epic14 continued local closeout: independent merge review clean; typecheck/lint/containment/2035 units pass (one existing skip), fresh empty database99 migrations plus seed and exact ledger pass. PR86 updated and CI failed the same shared high audit; downstream jobs skipped and receive no acceptance credit. Corrected browser evidence remains pending. Preserve its sprint writer until a checkpoint permits serialized registration.
