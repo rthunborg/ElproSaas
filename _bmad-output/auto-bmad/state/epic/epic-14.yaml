@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: codex/epic14-resume
 status: done
-updated_at: "2026-10-07T16:15:18Z"
+updated_at: "2026-10-08T13:13:44Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: "2026-10-07T16:15:18Z"
 active_seconds: 77845
@@ -18,15 +18,15 @@ is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: retrospective
-selected_role: retrospective-delegate
-selected_profile: default
+selected_phase: followup_review
+selected_role: primary-reviewer
+selected_profile: standard
 selected_model: gpt-6.1-sol
-selected_effort: low
+selected_effort: high
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: "Headless documentary synthesis from established evidence; no new sensitive implementation or security review."
+escalation_reason: "Independent bounded check of authorization/RLS review clearance, exact CI eligibility and metadata preservation; no new broad code review."
 routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
@@ -51,6 +51,8 @@ routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"Epic14 advisory audits cover actual tenant/RLS, signed review authority and atomic audited command test quality\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_epic_audit\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"Ledger includes actual auth/RLS, money/tax and transactional obligations; conservative read-only reconciliation requires High.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"deferred_reconcile\",\"profile\":\"standard\",\"role\":\"deferred-reconciler\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"low\",\"escalation_reason\":\"Headless documentary synthesis from established evidence; no new sensitive implementation or security review.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"retrospective\",\"profile\":\"default\",\"role\":\"retrospective-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Bounded direct-closeout metadata must reconcile established tenant/RLS and transactional review clearance without changing historical review rounds or failed evidence.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"final_convergence\",\"profile\":\"standard\",\"role\":\"final-convergence\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Independent bounded check of authorization/RLS review clearance, exact CI eligibility and metadata preservation; no new broad code review.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
@@ -93,8 +95,8 @@ retro:
   open_action_items: 6
 bmad_status_flipped_at: null
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/86"
-ci_run_url: "https://github.com/rthunborg/ElproSaas/actions?query=branch%3Acodex%2Fepic14-resume"
-ci_status: unknown
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/37780712377"
+ci_status: failed
 pr_merged: false
 merge_method: null
 merge_commit: null
@@ -370,6 +372,10 @@ overrides:
   ci_registration_observed: false
   ci_wait_skipped: true
   merge_prompt_skipped_reason: "Caveated draft; no automatic merge."
+  direct_closeout_source_head: abff9615b6a5b6540953f2efb28454076f007deb
+  direct_closeout_ci_required_jobs: 5
+  direct_closeout_ci_passed_jobs: 4
+  direct_closeout_concurrent_create_gate_pending: true
 constraints:
   - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."

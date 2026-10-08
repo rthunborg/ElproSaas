@@ -1,4 +1,5 @@
 import { authoritativeBookingRpc } from "../../support/booking-conflict-attestation";
+import { reviewedFixtureInput } from "../../support/booking-editor-production";
 import { loadConflictBindings } from "../../support/booking-conflicts-atdd";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
@@ -240,8 +241,15 @@ describe("Story 14.2 booking transaction foundation ATDD", () => {
     await withBookingFixture(async (fx) => {
       const input = bookingInput([fx.ownProfile.id, fx.coworkerProfile.id]);
       const before = await bookingSnapshot(fx.tenantIds);
-      const results = await Promise.all(Array.from({ length: 4 }, () => bookingCommand("create", fx.adminClient, input)));
-      expect(results.every((result) => result.ok)).toBe(true);
+      // Prepare one complete reviewed command, then race four real writes of it.
+      const reviewed = await reviewedFixtureInput(fx.adminClient, "create", input);
+      expect(reviewed.editorReview).toBeDefined();
+      expect(reviewed.editorReview?.decision.acknowledged).toBe(true);
+      expect(reviewed.editorReview?.decision.reviewedLogicalIds.length).toBeGreaterThan(0);
+      expect(reviewed.editorReview?.decision.selectedLogicalIds).toEqual([]);
+      const results = await Promise.all(Array.from({ length: 4 }, () => bookingCommand("create", fx.adminClient, reviewed)));
+      expect(results.every((result) => result.ok), JSON.stringify(results.map((result) =>
+        result.ok ? { ok: true } : { ok: false, code: result.code }))).toBe(true);
       for (const result of results) expect(result).toEqual(results[0]);
       const after = await bookingSnapshot(fx.tenantIds);
       expect(after.bookings).toHaveLength(before.bookings.length + 1);

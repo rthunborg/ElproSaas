@@ -30,7 +30,7 @@ export async function bookingRpcDiagnostic(name: string, args: Record<string, un
   const reason = error.message === "booking proof denied" ? "proof"
     : error.message === "booking denied" ? "booking" : "other";
   let guards: Record<string, unknown> | undefined;
-  if (reason === "proof" && name === "finalize_booking_conflicts") {
+  if (reason === "proof" && ["finalize_booking_conflicts", "finalize_booking_editor"].includes(name)) {
     // Readback after the failed RPC, not the original rejection snapshot.
     // Only non-secret booleans/time deltas leave this private fixture path.
     try {
@@ -70,7 +70,12 @@ export async function bookingRpcDiagnostic(name: string, args: Record<string, un
       } catch { guards.output_shape_valid = false; }
     } catch { guards = { readback_available: false }; }
   }
-  return { rpc: name, code: error.code, reason, claims_present: args.p_claims != null, ...(guards ? { guards } : {}) };
+  return { rpc: name, code: diagnosticSqlCode(error), reason, claims_present: args.p_claims != null, ...(guards ? { guards } : {}) };
+}
+
+function diagnosticSqlCode(error: unknown): string {
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === "string" && /^[A-Z0-9]{5}$/.test(code) ? code : "unknown";
 }
 
 /** Imports and executes the actual production command. */
@@ -81,6 +86,7 @@ export async function bookingCommand(operation: "create" | "update", client: Tes
     : (await import("@/server/commands/bookings/update-booking")).updateBooking;
   const diagnostic = process.env.STORY143_DIAGNOSTIC === "1";
   const rpcErrors: Awaited<ReturnType<typeof bookingRpcDiagnostic>>[] = [];
+  let fixtureReviewError: { code: string; reason: "pre-review-rejected" } | undefined;
   let issuanceObservation: { receipt_clock_delta_ms: number; receipt_statement_delta_ms: number;
     receipt_transaction_delta_ms: number; receipt_node_delta_ms: number; receipt_monotonic_ms: number;
     receipt_issued_not_future: boolean; receipt_expiry_not_past: boolean; receipt_lifetime_valid: boolean;
@@ -89,7 +95,7 @@ export async function bookingCommand(operation: "create" | "update", client: Tes
     get(target, property) {
       if (property === "rpc") return async (name: string, args: Record<string, unknown>) => {
         const reply = await target.rpc(name, args);
-        if (name === "snapshot_booking_conflicts" && !reply.error && reply.data?.kind === "snapshot") {
+        if (["snapshot_booking_conflicts", "snapshot_booking_editor"].includes(name) && !reply.error && reply.data?.kind === "snapshot") {
           const receiptMonotonic = performance.now();
           const receiptNode = Date.now();
           try {
@@ -109,7 +115,7 @@ export async function bookingCommand(operation: "create" | "update", client: Tes
         }
         if (reply.error) {
           const failure = await bookingRpcDiagnostic(name, args, reply.error);
-          if (issuanceObservation && name === "finalize_booking_conflicts") {
+          if (issuanceObservation && ["finalize_booking_conflicts", "finalize_booking_editor"].includes(name)) {
             const { receipt_monotonic_ms, issuedAt, ...receiptDeltas } = issuanceObservation;
             failure.guards = { ...failure.guards, ...receiptDeltas,
               receipt_claim_issuance_matches: (args.p_claims as { issuedAt?: string } | undefined)?.issuedAt === issuedAt,
@@ -130,13 +136,17 @@ export async function bookingCommand(operation: "create" | "update", client: Tes
   let reviewed = input;
   if (valid.ok && !input.editorReview) {
     try { reviewed = await (await import("./booking-editor-production")).reviewedFixtureInput(client, operation, input); }
-    catch { /* Run the real envelope to preserve current authority/validation errors. */ }
+    catch (error) {
+      if (diagnostic) fixtureReviewError = { code: diagnosticSqlCode(error), reason: "pre-review-rejected" };
+      /* Run the real envelope to preserve current authority/validation errors. */
+    }
   }
   const result = await runCommand(command as Command<unknown, { bookingId: string }>, {
     client: observed as never, input: reviewed, correlationId,
   });
   // Opt-in bounded diagnostics never include facts, SQL arguments, proof or tokens.
-  if (diagnostic && !result.ok) console.error("Story14.3 command diagnostic", JSON.stringify({ operation, code: result.code, rpcErrors }));
+  if (diagnostic && !result.ok) console.error("Story14.3 command diagnostic", JSON.stringify({ operation, code: result.code, rpcErrors,
+    ...(fixtureReviewError ? { fixtureReviewError } : {}) }));
   return result;
 }
 

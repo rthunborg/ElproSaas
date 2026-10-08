@@ -448,3 +448,56 @@ operator-console cases. Post-pack SQL again reports zero markers/three hooks.
 This is current local evidence for both repaired contexts; the earlier 23-case
 run and failed EOF-based helper attempts remain separate historical evidence.
 Fresh full CI is still required.
+
+### Four passing gates and one unresolved concurrent-create case
+
+[CI 37780712377](https://github.com/rthunborg/ElproSaas/actions/runs/37780712377)
+on `abff9615b6a5b6540953f2efb28454076f007deb` passed verification (**2,153
+units, zero failures/skips**, 37.878 seconds), isolated recovery (**one test**),
+dashboard browser (**57 passed**, 1.3 minutes), and general browser (**197
+passed, zero failed/flaky, four existing skips**, 4.3 minutes). The earlier
+provisioning and profile failures are resolved in this actual full run.
+
+Empty migration/seed reset passed, but REQUIRED integration failed: **1,477
+total / 1,475 passed / one failed / one preserved skip**, 267.56 seconds.
+The sole failure is the existing four-way identical booking-create case at
+`tests/integration/commands/bookings.int.test.ts:244`: at least one result is
+not successful. Its boolean assertion does not expose the rejection code.
+The pilot command consequently did not execute. A bounded High diagnosis is
+checking the helper's per-call review preparation against actual downstream
+authorization, review and idempotency guards before deciding a repair. No
+production defect or passing full gate is inferred from this evidence, and
+official completion remains pending.
+
+The first isolated diagnostic passed one case with 15 excluded, so it did not
+reproduce or clear that CI failure. A temporary diagnostic then forced four
+real preview requests to arrive before any completed, and delayed the fourth
+until the first actual finalization reported committed. All replies remained
+real and unchanged. The original success assertion failed with three successes
+and one `COMMAND_CONFLICT`. A second diagnostic captured both actual ordering
+witnesses and `BK409` from late preview preparation and the real command
+snapshot. Both diagnostics failed natively, one failed case/15 excluded each;
+the latter affected case took 925.7382 ms. These prove a reachable helper race,
+without claiming the original CI's undisclosed result code was traced.
+
+The permanent test repair prepares one actual signed, acknowledged review with
+nonempty reviewed groups and empty selected groups before dispatching all four
+real command calls concurrently. Their equality and exact one-booking,
+two-assignee, one-audit and stored-outcome assertions are retained. Temporary
+ordering controls are removed. The fixture's existing opt-in diagnostics now
+recognize current editor RPCs and emit only bounded SQL codes/reasons and
+nonsecret timing witnesses. Production SQL, replay, authority, caches, grants,
+timeouts, retries and worker configuration are unchanged.
+
+Independent High source review found no consequential defect. One complete
+REQUIRED booking-command file passed **16/16, zero failures/skips**, native 0,
+26.487 seconds; post-pack SQL reports zero markers/three hooks. Fresh full CI
+remains required, and the failed original/controlled runs remain evidence.
+
+The independently verified one-file planning handoff `c64832f3c47722a5601f83f04ca6b35dde6f646f`
+was carried separately as `0b68dca0`, preserving its author. Its dated checkpoint
+matches PR 86's draft state and the actual four-pass/one-failed `abff9615` CI
+result; it carries no product edits or takeover of another writer. The root
+state now records that failed run explicitly and retains review-unverified,
+unfinished sprint entries and the historical rejected retrospective. Author
+trails for the fixture repair and fresh five-job CI remain the next gates.
