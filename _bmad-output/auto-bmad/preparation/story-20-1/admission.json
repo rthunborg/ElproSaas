@@ -14,7 +14,7 @@
   "base_sha": "ab1ca0445b58f5f496be0d938906c744b6dff87e",
   "workflow_version": "d061782354238883c72fc96d0c9affe418a505f7f414459826a4335161c222e1",
   "spec_path": "_bmad-output/implementation-artifacts/spec-20-1-documents-activation-and-source-authorized-aggregation.md",
-  "spec_revision": "5b5d437acc08e3c4005f615b859fca1a7be55806379941d9bebd2e4dfc699964",
+  "spec_revision": "6e52edf490164f36e01a289d71880e163175541b5d990471634b6303b69940fa",
   "author": {
     "identity": "/root/documents_spec",
     "agent_id": "01a11ae9-d2ac-7492-830b-edcc13c16b1b",
@@ -30,11 +30,12 @@
     "agent_id": "01a11af1-1be3-7110-9fea-57b6b85f03fe",
     "model": "gpt-6.1-sol",
     "effort": "high",
-    "spec_revision": "5b5d437acc08e3c4005f615b859fca1a7be55806379941d9bebd2e4dfc699964",
+    "spec_revision": "6e52edf490164f36e01a289d71880e163175541b5d990471634b6303b69940fa",
     "audit_path": "docs/quality/story-20-1-preparation-audit-2026-10-08.md",
-    "additional_material_design_defects": 0
+    "additional_material_design_defects": 0,
+    "followup_scope": "Owner-approved option A amendment and bounded consistency fixes; no broad review"
   },
-  "boundary_choice": null,
+  "boundary_choice": "A",
   "recommended_boundary_choice": "A-with-explicit-owner-acceptance",
   "integrated_contracts": [
     {
@@ -135,7 +136,6 @@
     "documents-source-unit",
     "documents-integration-rls",
     "files-signed-access-integration",
-    "documents-direct-storage-integration-if-B",
     "documents-browser",
     "unit",
     "typecheck",
@@ -143,7 +143,8 @@
     "production-build",
     "service-role-containment",
     "bundle-containment",
-    "lockfiles"
+    "lockfiles",
+    "documents-baseline-storage-boundary"
   ],
   "checks": [
     {
@@ -169,11 +170,19 @@
       "result": "blocked",
       "evidence": "Initial native Chrome state call aborted after 711 seconds; browser-only cua.getState succeeded, no Lovable tab, targeted repository URL search found no authorized oracle target.",
       "observations": 0
+    },
+    {
+      "name": "prior-pr-ci",
+      "result": "failed",
+      "commit": "920602960583c34e697386dca972fa169da20285",
+      "run_url": "https://github.com/rthunborg/ElproSaas/actions/runs/37762101656",
+      "failed_step": "Audit dependencies (blocking, high severity)",
+      "evidence": "GitHub Actions job API; full log access returned403",
+      "repair_scope": "reserved separate Next dependency repair lane"
     }
   ],
   "remaining_gates": [
     "Coordinator-serialized canonical sprint registration and exact ID resolution",
-    "Owner choiceA/B recorded without inferred policy expansion",
     "Live Lovable terminology/minimal interactions evidence or explicit authorized oracle disposition",
     "Early E20 checkpoint closure on reviewed revision",
     "Verified exact write_paths and shared reservations reconciled",
@@ -188,5 +197,19 @@
     "reason": "No approved canonical registered ready-for-dev spec; emitting helper-valid plan would invent prerequisites. This document deliberately is not the helper plan schema."
   },
   "product_implementation_performed": false,
-  "managed_resources_started": false
+  "managed_resources_started": false,
+  "boundary_decision": {
+    "authority": "human owner in current chat",
+    "date": "2026-10-08",
+    "instruction": "Follow your recommendation",
+    "scope": "Documents-specific selected-source listing and opening enforcement; preserve baseline generic Files.View/direct Storage access and issued signed-URL lifetime",
+    "does_not_authorize": [
+      "global Storage policy expansion",
+      "oracle waiver",
+      "implementation",
+      "merge",
+      "deployment"
+    ],
+    "evidence_path": "_bmad-output/auto-bmad/preparation/story-20-1/owner-boundary-decision-2026-10-08.md"
+  }
 }
