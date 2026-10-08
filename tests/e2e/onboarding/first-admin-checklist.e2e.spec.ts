@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../dashboard/guarded-test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { adminQuery } from "../../factories/admin-sql";

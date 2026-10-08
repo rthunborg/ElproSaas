@@ -150,7 +150,7 @@ export const SCOPE_MANIFEST: ScopeManifest = {
         "quote_lost_reasons",
         "quote_follow_ups",
       ],
-      widgets: [],
+      widgets: ["quote-pipeline"],
       notificationCategories: ["quote.follow_up_due"],
       publicSurfaces: [],
       fileOwnerTypes: ["quote_version", "quote_acceptance"],

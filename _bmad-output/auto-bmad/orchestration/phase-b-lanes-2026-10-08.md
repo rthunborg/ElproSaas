@@ -1,0 +1,109 @@
+# Phase B orchestration — 2026-10-08
+
+The owner authorized executing these bounded lanes in separate sessions until complete. This plan records orchestration and ownership; it does not admit product workers for unapproved stories.
+
+## Active lanes
+
+| Lane | Session and worktree | Authorized work | Completion gate |
+| --- | --- | --- | --- |
+| Story 19.1 | This coordinator; story19-1-dashboard | Finish reviewed implementation through PR and required CI | PR87 with executed required gates, then separate owner merge decision |
+| Documents 20.1 preparation | 01a11ae8-4100-7042-9c22-d1aca188e683; dbe6 | Behavioral oracle checks, active-source authorization inventory, canonical spec, independent High design/spec review and preparation PR | Audited pinned preparation package or exact blockers; no product implementation |
+| Shared Next.js security repair | 01a11aeb-9946-7af3-b2ee-865c34db6c24; 9cd1 | Compatible advisory-backed dependency patch, tests, independent High review and maintenance PR | Reviewed exact result and required CI; owner merge gate, then serialized carry-forward |
+| Epic 14 closeout | 01a1179a-9f1f-7ee2-a35b-95864cbe74ba; b3cc | Existing authorized PR86 fixes, conflict resolution, review and guarded verification | Its retained Epic14 completion/CI/merge gates; no later epic work |
+
+All worktrees above are under C:/Users/Rasmus/.codex/worktrees/, with the ElproSaas checkout below each named directory. Accepted integrated base: ab1ca0445b58f5f496be0d938906c744b6dff87e. Neither Epic14 eef577ca nor Story19.1 7954ff48 was integrated at dispatch.
+
+## Progress and blockers
+
+- Story19.1 implementation/TEA/follow-up complete at7954ff48. Two full six-layer review rounds; no unresolved findings; authored review order34 references/0 errors. Browser57 passed/0 failed/0 skipped; units2052 passed/0 failed/1 existing Linux-only skip; inherited requiredRLS27/0/0. Owner continued Phase7 checkpoint.
+- Draft PR87: https://github.com/rthunborg/ElproSaas/pull/87. Required run37759212463 failed audit-high for Next.js image optimization SSRF GHSA-cjq9-62q9-8jv4. Database/recovery/e2e/dashboard jobs skipped and receive no acceptance credit. No audit waiver. Authentication failure in the Python subprocess helper was bypassed only for observation using authenticated direct gh and its deterministic JSON classifier.
+- The shared security session verifies current official advisory and compatible published patch before editing. It alone owns package.json/pnpm-lock.yaml for this repair.
+- Documents preparation branch: codex/story20-1-documents-preparation. Its author and independent High reviewer are active. Implementation remains unauthorized; approval/pinning and real prerequisite integration determine later admission.
+- Epic14 cached BMAD render access failed. Read-only diagnosis made no ACL/cache changes. The owner explicitly approved “Continue with direct closeout” in that chat; it resumed under unchanged scope/gates and retains dependency ownership exclusions.
+
+## Reservations and integration order
+
+1. Reserve Epic14 person/scheduling/schema/permissions/shared APIs/fixtures and its mutable test resources. Do not interrupt it, reuse its checkout or adopt its resources.
+2. Reserve Story19.1 dashboard/widget registry/manifest/coherence/quote reader/AppShell/NotificationBell/CI/Playwright/tests until integrated.
+3. Reserve package and lockfile changes for the shared security writer. Documents preparation consumes integrated sources only and writes its own spec/design/evidence; no migrations, app code, manifest activation or dependencies.
+4. Shared manifest, permissions, CI and aggregate planning changes require serialized reconciliation and exact-head combined checks. All migration writers serialize. Separate worktrees do not isolate mutable databases.
+5. After independent maintenance review and required CI, obtain the owner's concrete merge choice. Carry the integrated repair into active branches serially; author resolves conflicts, independent reviewer verifies consequential reconciliation, then rerun required CI.
+6. Story19.2 and Epics15–18 remain planning-only until actual upstream contracts are integrated and full approved specs exist. Documents20.2/20.3 require integrated20.1 and their own approved gates. No speculative worker chains.
+
+## Coordinator operation
+
+Use Sol6.1 Low for ordinary tasks and explicit High delegates for security/RLS/auth/permissions/money/critical conflicts. Preserve recorded routes, independent review, three-round cap, author review order, required executed/skipped counts and merge/deploy gates.
+
+Inspect actual chat/head/PR status using compact changed-status snapshots. Advance unblocked work and send bounded coordination messages under this owner's authorization. Do not mistake a queued client ID for a real thread ID or duplicate a queued task. Creation requests were resolved to the actual session IDs above.
+
+Persist exact result SHAs, PRs, evidence and blockers. Never merge or deploy without the existing explicit owner gate. Product implementation for20.1 needs audited approval and a new admitted assignment; this preparation request does not grant it.
+
+Heartbeat: coordinate-phase-b-parallel-lanes, every30 minutes. Continue unblocked work; remain quiet while unchanged. Notify meaningful progress, completion, failure or a necessary owner decision. Pause when all bounded lanes are complete and required decisions resolved.
+
+## Reviewed preparation and next serialized actions
+
+- Documents draft PR88: https://github.com/rthunborg/ElproSaas/pull/88. Initial preparation commit920602960583c34e697386dca972fa169da20285, independently reviewed spec hash5b5d437acc08e3c4005f615b859fca1a7be55806379941d9bebd2e4dfc699964. The owner subsequently approved recommended OptionA directly in that chat (“Follow your recommendation”); targeted author/review amendment is in progress, so the final amended hash must be collected before admission.
+- OptionA enforces current source authority in Documents listing/opening and explicitly preserves the limits of existing generic file/Storage grants and issued signed URLs. No broader shared-file policy was inferred. The coordinator's earlier access-choice question is superseded by the verified approval; the accessible Lovable URL/session question remains pending.
+- Live oracle evidence is absent: the bounded browser call stalled and produced no usable result. Keep implementation blocked until valid evidence or an explicitly authorized disposition. Do not count preparation checks as runtime product tests.
+- Sprint registration is a separate mechanical blocker. The existing spec is uniquely discoverable. Registering only20.1 would incorrectly make it last-in-epic; all three approved candidate IDs need backlog entries so counts remain3/first-not-last. Documents prepares isolated title/key mapping and spec binding; coordinator serializes shared sprint integration with current Epic14 status ownership. No ready promotion, placeholder specs or worker claims.
+- Next maintenance repair8ba353320687adbd476ba750144ddee03e040dcb is pushed on codex/next-image-ssrf-maintenance. Four-file repair passed frozen install, audit-high (zero high/critical), compatibility tests, typecheck,1948 units (one existing platform skip), production build/containment and framework probes. Three independent High reviews found no consequential defect. Canonical local lint remained limited by generated-workflow access; supplemental lint is not a waiver. Publication/required CI remain pending host tool approval.
+- Epic14 continued local closeout: independent merge review clean; typecheck/lint/containment/2035 units pass (one existing skip), fresh empty database99 migrations plus seed and exact ledger pass. PR86 updated and CI failed the same shared high audit; downstream jobs skipped and receive no acceptance credit. Corrected browser evidence remains pending. Preserve its sprint writer until a checkpoint permits serialized registration.
+
+## Publication update
+
+Shared security maintenance PR89 is open and attached: https://github.com/rthunborg/ElproSaas/pull/89. Exact reviewed dependency head8ba353320687adbd476ba750144ddee03e040dcb; CI run37763292646 queued. Publication approval is no longer a blocker. Wait for required CI and the concrete owner merge decision before serial carry-forward to PR86/87. Do not waive canonical lint or unexecuted downstream jobs.
+
+Epic14 has paused repeated browser runs while a High delegate diagnoses previews remaining pending (transport/database waits). No application defect is established; diagnostic results receive no acceptance credit. Preserve its resource and sprint ownership.
+
+## Merge-ready security gate and reviewed registration
+
+- PR89 remains at exact reviewed head8ba353320687adbd476ba750144ddee03e040dcb and is mergeable. All four required CI jobs verify/db/recovery-storage-loader/e2e succeeded in run37763292646. Ubuntu units1949/0/0; browser174 passed with four existing skips (no acceptance credit). Coordinator requested the human merge-style choice; no merge authorization is inferred from the orchestration request. After approval, handle the branch-retention choice and serial carry-forward, independently review any consequential conflict resolution, then require exact-head CI on active branches.
+- Documents PR88 amended preparation/registration head2499f417, spec pin7e475bfd42adc41e61fc4ccba5f399a7816025fdf37ad89d12d299c1aba489ab. Reviewed patch registers20.1–20.3 as backlog; in-memory helper checks prove first-of-three/not-last. Actual shared sprint status is unchanged. Coordinator must serialize application/reconciliation with Epic14 and rerun actual helper checks before clearing registration. Oracle/contract/checkpoint/claim gates still block implementation.
+- Read-only search found no documented Lovable base URL or authenticated-tab instructions in approved process/quality/project-context documents. Owner must provide an accessible base URL or existing authenticated browser tab; credentials must not be supplied in chat. No oracle behavior is claimed as verified.
+
+## Verified security completion
+
+MaintenancePR89 producer finished with clean preserved worktree and exact head8ba353320687adbd476ba750144ddee03e040dcb. All required CI jobs passed:1949 units,1208 integration,1 recovery,174 browser tests;4 existing browser skips receive no coverage credit. Audit zero high/critical; independent Sol6.1High review found no consequential defect. Human merge style remains pending in coordinator chat. Do not merge from automation or another agent's message alone.
+
+Coordinator supplied Epic14 a diagnostic gate to verify production-build public Supabase URL, runtime URL and fixtures all target the same isolated stack/build; no demo use and no claimed cause. The active High transport diagnosis continues independently.
+
+## Bounded heartbeat checkpoint 2026-10-08 10:41 UTC
+
+PR89 remains OPEN at the independently reviewed green head; no human merge-style approval has arrived. PR86 remains OPEN at612ea4e43c3138e3fe20a606aa5b790c79f65d4e. Epic14 now reports a passing focused booking-create check with SQL persistence confirmation (preview233ms), and independent review found no defects in its test repairs. Full REQUIRED integration/RLS execution is unresolved; no full-suite acceptance credit is inferred. Reserve its changed tests, contracts, mutable resources and sprint writer. Coordinator requested final counts/exact commit and a sprint-writer checkpoint before applying the reviewed backlog-only Documents registration. Documents preparation remains reviewed at2499f417 with unchanged admission blockers. No implementation workers, merge or deployment were started.
+## Owner approval and integrated security baseline
+
+Owner approved proceeding with all development and following agents' recommendations on2026-10-08. Coordinator selected the previously recommended merge commit and conservative branch retention. PR89 merged at10:55:49UTC into main23c48b34c8a6c9158eeaf0edfca74e628d575cbc after verifying exact reviewed head8ba353320687adbd476ba750144ddee03e040dcb and all required CI green. Security lane complete; no deployment authorized or performed. Story19.1 merged this integrated baseline without conflicts at8951a2303a606be0582879955b119f7ef1427cfa and pushed for fresh required CI. Epic14 owner was notified to carry forward at a safe checkpoint with independent High review for consequential conflicts and exact-head CI. Documents owner continues bounded oracle discovery/preparation; approval does not waive unavailable oracle evidence, integrated-contract, spec or ownership gates. No later-epic implementation workers admitted.
+## Standing completion authorization and CI repair
+
+Owner explicitly assigned coordinator responsibility to commit, push and merge finished development if respective sessions do not, and to keep project documentation current. Recommended merge commits and branch retention apply after independent review and required CI; deployment is not implied. Heartbeat instructions now retain that authorization, with safe handoff before work in an owned checkout.
+
+Story19.1 head6802b0d23ff9eb6f52d9e98c67bd2c337d6b6857 passed verify, but dedicated dashboard browser job113277399291 failed immediately after successful migrations in run37766806362. No passing acceptance claim or merge. Bounded infra19 delegate owns diagnosis/necessary harness repair (Sol6.1 Low ordinary; explicit High escalation for sensitive code), author evidence and narrow independent regression review. Existing two broad review rounds and cap remain preserved. Other required jobs were still running when checked.
+
+Documents preparation head67d04911139b946994fab26f6a954b1a74d15c19 records a successful browser inventory but no Lovable tab among24 Chrome tabs and no repository target URL. The owning session is independently checking preparation-only merge readiness; implementation remains blocked by oracle/admission gates. Epic14 integrated the security baseline and continues a kernel repair plus fresh verification under its own ownership.
+## Reviewed Story19.1 CI repairs
+
+Database failure was two historical empty-widget inventory pins, not an RLS/runtime defect: original run1217passed/2failed/1isolated-recovery skip; its pilot script did not run after test failure. High delegate authored f997370d41238b89dca68b122d022ddcbf352a25 with exact sanctioned quote-pipeline inventory and retained all other guards. Focused6/0/0; independent narrow Low review found no defects.
+
+Dashboard failure occurred before tests: nested Playwright config cwd doubled server entry paths. Author commit4bb0b3f76f240f748b44e249c192e88d25064d53 pins repository cwd for both servers and adds two startup regressions. Positive2/0/0; negative control reproduces both original failures. Full units2054passed/0failed/1existingLinuxskip, typecheck and focused lint pass. Independent narrow review clean; authored trail39valid references/0errors. Existing two broad review rounds preserved. No services launched for these fixes. Publish combined repairs and require fresh CI; prior verify/general-browser/recovery jobs passed, but no automatic dashboard-startup coverage is claimed until new CI succeeds.
+
+Documents preparation is independently complete at9214e94a7eec33272e14de223e6ecd10fcfcf321; safe merge handoff received, awaiting required CI. Merge of preparation records will not authorize implementation. Epic14 remains active and owns its kernel fix, shared sprint and mutable tests.
+## Documents preparation merged; final dashboard CI running
+
+Coordinator verified PR88 exact reviewed head9214e94a7eec33272e14de223e6ecd10fcfcf321, preparation-only file boundary, explicit safe handoff and all four required CI jobs successful in37767591281. PR88 merged by merge commit7da9e8f3b63ffe6ed243f3f9ecc413fb56fe25a7 at2026-10-08T11:14:54Z; branches retained. Documents preparation lane is complete. Implementation remains blocked by accessible oracle URL/session, canonical registration, contract/checkpoint closure and serialized ownership. No gate waiver or implementation dispatch occurred. Both owning sessions were notified; Epic14 retains sprint ownership until safe handoff.
+
+Story19.1 repaired head e91769e0182e45be13e89b3e95a4a13539503d54 is running required CI37768476568. Verify passed; db, recovery, general browser and dedicated dashboard jobs were still running. This plan checkpoint is committed locally and must be published with the next finalization or repair update after this run settles, to avoid cancelling an in-flight acceptance run solely for bookkeeping. No completed acceptance result or merge is claimed for PR87. Heartbeat remains active.
+## Dashboard remote acceptance passed; database teardown isolation
+
+Run37768476568 at e91769e0 completed: verify, recovery, dashboard-e2e and general e2e passed. Dashboard57passed; general browser174passed/4existing skips (no credit for skips). The db job had1218passed/1failed/1isolated-recovery skip; pilot command did not execute because it follows integration success. Sole failure was SQLSTATE40P01 during pre-existing job-runs rollback-test trigger teardown; rollback assertion and repaired inventory passed. High diagnosis found no Story19 production/RLS regression.
+
+High delegate ci19_db is assigned a deterministic test-only isolation repair in vitest.config.ts and a partition contract test: retain the existing parallel integration batch and execute only the global-audit-trigger DDL suite afterward. Preserve all tests exactly once, REQUIRED/globalSetup, assertions, timeouts and retries. Independent narrow High review and fresh full required CI are mandatory. Epic14 owner was notified; read-only check showed no dirty ownership of those files. No local services requested. Coordinator owns documentation and final publication; the prior local plan checkpoint will ship with this repair.
+## Reviewed audit-trigger test isolation
+
+High author committed1ecb193ad065332c5b48aa59717b67bc20a57c50, limited to vitest.config.ts and integration partition contract tests. Independent narrow High review found no defects. Installed Vitest4.1.9 collects all123integration files exactly once:122parallelgroup0 and one audit-DDL suite group1. Required global setup, timeouts, aliases and no-retry behavior are retained; actual job-run assertions/SQL unchanged. Focused3passed/0failed/0skipped, typecheck/lint/diffcheck passed. Synthetic delayed-afterAll markers establish suite teardown completion before DDL suite starts; reversed ordering is detected by an intentionally failing control. Worker-process termination and real database execution were not claimed. No services launched. Author-trail reconciliation follows; fresh REQUIRED CI must execute integration plus pilot and remaining jobs.
+
+Epic14 published new draft heade1e663ce7e72268797044dba49ceb778cb7dfae1; verify/recovery succeeded, db failed and browser was running when checked. Its owner retains investigation, sprint and resource ownership. Coordinator has not merged or borrowed its unfinished work.
+## Story19.1 completion gates passed
+
+All five required jobs passed in CI37770869560 on reviewed head91e133175d57101d072514271da682953c93f6db: verify, db, recovery, general browser and dashboard browser. Database1219passed/1isolated-recovery skip across123files; the separate recovery job passed. Database/RLS/pilot combined execution completed in121.87s under300s; pilot was executed. Earlier reviewed remote browser evidence remains dashboard57passed and generalbrowser174passed/4existing skips; latest jobs also passed. No skipped test receives acceptance credit. Independent narrow High isolation review and Low author-trail review complete;43reference stops/0errors; two broad story review rounds preserved.
+
+Coordinator flips only19.1 to done;19.2 and Epic19 closure remain excluded. Documentation-only finalization is published before authorized merge. Preserve branches. Documents preparation PR88 is already merged; implementation still blocked on oracle and recorded admission gates. Epic14 retains its own closeout and sprint entries; merge integration must preserve this19.1 completion row. Heartbeat remains active through actual merge and remaining bounded closeout.
