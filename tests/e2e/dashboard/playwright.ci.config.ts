@@ -23,10 +23,13 @@ export default defineConfig(dashboardConfig, {
   reporter: [["html", { outputFolder: path.join(process.cwd(), "playwright-report/dashboard"), open: "never" }], ["list"],
     [path.join(process.cwd(), "tests/e2e/ci-duration-budget-reporter.ts"), { label: "Dashboard browser tests", maxMs: 300_000 }]],
   use: { baseURL: appURL },
+  // Playwright otherwise starts commands from this nested configuration directory.
   webServer: [{
+    cwd: process.cwd(),
     command: `node tests/e2e/dashboard/server-read-proxy.mjs --upstream ${LOCAL_SUPABASE_URL} --port ${proxyPort} --control-root tests/e2e/.auth/dashboard-control`,
     url: `${proxyURL}/auth/v1/health`, timeout: 60_000, reuseExistingServer: false,
   }, {
+    cwd: process.cwd(),
     command: `node node_modules/next/dist/bin/next build && node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port ${port}`,
     url: appURL, timeout: 240_000, reuseExistingServer: false,
     env: {
