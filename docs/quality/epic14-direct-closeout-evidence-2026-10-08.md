@@ -501,3 +501,58 @@ result; it carries no product edits or takeover of another writer. The root
 state now records that failed run explicitly and retains review-unverified,
 unfinished sprint entries and the historical rejected retrospective. Author
 trails for the fixture repair and fresh five-job CI remain the next gates.
+
+### Full integration passes; the composed Admin pilot limits remain unmet
+
+[CI 37783736560](https://github.com/rthunborg/ElproSaas/actions/runs/37783736560)
+on `765ee0f35ac02766dfb324d03f3a20adc40b5d58` passed verification (**2,153
+units, zero failures/skips**, 27.558 seconds), isolated recovery (**one test**),
+dashboard browser (**57 passed**, 1.4 minutes), and general browser (**197
+passed, zero failed/flaky, four existing skips**, 5.3 minutes). Empty migration
+and seed reset passed. The full REQUIRED integration/RLS command passed:
+**1,477 total / 1,476 passed / zero failed / one preserved skip**, 207.67 seconds.
+
+The subsequent actual Epic 11 pilot executed and failed its request ceiling:
+four authenticated RLS requests/read exceeds three. The combined database/pilot
+command failed after 216.00 seconds. Its exact 120/24-membership profile needs
+one root page plus three 50-ID role batches. Independent High source review
+confirms that both the frozen three-request ceiling and ADR-B012's approved
+50-ID cap remain authoritative; the count is real, and neither threshold has
+an approved amendment. This is not a stale oracle or duplicate query.
+
+A bounded production query optimization is being implemented under the approved
+pilot intent and ADR-B012: page existing role rows by the resolved tenant through
+the authenticated RLS client, preserve visible-root intersection and complete
+fail-closed pagination, and retain both limits and the exact fixture. No grants,
+schema, scope activation, service-role client path, cached authority, threshold,
+fixture reduction or waiver is authorized by this repair. Actual affected RLS,
+pilot, independent High review and fresh five-job CI remain required. Official
+completion and the historical rejected retrospective remain unchanged.
+
+The optimized projection received independent High review with no consequential
+findings. The current cookie-bound caller, route entitlement, forced RLS and
+same-tenant composite relationships remain enforced. Role pages use the same
+resolved tenant and stable membership/role order; only visible roots are
+hydrated, and late page errors suppress the entire projection. Original
+501-by-five and 51-by-five fixtures are retained; a literal 101-by-five case
+proves the new late-page failure boundary. An actual worker test proves own-only
+roles, foreign exclusion, the retained route denial and unchanged SQL rows.
+
+One complete targeted REQUIRED RLS/read-model pack passed **11/11, no failures
+or skips**, native 0, 16.510 seconds. Full local units passed **2,159 total /
+2,158 passed / zero failed / one existing Windows xattr skip**, native 0,
+10.181 seconds. The unchanged real pilot passed on the retained local stack:
+exact 120/24 membership profile, five primary roles and 40 secondary holders,
+five warmups/25 measured reads, **50 measured requests = two/read**. Admin
+projection p95 was **29.9952 ms** against 250 ms, and synthetic permission p95
+was **2.9717 ms** against 25 ms; all assessment violations were empty. The
+3,868.645 ms harness duration is not a production/full-page performance result.
+The report records dirty base `765ee0f3`; the inspected current source hash
+identifies the uncommitted query repair. These Epic 11 pilot results do not
+certify Epic 14's owner-pending representative performance obligations.
+
+Current production build passed natively. Post-pack SQL reports zero markers
+and three hooks. The database registration received an accepted Stop request,
+preserving saved state; verified shutdown is not asserted. See the
+[author handoff](epic14-admin-pilot-closeout-2026-10-08.md). Final author-trail
+review and fresh five-job CI remain pending before official completion.

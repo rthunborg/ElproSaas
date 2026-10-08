@@ -77,6 +77,8 @@ The database budget measures the retained Phase A `test:int` command plus the ex
 Author: Epic 11 pilot performance/CI-limit implementation author.
 Refreshed against the final uncommitted working tree on `codex/epic-11-pilot-operations` (base `dc83665`).
 
+Bounded query/fix-author refresh: `/root/kernel_fix`, `gpt-6.1-sol` High, 2026-10-08, over `765ee0f35ac02766dfb324d03f3a20adc40b5d58`. Original implementation attribution and evidence remain historical. This approved successor meets the unchanged three-request ceiling alongside ADR-B012's shared50-ID cap; frozen intent, thresholds, profile, budgets, status and prior history remain unchanged.
+
 ### Real tenant-scoped performance boundary
 
 The existing authenticated RLS workload remains the authority. It now seeds and asserts the exact two-tenant profile (including all 40 secondary-role members), assesses every approved local-pilot limit, records an ignored result before failing, and retains cleanup in `finally` so a regression cannot leak its disposable accounts.
@@ -88,6 +90,17 @@ The existing authenticated RLS workload remains the authority. It now seeds and 
 - `scripts/nfr/epic-11-r1108-baseline.ts:205` — `assessment`: assesses the measured p95 values and authenticated request count before writing the local result.
 - `scripts/nfr/epic-11-r1108-baseline.ts:262` — `Epic 11 pilot performance gate failed`: fails CI only after the private result is persisted.
 
+### Full tenant-role paging meets both existing contracts
+
+The complete Admin catalogue now pages its authenticated RLS child stream by resolved tenant instead of repeating50-ID URL batches. Stable membership_id/role ordering, visible-root Set intersection, scalar fallback/no-child-query for empty valid roots, and generic rows[] on every page error preserve its existing authority/output contract. The shared50-ID cap and pilot≤3request ceiling are both unchanged.
+
+- `src/features/admin-users/read-model.ts:47` — `visibleMembershipIds`: restricts role projection to visible root identities.
+- `src/features/admin-users/read-model.ts:57` — `eq("tenant_id", tenantId)`: retains explicit current-tenant child scope under RLS.
+- `src/features/admin-users/read-model.ts:61` — `pageResult.error`: refuses all partial authority after any page failure.
+- `tests/unit/admin-users/read-pagination.test.ts:141` — `101-root later child page failure`: proves later-page failure after500successful child rows.
+- `tests/unit/admin-users/read-pagination.test.ts:185` — `120-member 160-role pilot`: models the unchanged pilot in exactly two reads.
+- `tests/integration/rls/admin-users-current-tenant-counts.rls.test.ts:78` — `worker own-child RLS`: proves actual helper own-child/foreign isolation and retained route denial when executed.
+
 ### Execution-only CI budgets
 
 Unit and DB lanes use a terminating process-tree budget after installs and setup. The database lane retains `test:int` as the Phase A command and invokes the NFR probe directly in the same 300-second wrapper, avoiding a false claim that the new probe historically passed Phase A. Browser accounting runs inside Playwright and sums test attempts, leaving its configured production build and web-server bootstrap outside the approved browser ceiling.
@@ -96,7 +109,7 @@ Unit and DB lanes use a terminating process-tree budget after installs and setup
 - `scripts/verify/run-with-time-budget.mjs:70` — `runWithTimeBudget`: retains child exit failures and terminates an overrun with its descendants.
 - `.github/workflows/ci.yml:96` — `run-with-time-budget.mjs`: wraps the unit runner with its 180-second ceiling.
 - `.github/workflows/ci.yml:190` — `Integration, RLS, and Epic 11 pilot performance gates`: applies one 300-second database budget to the retained `test:int` gate and direct NFR probe.
-- `playwright.config.ts:37` — `ci-duration-budget-reporter.ts`: enables the five-minute test-attempt budget only in CI.
+- `playwright.config.ts:43` — `ci-duration-budget-reporter.ts`: enables the five-minute test-attempt budget only in CI.
 - `tests/e2e/ci-duration-budget-reporter.ts:25` — `onEnd`: converts an otherwise completed browser run to failure when accumulated attempts exceed the ceiling.
 
 ### Boundary evidence
@@ -111,3 +124,11 @@ The focused unit assertions cover equality, over-budget values, invalid metrics,
 Evidence: focused unit tests passed 12/12 and `pnpm typecheck` passed. The required local pilot probe ran with `SUPABASE_TEST_REQUIRED=1` and passed the exact 120/24 profile assertion, with Admin-users p95 45.98ms, synthetic p95 2.00ms, and 3 authenticated RLS requests/read.
 
 Evidence: the complete unit suite passed 1,778 tests / 0 failed / 0 skipped in 4.61s. Focused ESLint passed for every changed lintable TypeScript/JavaScript file. Full repository lint cannot traverse the BMAD render directory (`EPERM`). The local gate is not a production capacity, full-page, coverage, or duplication assertion.
+
+### Bounded successor author evidence — 2026-10-08
+
+Fresh `765ee0f35ac02766dfb324d03f3a20adc40b5d58` run37783736560 executes REQUIRED integration1477total/1476passed/0failed/1preservedskip in207.67s, then the unchanged pilot fails because4authenticated requests exceed3; the combined step took216.00s. The old query reads one membership page plus three50/50/20-ID child batches for120memberships. ADR-B012 approved shared50-ID reliability but no pilot threshold amendment; this successor therefore optimizes that complete tenant catalogue while retaining all existing contracts. Frozen AskFirst threshold rules are not bypassed and no threshold/fixture/latency/time budget is changed.
+
+Author focused pagination units pass10/0failed/0skipped,native0,202.5633ms; focused lint/typecheck/whitespace checks pass native0. Original501roots×5roles and51roots×5roles are preserved; the51fixture now tests first-child failure while a new literal101×5fixture proves actual later-page failure after500children. Exact500boundary, empty/invalid roots, absent-root children and full120/160projection in two modeled reads are covered. Source inspection verifies composite FK/forced RLS/unchanged route capability gate; actual runtime is separately attributed below. [This fix author's current evidence and verified stops](../../docs/quality/epic14-admin-pilot-closeout-2026-10-08.md) retain the failed pilot separately from passed integration and distinguish model/source/runtime evidence. No source service-role, grant, schema/cache/env, official completion, frozen intent/frontmatter/status or prior author/history change.
+
+Parent's current complete three-file REQUIRED RLS/read-model pack passes11total/11passed/0failed/0skipped,native0,16.510s, including actual worker own-role/other/foreign controls and the retained multi-tenant Admin proof. Whole units pass2159total/2158passed/0failed/1preserved Windows xattr skip,native0,10.181s. The unchanged live pilot passes native0: exact120/24/five evenly distributed primary roles/40secondary holders/160TenantA assignments asserted,5warmups/25measured reads,50total requests=2/read (25membership+25role pages), Admin p9529.9952ms≤250/synthetic p952.9717ms≤25, violations[]. Harness3868.645ms is separate from projection latency. Author read-only inspection of `admin-pilot-current.json` confirms dirty working-tree base765ee0f35ac02766dfb324d03f3a20adc40b5d58; source/unit/RLS hashes and separately attributed High no-findings source review are retained in the linked author record. Post-pack SQL reports0editor markers/3hooks. Parent's final production build passes native0 (`build-admin-pilot-final.log`); after consumers finished, the parent-owned guard Stop was accepted as stop_requested/verifiedfalse with saved state preserved, without claiming verified shutdown. This is local retained-stack projection evidence, not reset/hosted/full-page/production-capacity or broader Epic14 performance acceptance. Final author-trail review/fresh five-job CI remain pending; no skipped case is coverage and the earlier765pilot4>3failure remains preserved. This author ran no runtime/resource/Git/state operation.
