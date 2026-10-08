@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/19-1-widget-registry-and-dashboard-framework
 status: in-progress
-updated_at: "2026-10-07T20:04:30Z"
+updated_at: "2026-10-08T09:47:25Z"
 started_at: "2026-10-07T14:07:05Z"
 completed_at: null
-active_seconds: 8486
-timing_anchor: 1791403470
+active_seconds: 9728
+timing_anchor: 1791452844
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
@@ -39,19 +39,19 @@ tea_selected: [atdd, automate]
 tea_rationale: Required capability and quote-amount entitlement gates are authorization-sensitive
 epic_story_count: 2
 stories_after_in_epic: 1
-completed_phases: [0, 1, 2, 3, 4, 5, 6]
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7, 8]
 spec_path: "C:/Users/Rasmus/.codex/worktrees/story19-1-dashboard/ElproSaas/_bmad-output/implementation-artifacts/spec-19-1-dashboard-framework-and-quote-pipeline.md"
 spec_approved: true
 build:
   status: done
   blocking_condition: null
-  followup_review_recommended: true
+  followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
   warnings: []
-followup_passes: 0
-hitl_halt: null
-review_unverified: true
+followup_passes: 1
+hitl_halt: continued
+review_unverified: false
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -59,7 +59,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [e0fb33c5, 659139d4, a97c11bf, b8ccf157, 357d1db0, 798f1f60, 39b299c1]
+commits: [e0fb33c5, 659139d4, a97c11bf, b8ccf157, 357d1db0, 798f1f60, 39b299c1, 0ceb02be, 27a21dad, 7ee80eed, 7954ff48]
 phase8_steps:
   trace_gate: null
   nfr: null
