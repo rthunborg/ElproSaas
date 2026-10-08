@@ -9,9 +9,9 @@
   "approved": false,
   "preparation_intent_approved": true,
   "implementation_authorized": false,
-  "branch": "codex/story20-1-documents-preparation",
+  "branch": "codex/documents-backlog-registration",
   "worktree": "C:\\Users\\Rasmus\\.codex\\worktrees\\dbe6\\ElproSaas",
-  "base_sha": "ab1ca0445b58f5f496be0d938906c744b6dff87e",
+  "base_sha": "8a7debbee83c9a4f6eb8ec4496ba2f7ad7db4b4b",
   "workflow_version": "d061782354238883c72fc96d0c9affe418a505f7f414459826a4335161c222e1",
   "spec_path": "_bmad-output/implementation-artifacts/spec-20-1-documents-activation-and-source-authorized-aggregation.md",
   "spec_revision": "7e475bfd42adc41e61fc4ccba5f399a7816025fdf37ad89d12d299c1aba489ab",
@@ -92,7 +92,7 @@
       "epic": "E14",
       "stories": [],
       "worktree_hint": "b3cc; retained epic14-scheduling",
-      "reason": "PR86 active fixing; idle chat state is not release evidence",
+      "reason": "Historical reservation; coordinator reports upstream PR merged. Exact shared ownership and released writer reservations still require fresh reconciliation.",
       "conflict_domains": [
         "scheduling",
         "person",
@@ -100,7 +100,8 @@
         "auth:permission-matrix",
         "apis:shared",
         "tests:shared-fixtures"
-      ]
+      ],
+      "historical_reason": "PR86 active fixing; idle chat state is not release evidence"
     },
     {
       "epic": "E19",
@@ -108,7 +109,7 @@
         "19.1"
       ],
       "worktree_hint": "story19-1-dashboard",
-      "reason": "PR87 finishing; Next audit CI blocker, unmerged work unavailable as prerequisite",
+      "reason": "Historical reservation; coordinator reports upstream PR merged. Exact shared ownership and released writer reservations still require fresh reconciliation.",
       "conflict_domains": [
         "dashboard",
         "widget-registry",
@@ -118,18 +119,20 @@
         "NotificationBell",
         "CI",
         "tests:shared-fixtures"
-      ]
+      ],
+      "historical_reason": "PR87 finishing; Next audit CI blocker, unmerged work unavailable as prerequisite"
     },
     {
       "epic": "security-repair",
       "stories": [],
       "session": "01a11aeb-9946-7af3-b2ee-865c34db6c24",
       "worktree_hint": "9cd1",
-      "reason": "Sole Next/package/lock writer per coordinator steering",
+      "reason": "Historical reservation; coordinator reports upstream PR merged. Exact shared ownership and released writer reservations still require fresh reconciliation.",
       "conflict_domains": [
         "dependencies:next",
         "dependencies:package-lockfiles"
-      ]
+      ],
+      "historical_reason": "Sole Next/package/lock writer per coordinator steering"
     }
   ],
   "required_checks": [
@@ -156,8 +159,10 @@
     },
     {
       "name": "canonical-resolution",
-      "result": "blocked",
-      "evidence": "Root story_plan --resolve20.1 returned story-not-found; integrated epics only candidate"
+      "result": "passed-locally",
+      "evidence": "Actual helper resolves all three authorized keys/titles as backlog; E20 count 3; 20.1 first=true last=false after=2. Registration PR unmerged.",
+      "historical_result": "blocked",
+      "historical_evidence": "Root story_plan --resolve20.1 returned story-not-found; integrated epics only candidate"
     },
     {
       "name": "gh-auth",
@@ -191,7 +196,7 @@
     }
   ],
   "remaining_gates": [
-    "Coordinator-serialized canonical sprint registration and exact ID resolution",
+    "Canonical registration PR merge; local exact ID/title resolution passed, readiness remains blocked",
     "Live Lovable terminology/minimal interactions evidence or explicit authorized oracle disposition",
     "Early E20 checkpoint closure on reviewed revision",
     "Verified exact write_paths and shared reservations reconciled",
@@ -203,7 +208,7 @@
   ],
   "parallel_helper_plan": {
     "executed": false,
-    "reason": "No approved canonical registered ready-for-dev spec; emitting helper-valid plan would invent prerequisites. This document deliberately is not the helper plan schema."
+    "reason": "Canonical backlog registration resolves locally; no approved ready-for-dev spec or closed admission gates. No executable plan emitted."
   },
   "product_implementation_performed": false,
   "managed_resources_started": false,
@@ -222,19 +227,28 @@
     "evidence_path": "_bmad-output/auto-bmad/preparation/story-20-1/owner-boundary-decision-2026-10-08.md"
   },
   "canonical_registration": {
-    "status": "prepared-not-applied",
+    "status": "applied-locally-not-merged",
     "coordinator_serialization_required": true,
     "patch_path": "_bmad-output/auto-bmad/preparation/story-20-1/registration.patch",
     "evidence_path": "_bmad-output/auto-bmad/preparation/story-20-1/registration.json",
     "stories_to_register": 3,
-    "actual_registry_lookup": "blocked",
-    "prospective_first_is_last": false
+    "actual_registry_lookup": "resolved",
+    "prospective_first_is_last": false,
+    "registration_pr_merged": false,
+    "actual_evidence_path": "_bmad-output/auto-bmad/preparation/story-20-1/registration.json",
+    "first_is_last": false,
+    "epic_story_count": 3
   },
   "latest_integrated_base_observation": {
-    "sha": "23c48b34c8a6c9158eeaf0edfca74e628d575cbc",
-    "security_pr": 89,
-    "verified": "git fetch origin main",
-    "not_yet_integrated_into_preparation": true
+    "sha": "8a7debbee83c9a4f6eb8ec4496ba2f7ad7db4b4b",
+    "coordinator_verified_pr_merges": {
+      "86": "8a7debbe",
+      "87": "7db3ded1",
+      "88": "7da9e8f3",
+      "89": "23c48b34"
+    },
+    "not_yet_integrated_into_preparation": false,
+    "fresh_contract_validation_complete": false
   },
   "preparation_delivery": {
     "status": "complete",
@@ -243,6 +257,316 @@
     "merge_authority": "coordinator only after exact-head CI and preparation review gates",
     "handoff_path": "_bmad-output/auto-bmad/preparation/story-20-1/preparation-merge-handoff.md",
     "oracle_waived": false,
-    "registration_applied": false
+    "registration_applied": true
+  },
+  "preparation_history": {
+    "branch": "codex/story20-1-documents-preparation",
+    "base_sha": "ab1ca0445b58f5f496be0d938906c744b6dff87e",
+    "canonical_registration": {
+      "status": "prepared-not-applied",
+      "coordinator_serialization_required": true,
+      "patch_path": "_bmad-output/auto-bmad/preparation/story-20-1/registration.patch",
+      "evidence_path": "_bmad-output/auto-bmad/preparation/story-20-1/registration.json",
+      "stories_to_register": 3,
+      "actual_registry_lookup": "blocked",
+      "prospective_first_is_last": false
+    },
+    "latest_integrated_base_observation": {
+      "sha": "23c48b34c8a6c9158eeaf0edfca74e628d575cbc",
+      "security_pr": 89,
+      "verified": "git fetch origin main",
+      "not_yet_integrated_into_preparation": true
+    }
+  },
+  "canonical_registration_followup": {
+    "branch": "codex/documents-backlog-registration",
+    "base_sha": "8a7debbee83c9a4f6eb8ec4496ba2f7ad7db4b4b",
+    "registration_applied_locally": true,
+    "registration_pr_merged": false,
+    "actual_resolutions": [
+      {
+        "ref": "20.1",
+        "story_key": "20-1-documents-activation-and-source-authorized-aggregation",
+        "epic_num": 20,
+        "story_num": 1,
+        "story_suffix": "",
+        "slug": "documents-activation-and-source-authorized-aggregation",
+        "current_status": "backlog",
+        "epic_status": "backlog",
+        "epic_story_count": 3,
+        "is_first_in_epic": true,
+        "is_last_in_epic": false,
+        "stories_after_in_epic": 2,
+        "retrospective_status": "optional",
+        "title": "Documents activation, source-authorized aggregation and minimal destination",
+        "epic_title": "[Wave B2]: Documents Center",
+        "candidates": [],
+        "hard_stop": false,
+        "hard_stop_reason": null,
+        "error": null
+      },
+      {
+        "ref": "20.2",
+        "story_key": "20-2-search-filters-preview-and-archive-restore",
+        "epic_num": 20,
+        "story_num": 2,
+        "story_suffix": "",
+        "slug": "search-filters-preview-and-archive-restore",
+        "current_status": "backlog",
+        "epic_status": "backlog",
+        "epic_story_count": 3,
+        "is_first_in_epic": false,
+        "is_last_in_epic": false,
+        "stories_after_in_epic": 1,
+        "retrospective_status": "optional",
+        "title": "Search, filters, preview and archive/restore",
+        "epic_title": "[Wave B2]: Documents Center",
+        "candidates": [],
+        "hard_stop": false,
+        "hard_stop_reason": null,
+        "error": null
+      },
+      {
+        "ref": "20.3",
+        "story_key": "20-3-entity-panel-links-and-contextual-navigation",
+        "epic_num": 20,
+        "story_num": 3,
+        "story_suffix": "",
+        "slug": "entity-panel-links-and-contextual-navigation",
+        "current_status": "backlog",
+        "epic_status": "backlog",
+        "epic_story_count": 3,
+        "is_first_in_epic": false,
+        "is_last_in_epic": true,
+        "stories_after_in_epic": 0,
+        "retrospective_status": "optional",
+        "title": "Entity-panel links and contextual navigation",
+        "epic_title": "[Wave B2]: Documents Center",
+        "candidates": [],
+        "hard_stop": false,
+        "hard_stop_reason": null,
+        "error": null
+      }
+    ],
+    "actual_epic": {
+      "epic_num": 20,
+      "epic_status": "backlog",
+      "epic_title": "[Wave B2]: Documents Center",
+      "epic_story_count": 3,
+      "epic_stories": [
+        {
+          "key": "20-1-documents-activation-and-source-authorized-aggregation",
+          "story_num": 1,
+          "story_suffix": "",
+          "slug": "documents-activation-and-source-authorized-aggregation",
+          "status": "backlog",
+          "title": "Documents activation, source-authorized aggregation and minimal destination",
+          "is_first_in_epic": true,
+          "is_last_in_epic": false,
+          "stories_after_in_epic": 2
+        },
+        {
+          "key": "20-2-search-filters-preview-and-archive-restore",
+          "story_num": 2,
+          "story_suffix": "",
+          "slug": "search-filters-preview-and-archive-restore",
+          "status": "backlog",
+          "title": "Search, filters, preview and archive/restore",
+          "is_first_in_epic": false,
+          "is_last_in_epic": false,
+          "stories_after_in_epic": 1
+        },
+        {
+          "key": "20-3-entity-panel-links-and-contextual-navigation",
+          "story_num": 3,
+          "story_suffix": "",
+          "slug": "entity-panel-links-and-contextual-navigation",
+          "status": "backlog",
+          "title": "Entity-panel links and contextual navigation",
+          "is_first_in_epic": false,
+          "is_last_in_epic": true,
+          "stories_after_in_epic": 0
+        }
+      ],
+      "retrospective_status": "optional",
+      "hard_stop": false,
+      "hard_stop_reason": null,
+      "error": null
+    },
+    "preserved_done_stories": {
+      "14.1": {
+        "ref": "14.1",
+        "story_key": "14-1-scheduling-activation-person-profiles-and-work-hours",
+        "epic_num": 14,
+        "story_num": 1,
+        "story_suffix": "",
+        "slug": "scheduling-activation-person-profiles-and-work-hours",
+        "current_status": "done",
+        "epic_status": "done",
+        "epic_story_count": 4,
+        "is_first_in_epic": true,
+        "is_last_in_epic": false,
+        "stories_after_in_epic": 3,
+        "retrospective_status": "done",
+        "title": "Scheduling Activation — Person Profiles and Work Hours",
+        "epic_title": "[Wave B1b]: Resource and Scheduling Foundation",
+        "candidates": [],
+        "hard_stop": false,
+        "hard_stop_reason": null,
+        "error": null
+      },
+      "14.2": {
+        "ref": "14.2",
+        "story_key": "14-2-bookings-and-assignees-schema-and-transactional-commands",
+        "epic_num": 14,
+        "story_num": 2,
+        "story_suffix": "",
+        "slug": "bookings-and-assignees-schema-and-transactional-commands",
+        "current_status": "done",
+        "epic_status": "done",
+        "epic_story_count": 4,
+        "is_first_in_epic": false,
+        "is_last_in_epic": false,
+        "stories_after_in_epic": 2,
+        "retrospective_status": "done",
+        "title": "Bookings and Assignees — Schema and Transactional Commands",
+        "epic_title": "[Wave B1b]: Resource and Scheduling Foundation",
+        "candidates": [],
+        "hard_stop": false,
+        "hard_stop_reason": null,
+        "error": null
+      },
+      "14.3": {
+        "ref": "14.3",
+        "story_key": "14-3-deterministic-conflict-engine-detection-core",
+        "epic_num": 14,
+        "story_num": 3,
+        "story_suffix": "",
+        "slug": "deterministic-conflict-engine-detection-core",
+        "current_status": "done",
+        "epic_status": "done",
+        "epic_story_count": 4,
+        "is_first_in_epic": false,
+        "is_last_in_epic": false,
+        "stories_after_in_epic": 1,
+        "retrospective_status": "done",
+        "title": "Deterministic Conflict Engine (Detection Core)",
+        "epic_title": "[Wave B1b]: Resource and Scheduling Foundation",
+        "candidates": [],
+        "hard_stop": false,
+        "hard_stop_reason": null,
+        "error": null
+      },
+      "14.4": {
+        "ref": "14.4",
+        "story_key": "14-4-booking-editor-with-live-conflict-warnings-and-audited-override",
+        "epic_num": 14,
+        "story_num": 4,
+        "story_suffix": "",
+        "slug": "booking-editor-with-live-conflict-warnings-and-audited-override",
+        "current_status": "done",
+        "epic_status": "done",
+        "epic_story_count": 4,
+        "is_first_in_epic": false,
+        "is_last_in_epic": true,
+        "stories_after_in_epic": 0,
+        "retrospective_status": "done",
+        "title": "Booking Editor with Live Conflict Warnings and Audited Override",
+        "epic_title": "[Wave B1b]: Resource and Scheduling Foundation",
+        "candidates": [],
+        "hard_stop": false,
+        "hard_stop_reason": null,
+        "error": null
+      },
+      "19.1": {
+        "ref": "19.1",
+        "story_key": "19-1-widget-registry-and-dashboard-framework",
+        "epic_num": 19,
+        "story_num": 1,
+        "story_suffix": "",
+        "slug": "widget-registry-and-dashboard-framework",
+        "current_status": "done",
+        "epic_status": "in-progress",
+        "epic_story_count": 2,
+        "is_first_in_epic": true,
+        "is_last_in_epic": false,
+        "stories_after_in_epic": 1,
+        "retrospective_status": "optional",
+        "title": "Widget Registry, Dashboard Framework, and Live Quote Pipeline",
+        "epic_title": "[Wave B1b]: Operational Dashboard v1",
+        "candidates": [],
+        "hard_stop": false,
+        "hard_stop_reason": null,
+        "error": null
+      }
+    },
+    "preserved_epic14": {
+      "epic_num": 14,
+      "epic_status": "done",
+      "epic_title": "[Wave B1b]: Resource and Scheduling Foundation",
+      "epic_story_count": 4,
+      "epic_stories": [
+        {
+          "key": "14-1-scheduling-activation-person-profiles-and-work-hours",
+          "story_num": 1,
+          "story_suffix": "",
+          "slug": "scheduling-activation-person-profiles-and-work-hours",
+          "status": "done",
+          "title": "Scheduling Activation — Person Profiles and Work Hours",
+          "is_first_in_epic": true,
+          "is_last_in_epic": false,
+          "stories_after_in_epic": 3
+        },
+        {
+          "key": "14-2-bookings-and-assignees-schema-and-transactional-commands",
+          "story_num": 2,
+          "story_suffix": "",
+          "slug": "bookings-and-assignees-schema-and-transactional-commands",
+          "status": "done",
+          "title": "Bookings and Assignees — Schema and Transactional Commands",
+          "is_first_in_epic": false,
+          "is_last_in_epic": false,
+          "stories_after_in_epic": 2
+        },
+        {
+          "key": "14-3-deterministic-conflict-engine-detection-core",
+          "story_num": 3,
+          "story_suffix": "",
+          "slug": "deterministic-conflict-engine-detection-core",
+          "status": "done",
+          "title": "Deterministic Conflict Engine (Detection Core)",
+          "is_first_in_epic": false,
+          "is_last_in_epic": false,
+          "stories_after_in_epic": 1
+        },
+        {
+          "key": "14-4-booking-editor-with-live-conflict-warnings-and-audited-override",
+          "story_num": 4,
+          "story_suffix": "",
+          "slug": "booking-editor-with-live-conflict-warnings-and-audited-override",
+          "status": "done",
+          "title": "Booking Editor with Live Conflict Warnings and Audited Override",
+          "is_first_in_epic": false,
+          "is_last_in_epic": true,
+          "stories_after_in_epic": 0
+        }
+      ],
+      "retrospective_status": "done",
+      "hard_stop": true,
+      "hard_stop_reason": "epic 14 is marked done",
+      "error": null
+    },
+    "spec_sha256_lf": "7e475bfd42adc41e61fc4ccba5f399a7816025fdf37ad89d12d299c1aba489ab",
+    "source": "actual canonical files; helper exit zero"
+  },
+  "mechanical_registration_review": {
+    "status": "passed",
+    "reviewer": "/root/registration_audit",
+    "model": "gpt-6.1-sol",
+    "effort": "low",
+    "report_path": "docs/quality/story-20-1-backlog-registration-review-2026-10-08.md",
+    "spec_unchanged": true,
+    "implementation_admission": "blocked",
+    "merge_authority": "coordinator after exact-head required CI"
   }
 }
