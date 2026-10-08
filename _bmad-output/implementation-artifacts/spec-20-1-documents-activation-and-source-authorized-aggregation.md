@@ -7,7 +7,7 @@ followup_review_recommended: false
 warnings: [oversized]
 deferred: []
 story_id: "20.1"
-canonical_story_key: null
+canonical_story_key: "20-1-documents-activation-and-source-authorized-aggregation"
 epic: E20
 title: Documents activation, source-authorized aggregation and minimal destination
 base_sha: ab1ca0445b58f5f496be0d938906c744b6dff87e

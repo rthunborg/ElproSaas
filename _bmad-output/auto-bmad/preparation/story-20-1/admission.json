@@ -4,7 +4,7 @@
   "executable_parallel_plan": false,
   "status": "blocked",
   "story_id": "20.1",
-  "canonical_story_key": null,
+  "canonical_story_key": "20-1-documents-activation-and-source-authorized-aggregation",
   "epic": "E20",
   "approved": false,
   "preparation_intent_approved": true,
@@ -14,7 +14,7 @@
   "base_sha": "ab1ca0445b58f5f496be0d938906c744b6dff87e",
   "workflow_version": "d061782354238883c72fc96d0c9affe418a505f7f414459826a4335161c222e1",
   "spec_path": "_bmad-output/implementation-artifacts/spec-20-1-documents-activation-and-source-authorized-aggregation.md",
-  "spec_revision": "6e52edf490164f36e01a289d71880e163175541b5d990471634b6303b69940fa",
+  "spec_revision": "7e475bfd42adc41e61fc4ccba5f399a7816025fdf37ad89d12d299c1aba489ab",
   "author": {
     "identity": "/root/documents_spec",
     "agent_id": "01a11ae9-d2ac-7492-830b-edcc13c16b1b",
@@ -30,10 +30,10 @@
     "agent_id": "01a11af1-1be3-7110-9fea-57b6b85f03fe",
     "model": "gpt-6.1-sol",
     "effort": "high",
-    "spec_revision": "6e52edf490164f36e01a289d71880e163175541b5d990471634b6303b69940fa",
+    "spec_revision": "7e475bfd42adc41e61fc4ccba5f399a7816025fdf37ad89d12d299c1aba489ab",
     "audit_path": "docs/quality/story-20-1-preparation-audit-2026-10-08.md",
     "additional_material_design_defects": 0,
-    "followup_scope": "Owner-approved option A amendment and bounded consistency fixes; no broad review"
+    "followup_scope": "Targeted owner-option-A amendment and metadata-only canonical registration artifact; source authorization contract unchanged by registration"
   },
   "boundary_choice": "A",
   "recommended_boundary_choice": "A-with-explicit-owner-acceptance",
@@ -211,5 +211,14 @@
       "deployment"
     ],
     "evidence_path": "_bmad-output/auto-bmad/preparation/story-20-1/owner-boundary-decision-2026-10-08.md"
+  },
+  "canonical_registration": {
+    "status": "prepared-not-applied",
+    "coordinator_serialization_required": true,
+    "patch_path": "_bmad-output/auto-bmad/preparation/story-20-1/registration.patch",
+    "evidence_path": "_bmad-output/auto-bmad/preparation/story-20-1/registration.json",
+    "stories_to_register": 3,
+    "actual_registry_lookup": "blocked",
+    "prospective_first_is_last": false
   }
 }

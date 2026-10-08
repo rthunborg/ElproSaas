@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "disposition": "prospective-registration-only",
+  "target": "_bmad-output/implementation-artifacts/sprint-status.yaml",
+  "expected_base_git_blob_sha1_lf": "68d4a3d72f2d3782af36ee5d90e3193fcf4b1ed5",
+  "expected_base_git_blob_sha1_bytes": "f31cd52eefc30e164fda9841fd9cca775ef62a64",
+  "expected_base_sha256_bytes": "b958873191ec614d92ef7f09ffb4a066a48b293e807bfb75436938d768e86f35",
+  "stories": [
+    {
+      "id": "20.1",
+      "title": "Documents activation, source-authorized aggregation and minimal destination",
+      "key": "20-1-documents-activation-and-source-authorized-aggregation",
+      "status": "backlog"
+    },
+    {
+      "id": "20.2",
+      "title": "Search, filters, preview and archive/restore",
+      "key": "20-2-search-filters-preview-and-archive-restore",
+      "status": "backlog"
+    },
+    {
+      "id": "20.3",
+      "title": "Entity-panel links and contextual navigation",
+      "key": "20-3-entity-panel-links-and-contextual-navigation",
+      "status": "backlog"
+    }
+  ],
+  "spec_metadata_delta": {
+    "canonical_story_key": {
+      "before": null,
+      "after": "20-1-documents-activation-and-source-authorized-aggregation"
+    }
+  },
+  "spec_sha256_lf": "7e475bfd42adc41e61fc4ccba5f399a7816025fdf37ad89d12d299c1aba489ab",
+  "status": "blocked",
+  "implementation_authorized": false,
+  "evidence": {
+    "actual_canonical_lookup": {
+      "exit_code": 1,
+      "output": {
+        "ref": "20.1",
+        "story_key": null,
+        "epic_num": null,
+        "story_num": null,
+        "story_suffix": null,
+        "slug": null,
+        "current_status": null,
+        "epic_status": null,
+        "epic_story_count": null,
+        "is_first_in_epic": null,
+        "is_last_in_epic": null,
+        "stories_after_in_epic": null,
+        "retrospective_status": null,
+        "title": null,
+        "epic_title": null,
+        "candidates": [],
+        "hard_stop": true,
+        "hard_stop_reason": "story '20.1' not found in sprint-status",
+        "error": "story '20.1' not found in sprint-status"
+      },
+      "stderr": ""
+    },
+    "prospective_temporary_lookup": {
+      "exit_code": 0,
+      "output": {
+        "ref": "20.1",
+        "story_key": "20-1-documents-activation-and-source-authorized-aggregation",
+        "epic_num": 20,
+        "story_num": 1,
+        "story_suffix": "",
+        "slug": "documents-activation-and-source-authorized-aggregation",
+        "current_status": "backlog",
+        "epic_status": "backlog",
+        "epic_story_count": 3,
+        "is_first_in_epic": true,
+        "is_last_in_epic": false,
+        "stories_after_in_epic": 2,
+        "retrospective_status": "optional",
+        "title": null,
+        "epic_title": null,
+        "candidates": [],
+        "hard_stop": false,
+        "hard_stop_reason": null,
+        "error": null
+      },
+      "stderr": ""
+    },
+    "prospective_temporary_epic": {
+      "exit_code": 0,
+      "output": {
+        "epic_num": 20,
+        "epic_status": "backlog",
+        "epic_title": null,
+        "epic_story_count": 3,
+        "epic_stories": [
+          {
+            "key": "20-1-documents-activation-and-source-authorized-aggregation",
+            "story_num": 1,
+            "story_suffix": "",
+            "slug": "documents-activation-and-source-authorized-aggregation",
+            "status": "backlog",
+            "title": null,
+            "is_first_in_epic": true,
+            "is_last_in_epic": false,
+            "stories_after_in_epic": 2
+          },
+          {
+            "key": "20-2-search-filters-preview-and-archive-restore",
+            "story_num": 2,
+            "story_suffix": "",
+            "slug": "search-filters-preview-and-archive-restore",
+            "status": "backlog",
+            "title": null,
+            "is_first_in_epic": false,
+            "is_last_in_epic": false,
+            "stories_after_in_epic": 1
+          },
+          {
+            "key": "20-3-entity-panel-links-and-contextual-navigation",
+            "story_num": 3,
+            "story_suffix": "",
+            "slug": "entity-panel-links-and-contextual-navigation",
+            "status": "backlog",
+            "title": null,
+            "is_first_in_epic": false,
+            "is_last_in_epic": true,
+            "stories_after_in_epic": 0
+          }
+        ],
+        "retrospective_status": "optional",
+        "hard_stop": false,
+        "hard_stop_reason": null,
+        "error": null
+      },
+      "stderr": ""
+    },
+    "patch_reconstruction": "passed",
+    "canonical_sprint_unchanged": true
+  }
+}
