@@ -92,6 +92,19 @@
       "agent_identity": "/root/documents_audit",
       "escalation_reason": "Preserve prior sensitive spec contract while verifying metadata-only registration binding",
       "recorded_after_dispatch": false
+    },
+    {
+      "phase": "bounded-oracle-access-recheck",
+      "role": "oracle_recheck",
+      "profile": "standard",
+      "model": "gpt-6.1-sol",
+      "effort": "low",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/oracle_recheck",
+      "escalation_reason": "",
+      "recorded_after_dispatch": false
     }
   ],
   "reservations": [
@@ -136,5 +149,12 @@
       ],
       "release_verified": false
     }
-  ]
+  ],
+  "later_integrated_baseline": {
+    "sha": "23c48b34c8a6c9158eeaf0edfca74e628d575cbc",
+    "verified": "git fetch origin main and git log",
+    "security_pr": 89,
+    "preparation_branch_rebased": false,
+    "integration_before_implementation_required": true
+  }
 }

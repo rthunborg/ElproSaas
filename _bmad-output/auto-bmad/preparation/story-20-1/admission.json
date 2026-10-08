@@ -179,6 +179,15 @@
       "failed_step": "Audit dependencies (blocking, high severity)",
       "evidence": "GitHub Actions job API; full log access returned403",
       "repair_scope": "reserved separate Next dependency repair lane"
+    },
+    {
+      "name": "bounded-oracle-access-recheck",
+      "result": "blocked",
+      "evidence_path": "_bmad-output/auto-bmad/preparation/story-20-1/oracle-access-recheck-2026-10-08.md",
+      "observations": 0,
+      "browser_inventory_succeeded": true,
+      "missing_prerequisite": "Authorized Lovable URL or accessible existing Lovable tab/session",
+      "spec_changed": false
     }
   ],
   "remaining_gates": [
@@ -220,5 +229,11 @@
     "stories_to_register": 3,
     "actual_registry_lookup": "blocked",
     "prospective_first_is_last": false
+  },
+  "latest_integrated_base_observation": {
+    "sha": "23c48b34c8a6c9158eeaf0edfca74e628d575cbc",
+    "security_pr": 89,
+    "verified": "git fetch origin main",
+    "not_yet_integrated_into_preparation": true
   }
 }
