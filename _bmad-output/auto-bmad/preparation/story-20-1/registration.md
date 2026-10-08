@@ -1,10 +1,13 @@
-# Current registration follow-up (2026-10-08)
+# Current integrated registration (2026-10-08)
 
-The coordinator applied the reviewed three-row patch on `codex/documents-backlog-registration`, based on integrated main `8a7debbee83c9a4f6eb8ec4496ba2f7ad7db4b4b`. The registration PR is not merged. All three actual canonical lookups now resolve the authorized keys and titles as backlog. E20 has three stories; 20.1 is first=true, last=false, stories_after=2. Epic14 and 14.1–14.4 plus 19.1 remain done. Actual evidence is recorded separately in registration.json under actual_registration_followup.
+PR90 merged the three-story E20 backlog registration at `42f5cf60d1ded6d814c2c0f61b70b312144ce10e`. Registration is applied and integrated. The current contract-design preparation branch is `codex/documents-selected-link-contract-preparation`, based on that merge.
 
-A minimal epics title/key amendment supplies parser-readable headings for the existing three slots; existing scope and checkpoint gates remain. The spec hash is unchanged. Registration resolves the local lookup gate only; status remains blocked and approval, implementation authorization and executable-plan flags remain false. Registration PR merge, oracle disposition, checked-contract review, checkpoint closure, exact ownership and fresh integrated-base validation remain open. The patch and original failed/prospective checks below are historical evidence and must not be applied twice.
+Actual canonical enumeration confirms all three authorized E20 keys/titles remain backlog, count three, and 20.1 first=true, last=false, stories_after=2. The local registration gate is resolved. This does not promote readiness or authorize implementation. Current spec/review pins and remaining admission gates are maintained in admission.json and the coordinator's records.
+
+registration.patch and the original lookup/prospective/local evidence are historical records and must not be applied again. The historical LF spec pin `7e475bfd42adc41e61fc4ccba5f399a7816025fdf37ad89d12d299c1aba489ab` identifies the registration revision only; it does not assert the current contract-preparation pin.
 
 ---
+
 
 # Historical preparation record (before coordinator application)
 

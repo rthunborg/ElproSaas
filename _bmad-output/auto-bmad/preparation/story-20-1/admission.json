@@ -9,12 +9,12 @@
   "approved": false,
   "preparation_intent_approved": true,
   "implementation_authorized": false,
-  "branch": "codex/documents-backlog-registration",
+  "branch": "codex/documents-selected-link-contract-preparation",
   "worktree": "C:\\Users\\Rasmus\\.codex\\worktrees\\dbe6\\ElproSaas",
-  "base_sha": "8a7debbee83c9a4f6eb8ec4496ba2f7ad7db4b4b",
+  "base_sha": "42f5cf60d1ded6d814c2c0f61b70b312144ce10e",
   "workflow_version": "d061782354238883c72fc96d0c9affe418a505f7f414459826a4335161c222e1",
   "spec_path": "_bmad-output/implementation-artifacts/spec-20-1-documents-activation-and-source-authorized-aggregation.md",
-  "spec_revision": "7e475bfd42adc41e61fc4ccba5f399a7816025fdf37ad89d12d299c1aba489ab",
+  "spec_revision": "ad9ae965b3cadbe5def211a7e1adc2e2bd77ceab81986930444b05844f96bef0",
   "author": {
     "identity": "/root/documents_spec",
     "agent_id": "01a11ae9-d2ac-7492-830b-edcc13c16b1b",
@@ -24,16 +24,16 @@
   },
   "independent_review": {
     "approved": false,
-    "status": "reviewed-blocked",
+    "status": "reviewed-design-only",
     "preparation_review_complete": true,
     "reviewer": "/root/documents_audit",
     "agent_id": "01a11af1-1be3-7110-9fea-57b6b85f03fe",
     "model": "gpt-6.1-sol",
     "effort": "high",
-    "spec_revision": "7e475bfd42adc41e61fc4ccba5f399a7816025fdf37ad89d12d299c1aba489ab",
-    "audit_path": "docs/quality/story-20-1-preparation-audit-2026-10-08.md",
+    "spec_revision": "ad9ae965b3cadbe5def211a7e1adc2e2bd77ceab81986930444b05844f96bef0",
+    "audit_path": "docs/quality/story-20-1-selected-link-contract-review-2026-10-08.md",
     "additional_material_design_defects": 0,
-    "followup_scope": "Targeted owner-option-A amendment and metadata-only canonical registration artifact; source authorization contract unchanged by registration"
+    "followup_scope": "New selected-link design delta and two corrected race/artifact classification findings; prior design history retained in prior audit"
   },
   "boundary_choice": "A",
   "recommended_boundary_choice": "A-with-explicit-owner-acceptance",
@@ -65,11 +65,17 @@
     "tests/integration/rls/documents.rls.test.ts",
     "tests/integration/commands/documents-signed-access.int.test.ts",
     "tests/e2e/files/documents.e2e.spec.ts",
-    "src/components/app-shell/nav-items.ts"
+    "src/components/app-shell/nav-items.ts",
+    "src/server/commands/documents/db.ts",
+    "src/server/storage/document-signed-access-attestation.ts",
+    "src/server/commands/envelope.ts",
+    "tests/unit/server/storage/document-signed-access-attestation.test.ts",
+    "tests/unit/server/commands/documents-signed-access.test.ts",
+    "tests/integration/commands/documents-signed-access-lock-races.int.test.ts"
   ],
   "unresolved_write_paths": [
-    "exact additive checked-authority migration/wrapper paths under chosen option",
-    "any required signer/attestation/shared fixture paths; never entire directories by inference"
+    "Physical CLI migration timestamp/path must be allocated and pinned before claims; logical basename is fixed",
+    "Final write-path admission must include the reviewed contract paths and preserve read-only generic signer/quote broker references"
   ],
   "conflict_domains": [
     "registry:scope-manifest",
@@ -147,7 +153,9 @@
     "service-role-containment",
     "bundle-containment",
     "lockfiles",
-    "documents-baseline-storage-boundary"
+    "documents-baseline-storage-boundary",
+    "documents-selected-link-unit",
+    "documents-selected-link-lock-races-integration"
   ],
   "checks": [
     {
@@ -196,15 +204,14 @@
     }
   ],
   "remaining_gates": [
-    "Canonical registration PR merge; local exact ID/title resolution passed, readiness remains blocked",
-    "Live Lovable terminology/minimal interactions evidence or explicit authorized oracle disposition",
-    "Early E20 checkpoint closure on reviewed revision",
-    "Verified exact write_paths and shared reservations reconciled",
-    "Fresh accepted integrated base and upstream contracts checked before implementation",
-    "Read-only helper plan only after approved canonical ready spec; no init/claim",
-    "Implementation evidence against exact result and combined integration revision",
-    "Full E20 stories20.2/20.3 and retained epic/wave gates remain coordinator-owned",
-    "Any post-owner-decision spec revision must receive independent High review and a new LF-normalized pin before ready-for-dev admission"
+    "Authorized Lovable URL/tab/session and actual behavior evidence, or explicit owner oracle disposition; no waiver recorded",
+    "Complete canonical Story20.2 and20.3 specifications with review and LF pins, before first E20 dispatch per approved checkpoint",
+    "Record early-E20 checkpoint closure on all three reviewed specifications and current base",
+    "Merge this contract preparation and revalidate current integrated base before implementation",
+    "Allocate physical migration timestamp/path and pin exact admitted write paths before implementation claims",
+    "Coordinator validates parallel plan and obtains explicit successful worker assignments/claims; none exist",
+    "Execute implementation and combined-integration required checks at exact result SHA; current documents are design only",
+    "Retain full E20/wave gates; registration and option A owner decision are already satisfied"
   ],
   "parallel_helper_plan": {
     "executed": false,
@@ -227,28 +234,24 @@
     "evidence_path": "_bmad-output/auto-bmad/preparation/story-20-1/owner-boundary-decision-2026-10-08.md"
   },
   "canonical_registration": {
-    "status": "applied-locally-not-merged",
+    "status": "integrated",
     "coordinator_serialization_required": true,
     "patch_path": "_bmad-output/auto-bmad/preparation/story-20-1/registration.patch",
     "evidence_path": "_bmad-output/auto-bmad/preparation/story-20-1/registration.json",
     "stories_to_register": 3,
     "actual_registry_lookup": "resolved",
     "prospective_first_is_last": false,
-    "registration_pr_merged": false,
+    "registration_pr_merged": true,
     "actual_evidence_path": "_bmad-output/auto-bmad/preparation/story-20-1/registration.json",
     "first_is_last": false,
-    "epic_story_count": 3
+    "epic_story_count": 3,
+    "merge_sha": "42f5cf60d1ded6d814c2c0f61b70b312144ce10e"
   },
   "latest_integrated_base_observation": {
-    "sha": "8a7debbee83c9a4f6eb8ec4496ba2f7ad7db4b4b",
-    "coordinator_verified_pr_merges": {
-      "86": "8a7debbe",
-      "87": "7db3ded1",
-      "88": "7da9e8f3",
-      "89": "23c48b34"
-    },
-    "not_yet_integrated_into_preparation": false,
-    "fresh_contract_validation_complete": false
+    "sha": "42f5cf60d1ded6d814c2c0f61b70b312144ce10e",
+    "verified": "git fetch origin main",
+    "integrated_into_preparation": true,
+    "registration_pr": 90
   },
   "preparation_delivery": {
     "status": "complete",
@@ -257,7 +260,8 @@
     "merge_authority": "coordinator only after exact-head CI and preparation review gates",
     "handoff_path": "_bmad-output/auto-bmad/preparation/story-20-1/preparation-merge-handoff.md",
     "oracle_waived": false,
-    "registration_applied": true
+    "registration_applied": true,
+    "current_scope": "Selected-link contract design and checkpoint reconciliation complete and independently reviewed; implementation still blocked"
   },
   "preparation_history": {
     "branch": "codex/story20-1-documents-preparation",
@@ -568,5 +572,29 @@
     "spec_unchanged": true,
     "implementation_admission": "blocked",
     "merge_authority": "coordinator after exact-head required CI"
+  },
+  "selected_link_contract": {
+    "status": "reviewed-design-only",
+    "implementation": "not implemented",
+    "contract_path": "_bmad-output/auto-bmad/preparation/story-20-1/selected-link-contract-design.md",
+    "contract_sha256_lf": "dd11f47be7bc97f1cfff26340d6b6f2e49f4bf2956c6396290c288c6c8e7a9f8",
+    "checkpoint_path": "_bmad-output/auto-bmad/preparation/story-20-1/checkpoint-reconciliation.md",
+    "checkpoint_sha256_lf": "732b784196520f80798ca0a3f7532d34316c5b29caf0817a6befecca40272509",
+    "migration_logical_basename": "story_20_1_documents_selected_link_access.sql",
+    "physical_migration_path": "supabase/migrations/<CLI-generated-timestamp>_story_20_1_documents_selected_link_access.sql",
+    "physical_timestamp_condition": "Allocate and pin before validated implementation claims; no migration created in preparation",
+    "generic_files_signer_and_quote_broker": "Read-only reference contracts; no implementation write claim",
+    "source_design_sha256_lf": "fdc7d0a12526f90f860172ac3a7e7db94501e9a82baa9ea7f19e3a9651e54caa"
+  },
+  "previous_integrated_base_observation": {
+    "sha": "8a7debbee83c9a4f6eb8ec4496ba2f7ad7db4b4b",
+    "coordinator_verified_pr_merges": {
+      "86": "8a7debbe",
+      "87": "7db3ded1",
+      "88": "7da9e8f3",
+      "89": "23c48b34"
+    },
+    "not_yet_integrated_into_preparation": false,
+    "fresh_contract_validation_complete": false
   }
 }
