@@ -397,3 +397,54 @@ Independent Sol 6.1 High bounded review found no consequential defect in this
 repair or its author trail. All seven handoff and 47 existing Story 19.1 review
 stops validate; bytes outside its existing review-order section are preserved.
 This follow-up adds no broad review round or status transition.
+
+### Fresh combined-main CI exposes a seeded-hook role boundary
+
+[CI 37778091816](https://github.com/rthunborg/ElproSaas/actions/runs/37778091816)
+on `992df83b37d9831333d2fc288d3d94abc30580e3` passed verification: **2,153
+units passed, zero failed or skipped**, 27.678 seconds. Isolated Storage recovery
+passed its one test, and the dedicated dashboard browser job passed **57 tests**
+in 1.6 minutes. The empty database migration-and-seed reset passed.
+
+The REQUIRED database command nevertheless failed: **1,477 total / 1,463
+passed / 13 failed / one preserved skip**, 268.14 seconds. All 13 failures are
+in provisioning/onboarding tests; their shared `42501` error identifies private
+`test_support.editor_faults` access (one reports schema access). The newly
+seeded editor hook is reached by audit insertion under the restricted
+provisioning role. This fresh role-context regression requires a bounded
+fixture repair and independent High review; no completion is inferred from
+neighboring passing jobs. The pilot command after the failed suite did not run.
+The general browser job also failed: **191 passed / six failed / four existing
+skips**, 7.3 minutes. Five operator-console cases reach the same restricted
+provisioning hook error. The profile persistence case times out at
+`response.finished()` on its first invalid submission in both attempts,
+exhausting the unchanged 60-second test budget. The precise stream/EOF cause
+remains unproved; earlier local helper passes do not negate this CI failure.
+
+The private fault lookup now follows the seed's existing SECURITY DEFINER
+pattern, retaining its empty search path, unchanged correlation/stage logic and
+revoked control/function privileges. The marker function remains invoker. The
+helper requires matching private-table/function ownership, expected execution
+mode and empty search path before inserting any marker. Independent High
+review found no consequential defect. Current seed application twice passed
+with three hooks, zero markers, unchanged 99-entry migration history and no
+API-role control access. One complete REQUIRED three-file pack passed **72/72,
+zero failures/skips**, native 0, 126.964 seconds: 58 editor cases, 13 provisioning
+cases and one first-admin onboarding journey. Post-pack SQL reports zero
+markers/three hooks. The combined production build passes natively.
+
+The profile helper is receiving a separate bounded repair: observe its own
+registered POST response and the form's actual pending-to-settled cycle rather
+than waiting for whole-stream EOF. Current runtime and independent review for
+that repair, followed by fresh five-job CI, remain pending. No official status
+transition has been made.
+
+The corrected profile pending-cycle witness received independent High review
+with no consequential findings. Its complete test bodies are preserved, and
+the existing 15-second barrier and 60-second case budgets remain. One complete
+two-file production browser pack passed **12 tests / zero failures, skips or
+flakiness**, native 0, 28.741 seconds: four resource-profile cases and eight
+operator-console cases. Post-pack SQL again reports zero markers/three hooks.
+This is current local evidence for both repaired contexts; the earlier 23-case
+run and failed EOF-based helper attempts remain separate historical evidence.
+Fresh full CI is still required.

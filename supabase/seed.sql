@@ -213,7 +213,7 @@ begin
     );
     revoke all on test_support.editor_faults from public,anon,authenticated,service_role;
     create or replace function test_support.fail_editor_transaction()
-    returns trigger language plpgsql set search_path='' as $$
+    returns trigger language plpgsql security definer set search_path='' as $$
     declare v_keys jsonb;
     begin
       if exists(select 1 from test_support.editor_faults f

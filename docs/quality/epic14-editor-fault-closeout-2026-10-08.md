@@ -16,12 +16,26 @@ The three editor hooks retain the original semantics: a booking row write sets t
 
 Before each case, the helper now performs a read-only catalog check for the marker table and all three enabled hooks with the exact function, event mask and stage arguments. Missing or invalid installation fails closed with an explicit seed-fixture error; no runtime DDL fallback or cached rejected promise exists. The RPC proxy's original error/detail parsing and reached/accepted-key observations remain unchanged. `finally` restores the original application client, then deletes only that case's exact correlation/stage marker. Hooks/functions remain installed for other consumers and later tests.
 
+## Restricted provisioning caller — latest bounded repair
+
+Fresh CI over `992df83b37d9831333d2fc288d3d94abc30580e3` failed its database gate with **1,477 total / 1,463 passed / 13 failed / one inherited skip**, **268.14 seconds**. All 13 provisioning/onboarding failures reported `42501` against the private editor control table or schema. The original failed log remains at `tmp/epic14-closeout-stack/ci-992df83b-db.log`; only sanitized error names/counts are recorded here. The earlier local resource pack did not cover this restricted provisioning caller.
+
+`public.provision_tenant` executes as its restricted `provisioning_function_owner` (migration `20260919183425_provisioning_review_authority_fixes.sql:216`). Its legitimate audit INSERT reaches the editor audit statement trigger. The previous invoker fault function attempted to read `test_support.editor_faults` with that restricted authority, even when no editor marker matched. The enforced private ACL therefore rejected an otherwise unrelated provisioning transaction. Existing seed-only audit/provisioning fault functions already use SECURITY DEFINER with an empty search path and revoked public/runtime EXECUTE privileges.
+
+The approved correction gives only `test_support.fail_editor_transaction` that same private SECURITY DEFINER execution pattern. It retains its existing owner, empty search path, ACL revocations, qualified table references, exact correlation/stage lookup and actual accepted-key error detail. `mark_editor_tenant` remains invoker. No role receives a schema/table/function grant, and no production function, migration or application command changes. The helper's read-only readiness check now also requires each installed function's owner to match the private marker-table owner, the exact expected invoker/definer mode, and the empty search path; malformed seed authority fails closed before case-marker insertion.
+
+Focused ESLint and TypeScript `--noEmit` each returned native 0 after this latest two-file patch. Parent subsequently validated guarded reuse and applied the complete corrected seed **twice**, native 0: **three hooks / zero markers**, false control DML/function EXECUTE privileges for every checked API role, and unchanged **99-record migration-ledger count/digest**. `editor-seed-application.json` now records current seed SHA256 `e26dcd882414fdba59a23318588db06e2e6a3dfc136584aff42f3b9693a9d0b6`, matching the author's read-only source hash. This is retained-stack seed evidence, not a fresh reset or migration operation.
+
+The parent's complete three-file REQUIRED pack passed **72 total / 72 passed / zero failed / zero skipped**, native 0, **126.964 seconds from JSON start to the last file end**: 58 booking-editor cases, 13 provision-tenant cases and one first-admin onboarding lifecycle journey. All four original create/update × after_acceptance/before_audit rollback cases execute inside the 58-case suite; the restricted provisioning suite and journey cover all13 prior failures. Saved evidence: `integration-editor-role-provisioning-full.json` / `.log`; author read-only report inspection confirms the counts and file inventory. Post-pack SQL reports **zero markers / three hooks** in `editor-seed-post-pack.json`. Parent's combined-main production build also returned native 0. No runtime execution is attributed to this author.
+
+Independent `gpt-6.1-sol` High final source/trail review returned **no findings**, with 13 quality and 30 Story14.4 verified stops, separately from this author's checks. The older seed SHA and 153-case/23-case passes below describe the earlier invoker fixture and remain historical evidence. Fresh full CI for the corrected combined source remains pending; the actual72-case restricted-caller/rollback pass does not waive the published13-failure run or inherited skips.
+
 ## Executed evidence and limits
 
 - `node node_modules/eslint/bin/eslint.js tests/support/booking-editor-production.ts`: native 0.
 - `node node_modules/typescript/bin/tsc --noEmit`: native 0 after the stable source patch.
 - Source inspection confirms runtime `editorFault` contains only the read-only catalog probe plus its marker INSERT/DELETE; trigger/function DDL occurs in the seed resource section. This is source evidence, not SQL execution evidence.
-- Parent validated guard reuse of the same dedicated project and saved data: native admission 0, followed by active/verified Compose outcome. The complete current seed was applied **twice**, both SQL native 0. Catalog checks found **three editor triggers / zero marker rows**, and all table DML plus both function EXECUTE privileges were false for each of anon, authenticated and service_role. The **99-record migration ledger count and digest remained unchanged**. Saved evidence: `editor-seed-application.json`; seed source SHA256 `d663531842713f3cb933fc677c3a021cf741e036006812722bd592548bc842cb`. This is parent-executed retained-stack evidence, not a fresh database reset or migration operation.
+- At the first-fixture checkpoint, parent validated guard reuse of the same dedicated project and saved data: native admission 0, followed by active/verified Compose outcome. That invoker seed was applied **twice**, both SQL native 0. Catalog checks found **three editor triggers / zero marker rows**, and all table DML plus both function EXECUTE privileges were false for each of anon, authenticated and service_role. The **99-record migration ledger count and digest remained unchanged**. Historical seed SHA256 was `d663531842713f3cb933fc677c3a021cf741e036006812722bd592548bc842cb`; `editor-seed-application.json` was subsequently refreshed for the corrected definer source described above. This is parent-executed retained-stack evidence, not a fresh database reset or migration operation.
 - Parent's first mistyped `INT-005` filter executed **two accepted-identity cases passed / zero failed / 56 excluded**, native 0. These are accepted-identity checks, not rollback credit.
 - Parent's corrected `INT-002-rollback` filter executed **four rollback cases passed / zero failed / 54 excluded**, native 0, **9.094 seconds for the invocation**. Every create/update × after_acceptance/before_audit case executed its original actual accepted-key, exact rollback and same-command retry assertions. Excluded cases are not execution coverage.
 - Independent `gpt-6.1-sol` High review returned **no findings**. Its advisory noted the fresh-only stage CHECK behavior qualified above; no constraint change was requested or performed. Independent review is separately attributed and does not replace runtime evidence.
@@ -36,22 +50,25 @@ Review limits remain unchanged: Story 14.1 has its original three completed broa
 
 ## Suggested Review Order
 
-Author: `/root/kernel_fix`, actual seed/helper fix author. Current narrow working-tree patch over `1cd4ec028ffc7f0ec8ef77638950930d16612441`; original `e1e663ce` CI failure provenance remains above.
+Author: `/root/kernel_fix`, actual seed/helper fix author. Latest narrow working-tree authority patch over `992df83b37d9831333d2fc288d3d94abc30580e3`; original `e1e663ce` and `1cd4ec028ffc7f0ec8ef77638950930d16612441` failure provenance remains above.
 
 ### Runtime rollback probes require the installed fixture without global DDL
 
-The helper verifies the seed-installed hooks and exact stage arguments before setting its marker. A missing fixture fails loudly rather than installing triggers while other suites write shared tables.
+The helper verifies the seed-installed hooks, exact stage arguments, private owner and execution/search-path contract before setting its marker. A missing or invalid fixture fails loudly before any marker is inserted.
 
 - `tests/support/booking-editor-production.ts:404` — `editorFault`: existing runtime rollback boundary.
 - `tests/support/booking-editor-production.ts:406` — `expected(table_name`: read-only exact hook verification.
-- `tests/support/booking-editor-production.ts:420` — `Seed-installed editor fault`: explicit missing/invalid seed failure.
+- `tests/support/booking-editor-production.ts:417` — `p.proowner=control.relowner`: exact owner and definer-mode readiness.
+- `tests/support/booking-editor-production.ts:418` — `search_path`: fixed empty search-path readiness.
+- `tests/support/booking-editor-production.ts:424` — `Seed-installed editor fault`: explicit missing/invalid seed failure.
 
 ### Seed hooks observe actual accepted keys within the failing transaction
 
-The seed owns trigger lifecycle only when the resource schema exists. Correlation and stage gate the original accepted-row observation; the fixture stays private to test SQL.
+The seed owns trigger lifecycle only when the resource schema exists. The private definer can inspect its control table during a restricted caller's legitimate audit write; correlation and stage still gate the original accepted-row observation. The fixture stays private to test SQL.
 
 - `supabase/seed.sql:170` — `do $resource_faults$`: resource-schema conditional installation.
 - `supabase/seed.sql:214` — `revoke all`: owner-restricted editor marker table.
+- `supabase/seed.sql:216` — `security definer set search_path=''`: restricted callers need no private-control grants.
 - `supabase/seed.sql:219` — `editor_faults`: correlation/stage-scoped fault lookup.
 - `supabase/seed.sql:232` — `mark_editor_tenant`: per-booking transaction-local tenant marker.
 
@@ -59,8 +76,8 @@ The seed owns trigger lifecycle only when the resource schema exists. Correlatio
 
 The application proxy retains its reached/accepted-key observations, and the case restores its own client and removes only its own marker. Runtime no longer removes shared hooks/functions.
 
-- `tests/support/booking-editor-production.ts:427` — `acceptedKeysObserved`: unchanged actual SQL-detail parsing.
-- `tests/support/booking-editor-production.ts:435` — `fx.adminClient = original`: application client restoration.
-- `tests/support/booking-editor-production.ts:436` — `stage=$2`: exact case marker removal.
+- `tests/support/booking-editor-production.ts:431` — `acceptedKeysObserved`: unchanged actual SQL-detail parsing.
+- `tests/support/booking-editor-production.ts:439` — `fx.adminClient = original`: application client restoration.
+- `tests/support/booking-editor-production.ts:440` — `stage=$2`: exact case marker removal.
 
-Evidence: actual static outcomes, parent-executed twice-applied seed/catalog/unchanged-ledger checks, four passing filtered rollback cases, one complete passing153-case REQUIRED resource command pack, final23-case browser pack and separately attributed no-findings High review above. Limits: fresh CI for this combined harness patch remains pending; filtered exclusions and inherited skips are not coverage. Published CI still contains four failed DDL cases and one browser flaky retry. This author performed no runtime execution or self-review. All failed historical runs and original rollback assertions are retained.
+Evidence: latest author static checks pass; parent twice-applied corrected seed/catalog/unchanged-ledger checks, the complete72-case restricted-caller/editor pack, combined-main build and separately attributed final High source/trail review pass. Earlier four filtered rollback passes, the complete153-case resource pack and final23-case browser pack remain historical evidence for the first invoker fixture. Limits: fresh full CI remains pending; the latest published database gate has13 failures. Filtered exclusions and inherited skips are not coverage. This author performed no runtime execution or self-review. All failed historical runs and original rollback assertions are retained.

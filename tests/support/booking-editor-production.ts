@@ -412,6 +412,10 @@ async function editorFault<T>(fx: BookingFixture, correlation: string, stage: "a
       and (select count(*) from expected e join pg_trigger t
         on t.tgrelid=to_regclass('public.'||e.table_name) and t.tgname=e.trigger_name
         and t.tgfoid=to_regprocedure('test_support.'||e.function_name||'()')
+        join pg_proc p on p.oid=t.tgfoid
+        join pg_class control on control.oid=to_regclass('test_support.editor_faults')
+        and p.proowner=control.relowner and p.prosecdef=(e.function_name='fail_editor_transaction')
+        and 'search_path=""'=any(coalesce(p.proconfig,'{}'::text[]))
         and not t.tgisinternal and t.tgenabled='O' and t.tgtype=e.trigger_type
         and t.tgnargs=case when e.argument='' then 0 else 1 end
         and t.tgargs=case when e.argument='' then ''::bytea

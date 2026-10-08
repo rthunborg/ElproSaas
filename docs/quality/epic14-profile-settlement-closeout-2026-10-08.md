@@ -12,20 +12,22 @@ Three successive invalid submissions asserted the same existing validation text.
 
 ## Repair
 
-The affected scenario now uses `submitResourceAndSettle` for its three invalid submissions. It registers a real response witness before clicking, matching POST, a Next action header and the current origin/path. It then requires HTTP success, completed response body and rendered nonpending save state before subsequent edits. The initial successful submission retains its original saved-status assertion and reload before the first invalid response witness is registered; each preceding invalid request is then settled. An earlier request cannot satisfy the next witness by induction. The final successful clear retains its original click, saved-status assertion and reload/readback checks.
+The affected scenario uses `submitResourceAndSettle` for its three invalid submissions. Before clicking, it acknowledges installation of a DOM-only MutationObserver on the current enabled save control and registers a real response witness matching POST, a Next action header and the current origin/path. After HTTP success it requires an observed disabled true→false cycle on that same connected control. `useActionState.pending` directly drives this disabled attribute in the existing product component. Recording attribute old values retains a fast cycle even when both mutations reach one callback. An initially enabled control or old validation alert cannot satisfy the witness; remount fails, and `finally` disconnects the observer and deletes its private state.
 
-Existing fixture data, invalid inputs, three validation alerts, both success assertions, explicit empty-kind check and every reload/readback assertion remain intact. Other profile cases are unchanged. The response wait uses the existing 15-second bound, and the shared expectation, action, test timeout and CI retry settings are unchanged. No server response, acceptance receipt or persistence result is synthesized; no header, proof, fixture identifier or payload is logged.
+The initial successful submission retains its original saved-status assertion and reload before the first invalid response witness is registered; each preceding invalid pending cycle is then settled. An earlier request cannot satisfy the next witness by induction. The final successful clear retains its original click, saved-status assertion and reload/readback checks. Whole RSC stream EOF is no longer treated as action-state settlement; its earlier blocking cause remains unconfirmed.
+
+Existing fixture data, invalid inputs, three validation alerts, both success assertions, explicit empty-kind check and every reload/readback assertion remain intact. Other profile cases are unchanged. Response and pending-cycle waits use the existing 15-second bound; shared expectation, action, test timeout and CI retry settings are unchanged. No server response, acceptance receipt or persistence result is synthesized; no header, proof, fixture identifier or payload is logged.
 
 ## Executed checks and limits
 
 - `node node_modules/typescript/bin/tsc --noEmit`: native 0.
 - `node node_modules/eslint/bin/eslint.js tests/e2e/resources-person-profile.e2e.spec.ts`: native 0.
 - Initial review-order check exposed one wrong author-report line reference; corrected to the actual server validation branch before final validation.
-- `node scripts/verify/check-review-order.mjs` targeting the Story 14.1 spec and this report: native 0, 31 spec stops and six report stops, zero errors after correction.
-- `git diff --check` targeting the three authored files: native 0.
+- Earlier EOF-variant review-order check: native 0, 31 spec stops and six report stops, zero errors after correction; earlier whitespace check native 0.
+- Latest pending-cycle variant: TypeScript and targeted ESLint native 0; review-order checker native 0, 32 spec stops and seven report stops, zero errors.
 - Author browser/database/service executions: zero. Parent owns guarded production browser verification and fresh CI.
 
-The parent-owned first-patch four-profile run **failed natively: three passed / one timeout / zero skipped / zero flaky**, **81.658 seconds** for the invocation. The affected case exhausted its existing 60-second timeout after the first four helper calls completed; the final successful save was blocked at `response.finished()`. Its error-context attachment contains no page snapshot, only timeout/closed-page errors and test source. It therefore cannot establish saved UI, pending form, field state or a failed product write. The precise body-EOF blocking cause is unconfirmed, including any CDP/stream contribution. This failed run is retained, not waived or converted into a pass.
+The parent-owned first-patch four-profile run **failed natively: three passed / one timeout / zero skipped / zero flaky**, **81.658 seconds JSON-reported run duration**. The affected case ran for 60,025 ms, exhausting its existing 60-second timeout after the first four helper calls completed; the final successful save was blocked at `response.finished()`. Its error-context attachment contains no page snapshot, only timeout/closed-page errors and test source. It therefore cannot establish saved UI, pending form, field state or a failed product write. The precise body-EOF blocking cause is unconfirmed, including any CDP/stream contribution. This failed run is retained, not waived or converted into a pass.
 
 The first patch unnecessarily applied body completion to the two successful submissions, whose existing saved-status/reload assertions already supply server confirmation and navigation settlement. The authorized correction confines the extra barrier to the three invalid submissions; it does not catch the finished-response error, fabricate completion, or enlarge a timeout. The original flaky attempt and failed first-patch runtime remain counterevidence. Story 14.1 already has three broad rounds; this adds no broad round or completion credit.
 
@@ -37,7 +39,13 @@ Parent-owned corrected verification executed against the reused Next 16.3.8 prod
 
 After consumers finished, the parent received accepted Stop requests for its three guarded resources, preserving saved state. Acceptance does not assert verified shutdown. Final post-pack marker count was zero and hook count three. The author launched no resources and executed no browser/database tests.
 
-Fresh full CI for this patch remains pending. The two local passes neither erase the original CI first-attempt failure nor prove the inferred reset interleaving or the failed first patch's EOF cause. Representative performance, manual physical/daylight and Story 15.1 calendar requirements retain their separately recorded status; no epic completion or merge claim follows from this bounded repair.
+Fresh published `992df83b` CI subsequently failed its general browser job with **191 passed / six failed / four skipped**, approximately **7.3 minutes**. The profile case failed both attempts at its existing 60-second timeout, blocked on `response.finished()` during the **first invalid submission**. Five separate operator cases fail with `42501` at their owned seed-hook boundary; that independently owned repair is not attributed to this profile helper. The earlier local 4/4 and 23/23 passes remain evidence for the EOF variant, not proof that it passed fresh CI. No precise EOF/stream/CDP cause is established by the timeout.
+
+The latest pending-cycle repair removes the unreliable EOF barrier while preserving real action-response and observed rendering evidence. Independent Sol 6.1 High narrow review found **no consequential findings**, bound to current test SHA256 `469E56B6049EBC369DADB8DA61E0EB525E3D31AF19CADDB5D4D2D9163F18E8B8`; the reviewer verified all test bodies remained unchanged by this helper replacement.
+
+The parent-owned complete two-file profile/operator-console pack then passed natively with **12 passed / zero failed / zero skipped / zero flaky**, **28.741 seconds JSON-reported run duration**. It executed all four profile cases and eight operator cases against the rebuilt combined-main Next 16.3.8 production app. The ignored report `tmp/epic14-closeout-stack/browser-profile-pending-operator.json` independently contains expected12/unexpected0/skipped0/flaky0, duration28,740.754ms and zero top-level errors. Parent post-run SQL readback reports zero editor markers and three hooks. These actual results cover the previously failed profile journey and the five operator setup paths; they remain local evidence, not a fresh CI pass.
+
+Fresh full five-job CI for this latest variant remains pending. The original CI first-attempt failure, both EOF failures and earlier local passes remain distinct evidence. Original reset timing and EOF/stream/CDP cause remain unproven. Representative performance, manual physical/daylight and Story 15.1 calendar requirements retain their separately recorded status; no official completion or merge claim follows from this bounded repair.
 
 ## Suggested Review Order
 
@@ -46,10 +54,11 @@ Fresh full CI for this patch remains pending. The two local passes neither erase
 The helper witnesses real transport and rendered readiness before another edit. Existing fixture assertions still establish the actual persistence and invalid-input outcomes.
 
 - `tests/e2e/resources-person-profile.e2e.spec.ts:33` — `submitResourceAndSettle`: settles each invalid submission in the affected scenario.
-- `tests/e2e/resources-person-profile.e2e.spec.ts:38` — `responsePromise`: registers before the click using a bounded real response witness.
-- `tests/e2e/resources-person-profile.e2e.spec.ts:46` — `response.finished`: requires completed response body transport.
-- `tests/e2e/resources-person-profile.e2e.spec.ts:49` — `toBeEnabled`: waits for rendered nonpending state before later edits.
-- `tests/e2e/resources-person-profile.e2e.spec.ts:98` — `toHaveValue`: preserves explicit exception-kind clearing.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:47` — `new MutationObserver`: retains the actual pending cycle including fast mutations.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:57` — `responsePromise`: registers before clicking using a bounded real action-response witness.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:67` — `expect.poll`: requires the observed cycle on the same connected control.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:77` — `disconnect`: cleans observer state after each invalid submission.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:130` — `toHaveValue`: preserves explicit exception-kind clearing.
 - `src/features/resources/actions.ts:59` — `hasPartialWorkTime`: retains server refusal of incomplete exception/calendar inputs.
 
-Evidence: actual static checks, independent narrow review and parent-owned corrected 4/4 and complete 23/23 runs above. Limits: exact reset timing and the failed first patch's EOF cause remain untraced; original failed attempts are preserved and fresh full CI is still pending.
+Evidence: latest actual static checks, independent High narrow review and parent-owned complete 12-case production pack, with historical runs separately attributed above. Limits: fresh five-job CI remains pending, exact original reset timing and EOF failure causes remain untraced, and all failed attempts are preserved.
