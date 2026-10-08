@@ -33,6 +33,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { adminQuery, closeAdminPool } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import { expectEffectiveTableDml } from "../../support/effective-table-privileges";
 
 const PRICING_TABLES = ["work_roles", "articles"] as const;
 
@@ -201,29 +202,11 @@ describe("Pricing migration reset green — work_roles/articles (AC1/AC2/AC3)", 
     }
   });
 
-  it("[P0/AC4] GRANTs: authenticated historical DELETE remains ACL-visible but has no DELETE RLS policy; anon has no DML", async (testCtx) => {
+  it("[P0/AC4] effective DML: authenticated has SELECT only; audited wrappers own pricing mutation and anon has no DML", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const rows = await adminQuery<{ grantee: string; privilege_type: string }>(
-      `select grantee, privilege_type from information_schema.role_table_grants
-         where table_schema = 'public' and table_name = any($1::text[])`,
-      [[...PRICING_TABLES]],
-    );
-    const authed = rows.filter((r) => r.grantee === "authenticated").map((r) => r.privilege_type);
-    expect(authed).toContain("SELECT");
-    expect(authed).not.toContain("INSERT");
-    expect(authed).not.toContain("UPDATE");
-    // Historical authenticated DELETE remains explicit; no DELETE RLS policy
-    // permits a direct app mutation.
-    expect(authed).toContain("DELETE");
-    // anon-DML-empty (NOT anon-grant-empty): Supabase grants every role the non-DML
-    // REFERENCES/TRIGGER/TRUNCATE by default, so assert anon holds NONE of the four
-    // DATA-access privileges, not zero grants overall.
-    const DML = ["SELECT", "INSERT", "UPDATE", "DELETE"];
-    const anonDml = rows
-      .filter((r) => r.grantee === "anon")
-      .map((r) => r.privilege_type)
-      .filter((p) => DML.includes(p));
-    expect(anonDml).toEqual([]);
+    // 20260907171252 closes direct pricing DML; 20261002141141 removes PUBLIC
+    // inheritance. No migration grants authenticated DELETE.
+    await expectEffectiveTableDml({ work_roles: ["SELECT"], articles: ["SELECT"] });
   });
 
   it("[P0/AC3] HARD no-supplier-scope — NO supplier/credential/sync/import/external/api/fortnox/edi/mapping column on either pricing table", async (testCtx) => {

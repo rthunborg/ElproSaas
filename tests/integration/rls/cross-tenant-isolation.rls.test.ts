@@ -480,6 +480,15 @@ afterAll(async () => {
 });
 
 describe("Cross-tenant RLS isolation — data-driven over the shared inventory (AC2 / R-001)", () => {
+  // These existing concrete fixture rows previously exercised DELETE through
+  // RLS invisibility. Preserve their nonempty full-row control after switching
+  // the fresh-schema expectation to privilege denial. Other permission-only
+  // paths may have no seeded rows; 42501 still proves no app write capability.
+  const seededMutationTargets = new Set<TenantTableName>([
+    "tenants", "tenant_memberships", "company_settings", "quote_terms", "work_roles", "articles",
+    "calculations", "calculation_sections", "calculation_rows", "jobs", "job_events", "files", "file_links",
+    "membership_admin_operations", "person_profiles", "person_work_hours", "tenant_calendar_days",
+  ]);
   // Story 11.2 moves audited Phase A mutations behind checked transactional
   // wrappers and revokes their direct authenticated DML grants. Keep that
   // closure explicit instead of mistaking its 42501 for RLS invisibility. The
@@ -544,9 +553,8 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
       it(`[P0] UPDATE: Tenant A admin cannot UPDATE Tenant B's ${table} rows`, async (testCtx) => {
         if (skipUnlessStack(testCtx, stackUp)) return;
         const { column, value } = tenantBFilter(table, ctx);
-        const before = updateDenialKind(table) === "rls-invisible"
-          ? await snapshotForeignRows(table, column, value)
-          : null;
+        const requireRows = seededMutationTargets.has(table) || updateDenialKind(table) === "rls-invisible";
+        const before = await snapshotForeignRows(table, column, value, requireRows);
         const { data: affected, error } = await a
           .from(table)
           .update(hijackMutationFor(table))
@@ -581,7 +589,6 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
           // rls-invisible calculation editing rows.
           expect(error).toBeNull();
           expect(affected).toEqual([]); // zero rows affected — the foreign row is hidden
-          expect(await snapshotForeignRows(table, column, value)).toEqual(before);
           // Independent re-read proves the row exists and its label is UNCHANGED (the
           // hijack value "hijacked-by-tenant-a" never landed). CRM and settings tables
           // use different readback helpers; the inventory names the label column.
@@ -687,14 +694,14 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
             expect(label).not.toBe("hijacked-by-tenant-a");
           }
         }
+        expect(await snapshotForeignRows(table, column, value, requireRows)).toEqual(before);
       });
 
       it(`[P0] DELETE: Tenant A admin cannot DELETE Tenant B's ${table} rows`, async (testCtx) => {
         if (skipUnlessStack(testCtx, stackUp)) return;
         const { column, value } = tenantBFilter(table, ctx);
-        const before = deleteDenialKind(table) === "rls-invisible"
-          ? await snapshotForeignRows(table, column, value)
-          : null;
+        const requireRows = seededMutationTargets.has(table);
+        const before = await snapshotForeignRows(table, column, value, requireRows);
         const { data: deleted, error } = await a
           .from(table)
           .delete()
@@ -707,8 +714,8 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
         } else {
           expect(error).toBeNull();
           expect(deleted).toEqual([]);
-          expect(await snapshotForeignRows(table, column, value)).toEqual(before);
         }
+        expect(await snapshotForeignRows(table, column, value, requireRows)).toEqual(before);
       });
     });
   }
@@ -742,15 +749,15 @@ describe("Cross-tenant RLS isolation — data-driven over the shared inventory (
   });
 });
 
-async function snapshotForeignRows(table: TenantTableName, column: string, value: string): Promise<unknown> {
+async function snapshotForeignRows(table: TenantTableName, column: string, value: string, requireRows = true): Promise<unknown> {
   const rows = await adminQuery<{ snapshot: unknown }>(
-    `select coalesce(jsonb_agg(to_jsonb(row) order by row.id), '[]'::jsonb) as snapshot
+    `select coalesce(jsonb_agg(to_jsonb(row) order by to_jsonb(row)::text), '[]'::jsonb) as snapshot
        from public.${table} as row
       where row.${column} = $1`,
     [value],
   );
   const snapshot = rows[0]?.snapshot;
   expect(Array.isArray(snapshot)).toBe(true);
-  expect((snapshot as unknown[]).length).toBeGreaterThan(0);
+  if (requireRows) expect((snapshot as unknown[]).length).toBeGreaterThan(0);
   return snapshot;
 }

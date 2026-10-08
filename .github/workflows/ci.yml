@@ -367,6 +367,11 @@ jobs:
       # Auth-mail E2E must fail loudly if its required local Auth/Mailpit stack is
       # unavailable; this matches the database integration gate.
       SUPABASE_TEST_REQUIRED: "1"
+      # Booking fixture helpers also preview/sign inside the Playwright worker.
+      # Match the existing local seed and webServer pair; these are synthetic
+      # CI-only values, not a production fallback or browser-public credential.
+      BOOKING_CONFLICT_ATTESTATION_KEY_ID: "test_v1"
+      BOOKING_CONFLICT_ATTESTATION_HMAC_SECRET: "local-test-only-booking-conflict-attestation-secret-v1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4

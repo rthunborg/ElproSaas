@@ -321,6 +321,8 @@ export type MutationDenialKind = "privilege" | "rls-invisible";
  */
 export function updateDenialKind(table: TenantTableName): MutationDenialKind {
   switch (table) {
+    case "tenants":
+    case "membership_admin_operations":
     case "tenant_memberships":
     case "membership_roles":
     case "audit_events":
@@ -349,8 +351,6 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
     case "customers":
     case "facilities":
     case "contacts":
-    case "tenants":
-    case "membership_admin_operations":
     case "company_settings":
     case "quote_terms":
     case "work_roles":
@@ -386,10 +386,9 @@ export function updateDenialKind(table: TenantTableName): MutationDenialKind {
 }
 
 /**
- * The cross-tenant DELETE denial mechanism. Several retained authenticated
- * DELETE grants are constrained by a missing own-tenant DELETE policy, so a
- * foreign target is RLS-invisible. Their callers must prove both zero affected
- * rows and an independent BYPASSRLS snapshot rather than require 42501.
+ * The fresh migration chain grants no authenticated direct DELETE path.
+ * A retained legacy bootstrap can carry extra direct ACLs (ADR-B012); those are
+ * not the canonical fresh-schema expectation and must fail this strict gate.
  */
 export function deleteDenialKind(table: TenantTableName): MutationDenialKind {
   switch (table) {
@@ -407,13 +406,12 @@ export function deleteDenialKind(table: TenantTableName): MutationDenialKind {
     case "files":
     case "file_links":
     case "membership_admin_operations":
-    // The Story command-only migration revoked direct INSERT/UPDATE. Existing
-    // DELETE remains grantable but has no DELETE policy, so foreign rows are
-    // RLS-invisible and the statement must affect zero rows.
+    // Resource migrations grant SELECT/INSERT/UPDATE, then revoke INSERT/UPDATE.
+    // No migration grants authenticated DELETE on these tables.
     case "person_profiles":
     case "person_work_hours":
     case "tenant_calendar_days":
-      return "rls-invisible";
+      return "privilege";
     default:
       return "privilege";
   }

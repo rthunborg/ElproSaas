@@ -175,6 +175,74 @@ are supported by actual evidence. Required full integration/RLS, the browser
 failure diagnosis, final CI and isolated recovery proof are still outstanding
 at this record's initial publication.
 
+### Fresh published-head CI — e1e663ce
+
+[Run 37769139173](https://github.com/rthunborg/ElproSaas/actions/runs/37769139173)
+completed with verification and isolated Storage recovery passing. The database
+job failed: 1,437 passed, 28 failed and one preserved isolated-recovery skip
+(1,466 total). Twenty-four failures assert historical direct authenticated
+privileges absent from the fresh migration baseline. Four booking-editor
+rollback cases fail during shared fault-trigger installation with PostgreSQL
+`40P01`, before booking saves or rollback assertions; the rejected bootstrap
+promise repeats the first error. The global DDL touches `bookings`,
+`booking_conflicts` and `audit_events`, so runner isolation must account for
+all interfering writers, including the separate job-runs suite.
+
+The browser job failed with 193 passed and four failed. All four fail during
+test-side review-proof setup with “booking detection is not configured.” The
+production app receives the synthetic booking key through Playwright's server
+environment, while the Playwright worker lacks it. This is a bounded CI
+configuration repair; the local 23-case resource pack remains separate evidence.
+No failed run is converted to PASS, and neither failure permits weaker
+assertions, larger timeouts, restored direct grants or skipped cases.
+
+The ACL follow-up is routed to a Sol 6.1 High author and independent High review.
+Its expected privileges must derive from repository migration/caller contracts,
+not observed mutation outcomes. ADR-B012's retained local authenticated grants
+remain historical evidence: stricter fresh-baseline tests can fail on that
+retained stack without authorizing grant changes or erasing the earlier result.
+The shared runner configuration is reserved to the Coordinator lane; this
+closeout does not duplicate its patch. The app and dedicated Chrome consumers
+received accepted Stop requests after browser execution, preserving saved state.
+
+### Retained local infrastructure diagnosis
+
+The post-fix local failed run recorded Auth/database `53300` errors (connection
+capacity exhausted). This host exposes 32 CPUs; the installed Vitest default
+permits 31 workers, each with an admin SQL pool maximum of four, while the
+dedicated PostgreSQL stack allows 100 connections before accounting for Auth,
+REST and Storage. This establishes a concrete local capacity concern; it does
+not attribute every opaque command failure or justify weakening required CI.
+The private stack's PostgreSQL/Auth/Storage image tuple also differs from the
+CLI-pinned CI tuple. Its causal contribution remains unproven.
+
+A separate read-only fixture-cleanup inspection found orphaned tenant-owned
+rows after replica-mode root deletion and ignored Auth deletion errors. A
+general cleanup rewrite would need verified child ordering and ownership,
+including cross-tenant actor references and global operators. No broad purge,
+production change or new cleanup contract was made as part of this diagnosis.
+The three failed full local executions remain recorded individually above.
+
+The strict ACL follow-up's first five-file required diagnostic failed with
+244 total, 198 passed, 46 failed and zero skips. Extending independent snapshots
+exposed an assumed `id` column and nonempty assertions on privilege-only paths
+without seeded targets; those test regressions were corrected before publication.
+The corrected complete five-file run failed with 244 total, 220 passed, 24 failed
+and zero skips. All remaining failures correspond to the retained direct ACLs
+(17 DELETE and two UPDATE inventory expectations, four effective-grant matrices
+and the settings DELETE case). No snapshot regression remains in that run.
+It is failed retained-baseline evidence, not fresh-schema acceptance. Fresh
+canonical CI remains required. The dedicated database also received an accepted
+Stop request after these consumers finished, preserving its state.
+
+Independent Sol 6.1 High review found no consequential defect in the final
+worker-environment repair or corrected ACL tests. Its scope verified fixed
+per-table effective matrices, preserved service-role and calculation edit
+paths, strict fresh-schema denials, original concrete-row controls and
+deterministic full-row snapshots. It adds no broad review round and supplies
+no runtime PASS. The shared DDL runner repair and fresh exact-head CI remain
+open; completion and acceptance records remain unchanged.
+
 Performance targets and representative volumes remain owner-pending and
 unmeasured. Human manual accessibility/daylight evidence remains unexecuted;
 automated focus/viewport assertions do not replace it. Contract D's actual
