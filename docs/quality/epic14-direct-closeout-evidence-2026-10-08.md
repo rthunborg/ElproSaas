@@ -332,6 +332,40 @@ consumers finished, SQL again proved zero editor markers and three hooks; the
 app, browser and database usage registrations received accepted Stop requests,
 preserving saved state. Fresh CI for the combined harness fixes remains required.
 
+### Current main integration before final CI
+
+The combined harness fixes were committed as
+`59fce3afb591eb325bb95ad45324473b994cfe57`. Main then included verified merged
+Story 19.1 [PR 87](https://github.com/rthunborg/ElproSaas/pull/87), final head
+`2c768b0b52e96dfcf7615eef8ff321ff744c6150`, all five required jobs passing in
+[37772222858](https://github.com/rthunborg/ElproSaas/actions/runs/37772222858),
+and merge `7db3ded1e903131122eedbf9abd27548bc9c3375`. Its finished dashboard
+and Documents-preparation baseline was integrated in merge commit
+`cb6716a26591d66da9dbb85425de8439e4b44c34`.
+
+The sole conflict was the sprint timestamp. A separate Sol 6.1 High author
+resolved it, and an independent High reviewer verified the staged result:
+all Epic 14 story/epic states and action items are preserved, and Story 19.1
+remains done. The auto-merged CI keeps the booking worker pair and adds the
+required dashboard job; resource activation and pending scheduling/Documents
+surfaces remain coherent. The incoming runner partition is compatible with
+the owned seeded hooks and retains exact-once discovery. No unfinished checkout
+or another chat's services were used.
+
+The combined tree passed TypeScript checking and all three installed-Vitest
+partition discovery/order regressions. The resolved sprint/handoff diff check
+and all 11 author review stops passed. A generic whole incoming diff check
+reports existing Markdown hard-break/EOF whitespace in two already-merged
+Epic 19 TEA documents; those authored upstream files were retained unchanged.
+These checks are limited evidence, not a combined full CI PASS.
+
+The reviewed docs-only handoff `f800692175a514cf74eef5d5cb3d19960d1b6e00`
+was carried as `14dc2677256e55a0d64a9db3091d58d066492fba`, changing only
+Story 19.1's actual merge/CI fields and its coordination plan. Its GitHub facts
+were independently verified. The next published head requires all **five**
+current CI jobs, including the dedicated dashboard browser job. Completion
+records and the rejected historical retrospective remain pending that evidence.
+
 Performance targets and representative volumes remain owner-pending and
 unmeasured. Human manual accessibility/daylight evidence remains unexecuted;
 automated focus/viewport assertions do not replace it. Contract D's actual
