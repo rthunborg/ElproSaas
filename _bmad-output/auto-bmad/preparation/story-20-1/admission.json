@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "blocked-story-preparation-evidence",
+  "executable_parallel_plan": false,
+  "status": "blocked",
+  "story_id": "20.1",
+  "canonical_story_key": null,
+  "epic": "E20",
+  "approved": false,
+  "preparation_intent_approved": true,
+  "implementation_authorized": false,
+  "branch": "codex/story20-1-documents-preparation",
+  "worktree": "C:\\Users\\Rasmus\\.codex\\worktrees\\dbe6\\ElproSaas",
+  "base_sha": "ab1ca0445b58f5f496be0d938906c744b6dff87e",
+  "workflow_version": "d061782354238883c72fc96d0c9affe418a505f7f414459826a4335161c222e1",
+  "spec_path": "_bmad-output/implementation-artifacts/spec-20-1-documents-activation-and-source-authorized-aggregation.md",
+  "spec_revision": "5b5d437acc08e3c4005f615b859fca1a7be55806379941d9bebd2e4dfc699964",
+  "author": {
+    "identity": "/root/documents_spec",
+    "agent_id": "01a11ae9-d2ac-7492-830b-edcc13c16b1b",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "reason": "Source authorization, current authority, permission/RLS/token and signing boundary design"
+  },
+  "independent_review": {
+    "approved": false,
+    "status": "reviewed-blocked",
+    "preparation_review_complete": true,
+    "reviewer": "/root/documents_audit",
+    "agent_id": "01a11af1-1be3-7110-9fea-57b6b85f03fe",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "spec_revision": "5b5d437acc08e3c4005f615b859fca1a7be55806379941d9bebd2e4dfc699964",
+    "audit_path": "docs/quality/story-20-1-preparation-audit-2026-10-08.md",
+    "additional_material_design_defects": 0
+  },
+  "boundary_choice": null,
+  "recommended_boundary_choice": "A-with-explicit-owner-acceptance",
+  "integrated_contracts": [
+    {
+      "commit": "ab1ca0445b58f5f496be0d938906c744b6dff87e",
+      "contract": "Existing private tenant-files files/file_links, seven manifest-declared source owners, E11 role-aware RLS/matrix, E10/ADR-B008 quote current-PDF/invalidation, checked file attestation, merged early-E20 sequencing and parallel adapter",
+      "evidence_kind": "source-inspection-only",
+      "checks_passed_in_this_lane": false
+    }
+  ],
+  "provisional_write_paths": [
+    "_bmad-output/implementation-artifacts/spec-20-1-documents-activation-and-source-authorized-aggregation.md",
+    "_bmad-output/auto-bmad/preparation/story-20-1/",
+    "src/scope/manifest.ts",
+    "src/server/authz/permission-matrix.ts",
+    "src/app/(app)/files/layout.tsx",
+    "src/app/(app)/files/page.tsx",
+    "src/features/files/read.ts",
+    "src/features/files/file-index.ts",
+    "src/server/read-models/documents.ts",
+    "src/server/read-models/document-sources.ts",
+    "src/features/documents/actions.ts",
+    "src/server/commands/documents/signed-access.ts",
+    "src/components/files/FileIndexList.tsx",
+    "src/components/files/FilePreviewRow.tsx",
+    "tests/unit/server/read-models/documents.test.ts",
+    "tests/unit/server/read-models/document-sources.test.ts",
+    "tests/integration/rls/documents.rls.test.ts",
+    "tests/integration/commands/documents-signed-access.int.test.ts",
+    "tests/e2e/files/documents.e2e.spec.ts",
+    "src/components/app-shell/nav-items.ts"
+  ],
+  "unresolved_write_paths": [
+    "exact additive checked-authority migration/wrapper paths under chosen option",
+    "any required signer/attestation/shared fixture paths; never entire directories by inference"
+  ],
+  "conflict_domains": [
+    "registry:scope-manifest",
+    "registry:navigation",
+    "auth:permission-matrix",
+    "auth:current-source-authority",
+    "storage:checked-signing-attestation",
+    "schema:migrations-if-wrappers-required",
+    "tests:shared-file-fixtures"
+  ],
+  "risk_domains": [
+    "permissions",
+    "authentication-authorization",
+    "security-rls",
+    "public-tokens",
+    "transactional-integrity"
+  ],
+  "legacy_reservations": [
+    {
+      "epic": "E14",
+      "stories": [],
+      "worktree_hint": "b3cc; retained epic14-scheduling",
+      "reason": "PR86 active fixing; idle chat state is not release evidence",
+      "conflict_domains": [
+        "scheduling",
+        "person",
+        "schema:migrations",
+        "auth:permission-matrix",
+        "apis:shared",
+        "tests:shared-fixtures"
+      ]
+    },
+    {
+      "epic": "E19",
+      "stories": [
+        "19.1"
+      ],
+      "worktree_hint": "story19-1-dashboard",
+      "reason": "PR87 finishing; Next audit CI blocker, unmerged work unavailable as prerequisite",
+      "conflict_domains": [
+        "dashboard",
+        "widget-registry",
+        "registry:scope-manifest",
+        "quote-readers",
+        "AppShell",
+        "NotificationBell",
+        "CI",
+        "tests:shared-fixtures"
+      ]
+    },
+    {
+      "epic": "security-repair",
+      "stories": [],
+      "session": "01a11aeb-9946-7af3-b2ee-865c34db6c24",
+      "worktree_hint": "9cd1",
+      "reason": "Sole Next/package/lock writer per coordinator steering",
+      "conflict_domains": [
+        "dependencies:next",
+        "dependencies:package-lockfiles"
+      ]
+    }
+  ],
+  "required_checks": [
+    "documents-source-unit",
+    "documents-integration-rls",
+    "files-signed-access-integration",
+    "documents-direct-storage-integration-if-B",
+    "documents-browser",
+    "unit",
+    "typecheck",
+    "lint",
+    "production-build",
+    "service-role-containment",
+    "bundle-containment",
+    "lockfiles"
+  ],
+  "checks": [
+    {
+      "name": "build-auto-render",
+      "result": "passed",
+      "executed": 1,
+      "skipped": 0,
+      "evidence": "uv render_skill command returned snapshot workflow path"
+    },
+    {
+      "name": "canonical-resolution",
+      "result": "blocked",
+      "evidence": "Root story_plan --resolve20.1 returned story-not-found; integrated epics only candidate"
+    },
+    {
+      "name": "gh-auth",
+      "result": "passed",
+      "evidence": "gh auth status outside restricted environment confirms active keyring account",
+      "secrets_recorded": false
+    },
+    {
+      "name": "live-oracle",
+      "result": "blocked",
+      "evidence": "Initial native Chrome state call aborted after 711 seconds; browser-only cua.getState succeeded, no Lovable tab, targeted repository URL search found no authorized oracle target.",
+      "observations": 0
+    }
+  ],
+  "remaining_gates": [
+    "Coordinator-serialized canonical sprint registration and exact ID resolution",
+    "Owner choiceA/B recorded without inferred policy expansion",
+    "Live Lovable terminology/minimal interactions evidence or explicit authorized oracle disposition",
+    "Early E20 checkpoint closure on reviewed revision",
+    "Verified exact write_paths and shared reservations reconciled",
+    "Fresh accepted integrated base and upstream contracts checked before implementation",
+    "Read-only helper plan only after approved canonical ready spec; no init/claim",
+    "Implementation evidence against exact result and combined integration revision",
+    "Full E20 stories20.2/20.3 and retained epic/wave gates remain coordinator-owned",
+    "Any post-owner-decision spec revision must receive independent High review and a new LF-normalized pin before ready-for-dev admission"
+  ],
+  "parallel_helper_plan": {
+    "executed": false,
+    "reason": "No approved canonical registered ready-for-dev spec; emitting helper-valid plan would invent prerequisites. This document deliberately is not the helper plan schema."
+  },
+  "product_implementation_performed": false,
+  "managed_resources_started": false
+}

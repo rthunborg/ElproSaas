@@ -1,0 +1,103 @@
+worktree C:/DEV/ElproSaas
+HEAD eef577cadffaf1b67fdff362081127d77a814beb
+branch refs/heads/codex/epic14-resume
+
+worktree C:/DEV/ElproSaas/tmp/private/epic11-pilot-operations
+HEAD 1edcab4466f588fdaf5c3502e32aa8d437795738
+branch refs/heads/codex/epic-11-operational-verification
+
+worktree C:/DEV/ElproSaas/tmp/private/pr59-review-fixes
+HEAD a435c6e7bff5f9200e06fbcd7852d447c4ec8e87
+branch refs/heads/codex/pr59-review-fixes
+
+worktree C:/DEV/ElproSaas/tmp/private/review-order-main
+HEAD 958f3ae165b11886bcc2d576c93b4e37a2a5f4ab
+branch refs/heads/codex/review-order-convention
+
+worktree C:/DEV/ElproSaas/tmp/private/review-order-pr47
+HEAD c06757d27cb1e84cb9298a21d71ce39158b2c21f
+branch refs/heads/codex/pr46-post-merge-bookkeeping
+
+worktree C:/DEV/ElproSaas/tmp/worktrees/epic-12-console-verification-20260920
+HEAD 661dfd33a2f9992254a521ac71b64ef885eda862
+detached
+
+worktree C:/DEV/ElproSaas/tmp/worktrees/fix-backup-db-url-stdin
+HEAD 1de84866fe891e39e48b7139baf97d192665997a
+branch refs/heads/codex/fix-backup-db-url-stdin
+
+worktree C:/DEV/ElproSaas/tmp/worktrees/ops-isolated-recovery-stack
+HEAD bb910b16c8fd26c2e6205e14f840a2f400c67c8a
+branch refs/heads/codex/ops-isolated-recovery-stack
+
+worktree C:/DEV/ElproSaas-onboarding-base-repro
+HEAD 0b4e37e8f76998282573599b3543751538dd5fdc
+detached
+
+worktree C:/DEV/ElproSaas-worktrees/epic11-auth-callback
+HEAD 2fb018a8af185525dad1d94043dae7703c7c88ed
+branch refs/heads/codex/story-11-3-auth-callback
+
+worktree C:/DEV/ElproSaas-worktrees/epic11-checkpoint
+HEAD a435c6e7bff5f9200e06fbcd7852d447c4ec8e87
+branch refs/heads/codex/epic-11-release-evidence
+
+worktree C:/DEV/ElproSaas-worktrees/epic11-identity
+HEAD fc2a85e4e615653c812a002eb48a63c6820e2823
+branch refs/heads/codex/story-11-3-invitation-identity-binding
+
+worktree C:/DEV/ElproSaas-worktrees/epic11-lifecycle
+HEAD 64af003a6f9fd1bee6f7494b6b52b819d071198c
+branch refs/heads/codex/story-11-3-invitation-lifecycle
+
+worktree C:/DEV/ElproSaas-worktrees/epic11-nfr-evidence
+HEAD 23b379a97969160ac9fffb34913648303b1e9e70
+branch refs/heads/codex/epic-11-nfr-evidence
+
+worktree C:/DEV/ElproSaas-worktrees/epic11-reset
+HEAD 7c543525f6b60ea3d76fb5c189af714f9c9ce0a7
+branch refs/heads/codex/story-11-3-reset-retry
+
+worktree C:/DEV/ElproSaas-worktrees/epic11-test-quality
+HEAD 9b2aaed410b610e0781ad1d3578cdb9ed0407373
+branch refs/heads/codex/epic-11-test-quality
+
+worktree C:/Users/Rasmus/.codex/worktrees/9cd1/ElproSaas
+HEAD ab1ca0445b58f5f496be0d938906c744b6dff87e
+detached
+
+worktree C:/Users/Rasmus/.codex/worktrees/b3cc/ElproSaas
+HEAD 7ed19ff1ff3133568562167f4840450672cac4d4
+detached
+
+worktree C:/Users/Rasmus/.codex/worktrees/dbe6/ElproSaas
+HEAD ab1ca0445b58f5f496be0d938906c744b6dff87e
+branch refs/heads/codex/story20-1-documents-preparation
+
+worktree C:/Users/Rasmus/.codex/worktrees/epic12-fix-e2e/ElproSaas
+HEAD 931ff85d1ab921678e529a2984fb3f3cd7f41529
+detached
+
+worktree C:/Users/Rasmus/.codex/worktrees/epic13-base-e2e/ElproSaas
+HEAD 0b4e37e8f76998282573599b3543751538dd5fdc
+detached
+
+worktree C:/Users/Rasmus/.codex/worktrees/epic13-release-decisions/ElproSaas
+HEAD 1020387b624b2b777a0629eabfa373d0df39ba99
+branch refs/heads/codex/epic13-release-decisions
+
+worktree C:/Users/Rasmus/.codex/worktrees/epic14-scheduling/ElproSaas
+HEAD b175b1d8c18eeb277d3ab450a6dde40643290b65
+branch refs/heads/epic/14-wave-b1b-resource-and-scheduling-foundation
+
+worktree C:/Users/Rasmus/.codex/worktrees/parallel-bmad-plan/ElproSaas
+HEAD 1f06e597387bb6a667bfc605fa4952bf7956e6e0
+branch refs/heads/codex/phase-b-second-lane-readiness
+
+worktree C:/Users/Rasmus/.codex/worktrees/runner-cursor-resilience/ElproSaas
+HEAD 68b7db3021d0601283a6c4d65141ac93f4416999
+branch refs/heads/codex/runner-cursor-resilience
+
+worktree C:/Users/Rasmus/.codex/worktrees/story19-1-dashboard/ElproSaas
+HEAD e008a133bc51270a95f77698b7bde4d6dab5fd83
+branch refs/heads/codex/19-1-widget-registry-and-dashboard-framework

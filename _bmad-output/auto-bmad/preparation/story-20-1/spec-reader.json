@@ -1,0 +1,44 @@
+{
+  "spec_path": "_bmad-output/implementation-artifacts/spec-20-1-documents-activation-and-source-authorized-aggregation.md",
+  "exists": true,
+  "artifact_format": "bmad-build-auto",
+  "legacy_story_status": null,
+  "frontmatter": {
+    "title": "Documents activation, source-authorized aggregation and minimal destination",
+    "type": "feature",
+    "created": "2026-10-08",
+    "status": "blocked",
+    "review_loop_iteration": 0,
+    "followup_review_recommended": false,
+    "baseline_revision": "ab1ca0445b58f5f496be0d938906c744b6dff87e",
+    "context": [
+      "AGENTS.md",
+      "docs/process/review-order.md",
+      "docs/process/agent-model-routing.md",
+      "docs/process/parallel-auto-bmad.md",
+      "docs/process/parallel-auto-bmad-contract.md",
+      "_bmad-output/planning-artifacts/early-b2-documents-checkpoint-2026-10-07.md",
+      "_bmad-output/planning-artifacts/sprint-change-proposal-2026-10-07.md",
+      "_bmad-output/planning-artifacts/prd-phase-b.md",
+      "_bmad-output/planning-artifacts/epics-phase-b.md",
+      "_bmad-output/planning-artifacts/architecture-phase-b.md",
+      "_bmad-output/planning-artifacts/ux-design-specification-phase-b.md",
+      "docs/decisions/ADR-B008-quote-review-authority-and-derived-artifact-validity.md",
+      "_bmad-output/auto-bmad/preparation/story-20-1/source-authorization-design.md"
+    ],
+    "warnings": [
+      "oversized"
+    ],
+    "deferred": [],
+    "deferred_count": 0
+  },
+  "auto_run_result": {
+    "present": true,
+    "status": "blocked",
+    "blocking_condition": "canonical story20.1 not found; owner source/direct Storage boundary decision unresolved; live Documents oracle observation unavailable; exact reviewed checkpoint and serialized claims pending."
+  },
+  "last_review_pass": null,
+  "status": "blocked",
+  "parse_warnings": [],
+  "error": null
+}
