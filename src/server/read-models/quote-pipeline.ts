@@ -18,8 +18,8 @@
  * 10.4-UNIT-01/02 pin the contract without a stack and 10.4-INT-01 proves ONLY the query/isolation layer.
  *
  * ── GENERIC-ERROR POSTURE (mirror read.ts) ───────────────────────────────────────────────────────
- * On any query fault the module degrades to a generic EMPTY descriptor for the resolved period (all-zero
- * counts, hitRate null, money 0/withheld per entitlement) — it NEVER leaks a SQL/stack detail.
+ * readQuotePipelineResult distinguishes unavailable reads from successful empty periods. The historical
+ * readQuotePipeline wrapper retains its empty-descriptor fallback for existing callers. Neither leaks detail.
  *
  * [Source: story 10.4 AC1/AC4 + Task 2.3 + SETTLED DESIGN DECISION 1 + Dev Notes "The security floor
  *  is §3.6"; src/features/quotes/read.ts (RLS client + generic-error posture + öre coercion);
@@ -100,8 +100,11 @@ function nextCalendarDay(day: string): string {
   return date.toISOString().slice(0, 10);
 }
 
-/** Coerce a `bigint` öre that PostgREST may return as a STRING into a JS number (0 when absent/invalid). */
-function oreNumber(v: unknown): number {
+/** PostgREST bigint conversion: strict result reads reject unsafe/malformed money; legacy reads retain coercion. */
+function oreNumber(v: unknown, strict: boolean): number {
+  if (strict && (v === null || v === undefined ||
+    (typeof v !== "number" && (typeof v !== "string" || !/^-?\d+$/.test(v))) ||
+    !Number.isSafeInteger(Number(v)))) throw new Error("Invalid accepted money");
   if (v === null || v === undefined) return 0;
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
@@ -129,18 +132,19 @@ function emptyAggregate(period: PipelinePeriod): PipelineAggregate {
  * joined to their quote's latest version status (the follow-up counts, EXCLUDING decided quotes) — all
  * on the RLS client. Returns the `{ data, entitlements }` descriptor.
  */
-export async function readQuotePipeline(
+async function readPipelineCore(
   period?: PipelinePeriod,
   entitlementInput?: EntitlementInput,
   deps: QuotePipelineDeps = {},
+  strict = false,
 ): Promise<PipelineDescriptor> {
   const now = deps.now ?? new Date().toISOString();
 
   try {
-    // Resolve the period INSIDE the try: a malformed injected clock throws from `resolvePipelinePeriod`,
-    // and this module's contract is to degrade to a generic empty descriptor — never leak a stack. A
-    // resolution outside the try would escape that posture (10.4 review patch).
+    // Result reads validate even an explicit-period clock before any query; the legacy wrapper retains its fallback.
+    if (strict && !validPipelineInstant(now)) throw new Error("Invalid clock");
     const resolvedPeriod = period ?? resolvePipelinePeriod(now);
+    if (strict && !validPipelinePeriod(resolvedPeriod)) throw new Error("Invalid period");
 
     const base = deps.client ?? (await createSupabaseServerClient());
     const client = base as unknown as PipelineReadClient;
@@ -161,7 +165,7 @@ export async function readQuotePipeline(
         .order("occurred_at", { ascending: true })
         .order("id", { ascending: true }),
     );
-    if (eventsRes.error) return projectWithEntitlements(emptyAggregate(resolvedPeriod), entitlementInput);
+    if (eventsRes.error) throw new Error("Pipeline query unavailable");
 
     const events: PipelineEventRow[] = [];
     const acceptedVersionIds = new Set<string>();
@@ -193,13 +197,13 @@ export async function readQuotePipeline(
           .order("quote_version_id", { ascending: true })
           .order("id", { ascending: true }),
       );
-      if (acceptancesRes.error) return projectWithEntitlements(emptyAggregate(resolvedPeriod), entitlementInput);
+      if (acceptancesRes.error) throw new Error("Pipeline query unavailable");
       for (const raw of (acceptancesRes.data ?? []) as Record<string, unknown>[]) {
         const vId = raw.quote_version_id;
         if (typeof vId !== "string") continue;
         acceptedVersions.push({
           quote_version_id: vId,
-          accepted_price_ore: oreNumber(raw.accepted_price_ore),
+          accepted_price_ore: oreNumber(raw.accepted_price_ore, strict),
         });
       }
     }
@@ -217,7 +221,7 @@ export async function readQuotePipeline(
         .order("due_date", { ascending: true })
         .order("id", { ascending: true }),
     );
-    if (followUpsRes.error) return projectWithEntitlements(emptyAggregate(resolvedPeriod), entitlementInput);
+    if (followUpsRes.error) throw new Error("Pipeline query unavailable");
 
     const rawFollowUps = (followUpsRes.data ?? []) as Record<string, unknown>[];
 
@@ -239,7 +243,7 @@ export async function readQuotePipeline(
           .order("version_number", { ascending: true })
           .order("id", { ascending: true }),
       );
-      if (versionsRes.error) return projectWithEntitlements(emptyAggregate(resolvedPeriod), entitlementInput);
+      if (versionsRes.error) throw new Error("Pipeline query unavailable");
       for (const raw of (versionsRes.data ?? []) as Record<string, unknown>[]) {
         const quoteId = raw.quote_id;
         if (typeof quoteId !== "string") continue;
@@ -273,14 +277,59 @@ export async function readQuotePipeline(
     );
     return projectWithEntitlements(aggregate, entitlementInput);
   } catch {
-    // Generic degrade — never leak a SQL/stack detail (mirror read.ts's FAILED posture). Resolve a
-    // period WITHOUT re-running a possibly-throwing clock: prefer the caller's window, else a safe
-    // same-day window from the raw instant slice (string ops never throw).
-    return projectWithEntitlements(
-      emptyAggregate(period ?? safePeriodFromInstant(now)),
-      entitlementInput,
-    );
+    throw new Error("Pipeline unavailable");
   }
+}
+
+/** Result entry used by dashboard: no partial values, empty fallback or raw errors. */
+export type QuotePipelineResult =
+  | { readonly ok: true; readonly data: { readonly descriptor: PipelineDescriptor; readonly completedAt: string } }
+  | { readonly ok: false; readonly code: "SERVER_ERROR"; readonly message: string };
+
+export async function readQuotePipelineResult(
+  period?: PipelinePeriod,
+  entitlementInput?: EntitlementInput,
+  deps: QuotePipelineDeps = {},
+): Promise<QuotePipelineResult> {
+  try {
+    const descriptor = await readPipelineCore(period, entitlementInput, deps, true);
+    return { ok: true, data: { descriptor, completedAt: new Date().toISOString() } };
+  } catch {
+    return { ok: false, code: "SERVER_ERROR", message: "Kunde inte läsa offertpipeline" };
+  }
+}
+
+/** Compatible E10 descriptor entry; dashboard must use the result entry above. */
+export async function readQuotePipeline(
+  period?: PipelinePeriod,
+  entitlementInput?: EntitlementInput,
+  deps: QuotePipelineDeps = {},
+): Promise<PipelineDescriptor> {
+  try {
+    return await readPipelineCore(period, entitlementInput, deps);
+  } catch {
+    let fallback = period;
+    if (!fallback) {
+      try { fallback = resolvePipelinePeriod(deps.now ?? new Date().toISOString()); }
+      catch { fallback = safePeriodFromInstant(deps.now ?? new Date().toISOString()); }
+    }
+    return projectWithEntitlements(emptyAggregate(fallback), entitlementInput);
+  }
+}
+
+function validPipelineInstant(value: string): boolean {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value))
+    return false;
+  return Number.isFinite(Date.parse(value)) && validPipelineDay(value.slice(0, 10));
+}
+
+function validPipelineDay(day: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(day) && Number.isFinite(Date.parse(day)) &&
+    new Date(day).toISOString().slice(0, 10) === day;
+}
+
+function validPipelinePeriod(period: PipelinePeriod): boolean {
+  return validPipelineDay(period.from) && validPipelineDay(period.to) && period.from <= period.to;
 }
 
 /** A same-day fallback window from a raw ISO instant — string-only (never throws), for the degrade path. */

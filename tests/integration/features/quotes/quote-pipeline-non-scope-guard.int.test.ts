@@ -1,28 +1,23 @@
 /**
- * Story 10.4 — ATDD RED-PHASE scaffold: the NON-SCOPE guard (10.4-INT-03, P2, AC3; test-design-epic-10.md
- * R-1045). Pipeline data appears ONLY in the existing quote list/detail + the read-model E19 consumes
- * later (PB-D7 / FR107). This guard asserts the shipped surface grows NO new analytics surface: no new
- * nav item, no dashboard widget, no separate analytics/reports page, no manifest `widgets` entry for the
- * `quotes` module, and NO email-send path on the read-model / list path. A deferred-surface + manifest
- * scan mirroring the R-1045 mitigation.
+ * Story 10.4 — the NON-SCOPE guard (10.4-INT-03, P2, AC3; test-design-epic-10.md R-1045).
+ * The E10 read-model shipped without a new analytics/nav/email surface. Story 19.1 now consumes
+ * that read-model through the explicitly approved `quote-pipeline` dashboard widget (PB-D7 / FR107).
+ * Keep the widget inventory exact: only that sanctioned E19 registration may exist; no separate
+ * analytics/reports page, extra quote nav item, or email-send path may grow here.
  *
- * The pins (Task 5):
- *   - the `quotes` module in `SCOPE_MANIFEST` keeps `widgets: []` and its SINGLE `navItems`
- *     `[{ route: "/quotes" }]` — unchanged by this story;
- *   - the derived active nav route set stays the 7 Phase-A routes (no new nav module directory);
- *   - the governed `TENANT_TABLES` set derives from active manifest modules. Story 10.4 added
- *     none; later, explicitly governed activations change the manifest rather than this guard;
- *   - the read-model + list source path imports NO email/notification send path (Epic 13 owns reminders).
+ * The current manifest-governed pins:
+ *   - the `quotes` module declares only `quote-pipeline` and its SINGLE `/quotes` nav item;
+ *   - the complete active widget inventory contains only the approved Story 19.1 widget;
+ *   - the derived active nav route set stays at the existing Phase-A routes;
+ *   - the governed `TENANT_TABLES` set derives from active manifest modules;
+ *   - the read-model source path imports NO email/notification send path (Epic 13 owns reminders).
  *
- * ── GREEN (Story 10.4 implemented) ───────────────────────────────────────────────────────────────
- * The read-model landed with NO manifest growth; the suite is unskipped. Later manifest-governed
- * stories may advance the explicit inventory pin; the read-model source scan finds no email-send path. The `existsSync` guard keeps
- * the source scan safe. If a widget/nav/analytics-page/email path is ever genuinely required, that is
- * Epic 19 / Epic 13 scope — STOP and escalate, do not grow the manifest here. The assertions are the
- * CONTRACT.
+ * Later manifest-governed stories may advance these explicit inventory pins. This guard preserves
+ * the E10 boundary while admitting the owner-approved E19 consumer; extra widgets still fail loudly.
+ * The source scan remains unskipped, and the `existsSync` guard keeps it safe.
  *
- * [Source: story 10.4 AC3 + Task 5 + the ⚑ SCOPE BOUNDARY section; src/scope/manifest.ts (quotes module
- *  widgets []/one nav item); test-design-epic-10.md#10.4-INT-03, R-1045]
+ * [Source: story 10.4 AC3 + Task 5; test-design-epic-10.md#10.4-INT-03, R-1045;
+ *  spec-19-1-dashboard-framework-and-quote-pipeline.md, Boundaries / Evidence]
  */
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
@@ -46,10 +41,10 @@ const READ_MODELS_DIR = path.join(process.cwd(), "src", "server", "read-models")
 const EMAIL_PATH_TOKENS = /sendMail|sendEmail|nodemailer|resend|smtp|notification.*send|mailer/i;
 
 describe("10.4-INT-03: non-scope guard — no new analytics surface / no email-send path", () => {
-  it("the quotes module keeps widgets: [] (no dashboard widget grows here — Epic 19 owns widgets)", () => {
+  it("the quotes module declares only the approved Story 19.1 quote-pipeline widget", () => {
     const quotes = SCOPE_MANIFEST.modules.find((m) => m.id === "quotes");
     expect(quotes).toBeDefined();
-    expect(quotes?.widgets).toEqual([]);
+    expect(quotes?.widgets).toEqual(["quote-pipeline"]);
   });
 
   it("the quotes module keeps its SINGLE /quotes nav item (no new nav item)", () => {
@@ -65,11 +60,11 @@ describe("10.4-INT-03: non-scope guard — no new analytics surface / no email-s
     expect([...new Set(routes)]).toEqual(PHASE_A_NAV_ROUTES);
   });
 
-  it("no active module declares any widget (the manifest widget set stays empty for E10)", () => {
+  it("the active widget inventory contains only the approved Story 19.1 quote-pipeline widget", () => {
     const widgets = SCOPE_MANIFEST.modules
       .filter((m) => m.status === "active")
       .flatMap((m) => m.widgets);
-    expect(widgets).toEqual([]);
+    expect(widgets).toEqual(["quote-pipeline"]);
   });
 
   it("the governed tenant-table inventory derives from the active manifest modules", () => {

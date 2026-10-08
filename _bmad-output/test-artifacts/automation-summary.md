@@ -5,9 +5,10 @@ stepsCompleted:
   - 'step-03c-aggregate'
   - 'step-04-validate-and-summarize'
 lastStep: 'step-04-validate-and-summarize'
-lastSaved: '2026-09-24'
+lastSaved: '2026-10-07'
+latestRun: 'automation-summary-story-19-1.md'
 workflowType: testarch-automate
-story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism; 11.2 Non-Admin Access to the Phase A Surface; 11.3 Admin User Management; 11.4 Roles Surface, Effective Permissions, and the Per-Role Test Harness; 12.1 Platform Operator Identity and the Provision-Tenant Command; 12.2 Operator Console; 12.3 First-Admin Onboarding Checklist; 13.2 In-App Notifications — Bell, Center, and Preferences; 13.3 Email Outbox Pipeline (Queued, Non-Sending); 13.4 Email Sending Activation (latest)
+story: 10.6 Tax-Answer Reconciliation; 11.1 Role Storage and Permission-Matrix Mechanism; 11.2 Non-Admin Access to the Phase A Surface; 11.3 Admin User Management; 11.4 Roles Surface, Effective Permissions, and the Per-Role Test Harness; 12.1 Platform Operator Identity and the Provision-Tenant Command; 12.2 Operator Console; 12.3 First-Admin Onboarding Checklist; 13.2 In-App Notifications — Bell, Center, and Preferences; 13.3 Email Outbox Pipeline (Queued, Non-Sending); 13.4 Email Sending Activation; 19.1 Dashboard Framework and Live Quote Pipeline (latest)
 detectedStack: fullstack
 executionMode: BMad-integrated (post-implementation risk-based coverage expansion)
 inputDocuments:
@@ -1341,3 +1342,7 @@ No repository test file was written during aggregation. This is the required fai
 - The existing focused evidence remains green under required-stack execution with zero skips.
 
 **Next required action:** implement the three missing product branches under approved scope, add executing P0 tests, and rerun the Epic 13 trace gate for 26/26 P0 FULL coverage.
+
+## Story19.1 — Dashboard framework and live quote pipeline (2026-10-07)
+
+Create / BMad-integrated automation expansion is complete: five added tests (P0 2 / P1 3), full units 2,052 passes / 0 failures / 1 existing Linux-only skip, dedicated browser 57 passes / 0 failures / 0 skips. Complete bounded output and progress state: [automation-summary-story-19-1.md](automation-summary-story-19-1.md). Historical story evidence above is preserved. This run expands only the admitted Story19.1 slice and does not close Epic19.

@@ -238,7 +238,7 @@ export function AppShell({
 
         {/* Content column: top bar + main. */}
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex h-14 shrink-0 items-center gap-3 border-b border-zinc-200 bg-white px-4">
+          <header className="flex min-h-14 shrink-0 flex-wrap items-center gap-3 border-b border-zinc-200 bg-white px-4 py-2 sm:h-14 sm:flex-nowrap sm:py-0">
             <button
               ref={hamburgerRef}
               type="button"
@@ -272,14 +272,14 @@ export function AppShell({
                 server-side). Stable `data-testid` anchors back the gated E2E acceptance
                 (login-and-tenant-context.e2e.spec.ts). The `data-slot="primary-action"`
                 attribute is preserved as the owning-module action mount point. */}
-            <div data-slot="primary-action" className="flex items-center gap-3">
+            <div data-slot="primary-action" className="flex w-full min-w-0 items-center gap-3 sm:w-auto">
               <NotificationBell />
               <div className="relative">
                 <button type="button" aria-label="Profil" aria-expanded={profileOpen} onClick={() => setProfileOpen((current) => !current)} className="text-sm text-zinc-700">Profil</button>
-                {profileOpen && <div className="absolute right-0 z-50 mt-2 rounded border bg-white p-2 shadow"><Link href="/settings/notifications" onClick={() => setProfileOpen(false)}>Notisinställningar</Link></div>}
+                {profileOpen && <div className="absolute left-0 z-50 mt-2 rounded border bg-white p-2 shadow sm:left-auto sm:right-0"><Link href="/settings/notifications" onClick={() => setProfileOpen(false)}>Notisinställningar</Link></div>}
               </div>
               {(context.tenantName || context.userEmail) && (
-                <div className="flex min-w-0 flex-col items-end leading-tight">
+                <div className="flex min-w-0 flex-1 flex-col items-end leading-tight sm:flex-none">
                   {/* AC1: the active tenant/company indicator is UNCONDITIONAL — it must be
                       visible on every viewport, so the tenant name has NO `sm:` floor. The
                       secondary user-email line is hidden on the narrowest screens (where the
@@ -287,7 +287,7 @@ export function AppShell({
                   {context.tenantName && (
                     <span
                       data-testid="tenant-context"
-                      className="max-w-[10rem] truncate text-sm font-medium text-zinc-900 sm:max-w-[16rem]"
+                      className="max-w-full truncate text-sm font-medium text-zinc-900 sm:max-w-[16rem]"
                     >
                       {context.tenantName}
                     </span>

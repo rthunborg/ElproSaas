@@ -1,0 +1,89 @@
+{
+  "python": {
+    "version": "3.14.7",
+    "ok": true
+  },
+  "central_config": {
+    "present": true,
+    "layers_read": [
+      "C:\\Users\\Rasmus\\.codex\\worktrees\\dbe6\\ElproSaas\\_bmad\\config.toml",
+      "C:\\Users\\Rasmus\\.codex\\worktrees\\dbe6\\ElproSaas\\_bmad\\config.user.toml",
+      "C:\\Users\\Rasmus\\.codex\\worktrees\\dbe6\\ElproSaas\\_bmad\\custom\\config.toml"
+    ],
+    "output_folder": "C:\\Users\\Rasmus\\.codex\\worktrees\\dbe6\\ElproSaas\\_bmad-output",
+    "implementation_artifacts": "C:\\Users\\Rasmus\\.codex\\worktrees\\dbe6\\ElproSaas\\_bmad-output\\implementation-artifacts",
+    "planning_artifacts": "C:\\Users\\Rasmus\\.codex\\worktrees\\dbe6\\ElproSaas\\_bmad-output\\planning-artifacts",
+    "project_name": "ElproSaas",
+    "error": null
+  },
+  "legacy_configs": {
+    "bmm_present": true,
+    "core_present": true
+  },
+  "tea_config": null,
+  "uv": {
+    "on_path": true,
+    "path": "C:\\Users\\Rasmus\\.local\\bin\\uv.EXE",
+    "version": "uv 0.12.6 (7938ca5d5 2026-08-25 x86_64-pc-windows-msvc)"
+  },
+  "python311": {
+    "status": "ok",
+    "found": "C:\\Users\\Rasmus\\AppData\\Local\\Programs\\Python\\Python314\\python.exe",
+    "detail": "C:\\Users\\Rasmus\\AppData\\Local\\Programs\\Python\\Python314\\python.exe"
+  },
+  "agents_md": {
+    "present": true,
+    "has_context_block": true
+  },
+  "nesting": {
+    "host": "codex",
+    "tier": "subagents",
+    "status": "ok",
+    "detail": "Codex delegate model capability is V2 (gpt-6.1-sol); agents.max_depth is ignored",
+    "fix": null,
+    "sources": [
+      "C:\\Users\\Rasmus\\.codex\\config.toml",
+      "C:\\Users\\Rasmus\\.codex\\worktrees\\dbe6\\ElproSaas\\.codex\\config.toml",
+      "command:codex debug models"
+    ]
+  },
+  "cross_model": {
+    "tool": null,
+    "binary": null,
+    "binary_on_path": null
+  },
+  "git": {
+    "is_repo": true,
+    "current_branch": "codex/story20-1-documents-preparation",
+    "tree_clean": false,
+    "dirty_files_count": 1,
+    "status_error": null,
+    "base_branch": "main",
+    "mode": "remote",
+    "gh_installed": true,
+    "gh_authed": true,
+    "github_remote": true
+  },
+  "ci": {
+    "workflows_present": true
+  },
+  "skills": {
+    "checked": [],
+    "missing": [],
+    "sprint_plan_script": null,
+    "build_auto_folder_id": null,
+    "build_auto_step01": null
+  },
+  "stories": {
+    "story_source": "sprint",
+    "spec_folder": null,
+    "stories_yaml": null,
+    "spec_md": null
+  },
+  "framework": null,
+  "warnings": [],
+  "hard_stop": true,
+  "hard_stop_reasons": [
+    "working tree dirty (1 file(s)) on branch 'codex/story20-1-documents-preparation' \u2014 commit or stash first"
+  ]
+}
