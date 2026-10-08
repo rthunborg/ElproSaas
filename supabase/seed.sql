@@ -165,7 +165,13 @@ end $$;
 
 -- Story 14.3 preinstalls the owner-only, correlation-scoped fault fixtures.
 -- Test bodies only insert/remove their own marker; no concurrent trigger DDL.
-
+-- Resources owns the first schema; scheduling remains pending. Earlier schemas
+-- can run this seed without exposing or fabricating the resource tables.
+do $resource_faults$
+begin
+  if to_regclass('public.bookings') is not null
+    and to_regclass('public.booking_assignees') is not null
+    and to_regclass('public.booking_conflicts') is not null then
       create schema if not exists test_support;
       create table if not exists test_support.forced_booking_failures(correlation_id uuid primary key,stage text not null);
       revoke all on test_support.forced_booking_failures from public,anon,authenticated,service_role;
@@ -198,3 +204,47 @@ end $$;
     drop trigger if exists test_forced_conflict_preparation on public.booking_conflicts;
     create trigger test_forced_conflict_preparation after insert or update or delete on public.booking_conflicts
       for each statement execute function test_support.fail_conflict_preparation();
+
+    -- Story 14.4 uses the same seed-only lifecycle. Runtime rollback tests only
+    -- add/remove their correlation + stage marker; these three hooks stay put.
+    create table if not exists test_support.editor_faults (
+      correlation_id uuid primary key,
+      stage text not null check (stage in ('after_acceptance', 'before_audit'))
+    );
+    revoke all on test_support.editor_faults from public,anon,authenticated,service_role;
+    create or replace function test_support.fail_editor_transaction()
+    returns trigger language plpgsql set search_path='' as $$
+    declare v_keys jsonb;
+    begin
+      if exists(select 1 from test_support.editor_faults f
+        where f.correlation_id=nullif(current_setting('app.booking_correlation_id',true),'')::uuid
+          and f.stage=TG_ARGV[0]) then
+        select jsonb_agg(natural_key order by natural_key) into v_keys from public.booking_conflicts
+          where tenant_id=nullif(current_setting('app.editor_test_tenant',true),'')::uuid and status='accepted';
+        -- Actual accepted rows are observed inside the transaction that will roll back.
+        if v_keys is not null then
+          raise exception 'forced editor transaction failure' using errcode='XX000',detail=v_keys::text;
+        end if;
+      end if;
+      return null;
+    end $$;
+    revoke all on function test_support.fail_editor_transaction() from public,anon,authenticated,service_role;
+    create or replace function test_support.mark_editor_tenant()
+    returns trigger language plpgsql set search_path='' as $$
+    begin
+      perform set_config('app.editor_test_tenant',new.tenant_id::text,true);
+      return new;
+    end $$;
+    revoke all on function test_support.mark_editor_tenant() from public,anon,authenticated,service_role;
+    drop trigger if exists test_editor_tenant_marker on public.bookings;
+    create trigger test_editor_tenant_marker before insert or update on public.bookings
+      for each row execute function test_support.mark_editor_tenant();
+    drop trigger if exists test_editor_after_acceptance on public.booking_conflicts;
+    create trigger test_editor_after_acceptance after update on public.booking_conflicts
+      for each statement execute function test_support.fail_editor_transaction('after_acceptance');
+    drop trigger if exists test_editor_before_audit on public.audit_events;
+    create trigger test_editor_before_audit before insert on public.audit_events
+      for each statement execute function test_support.fail_editor_transaction('before_audit');
+  end if;
+end;
+$resource_faults$;

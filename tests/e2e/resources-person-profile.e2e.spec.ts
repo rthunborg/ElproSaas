@@ -29,6 +29,26 @@ async function logIn(page: import("@playwright/test").Page, credentials: RoleFix
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
+/** Settle this submit before another edit can race its action/form reset. */
+async function submitResourceAndSettle(page: import("@playwright/test").Page): Promise<void> {
+  const target = new URL(page.url());
+  const save = page.getByTestId("resource-save");
+  // Register before clicking. Initial success is followed by reload; preceding
+  // invalid submits also settle, so an earlier action cannot satisfy this witness.
+  const responsePromise = page.waitForResponse((response) => {
+    const request = response.request();
+    const url = new URL(response.url());
+    return request.method() === "POST" && Boolean(request.headers()["next-action"])
+      && url.origin === target.origin && url.pathname === target.pathname;
+  }, { timeout: 15_000 });
+  const [response] = await Promise.all([responsePromise, save.click()]);
+  expect(response.ok()).toBe(true);
+  expect(await response.finished()).toBeNull();
+  // The existing configured expectation bound is unchanged. Response completion
+  // plus rendered nonpending state precede all subsequent fixture edits.
+  await expect(save).toBeEnabled();
+}
+
 test("[P0] admin persists a same-tenant role and schedule inputs in the existing user-detail route, then reloads server state", async ({ resourcePage: page }) => {
   const fixture = getFixture();
   await logIn(page, fixture.adminUserManagement.tenantAdmin);
@@ -53,18 +73,18 @@ test("[P0] admin persists a same-tenant role and schedule inputs in the existing
 
   await page.getByTestId("resource-weekday-1-start").fill("");
   await page.getByTestId("resource-weekday-1-end").fill("");
-  await page.getByTestId("resource-save").click();
+  await submitResourceAndSettle(page);
   await expect(page.getByTestId("resource-save-error")).toHaveText(/kontrollera/i);
   await page.getByTestId("resource-weekday-1-start").fill("07:00");
   await page.getByTestId("resource-weekday-1-end").fill("16:00");
 
   await page.getByTestId("resource-person-exception-date").fill("");
-  await page.getByTestId("resource-save").click();
+  await submitResourceAndSettle(page);
   await expect(page.getByTestId("resource-save-error")).toHaveText(/kontrollera/i);
   await page.getByTestId("resource-person-exception-date").fill("2026-10-16");
 
   await page.getByTestId("resource-calendar-day-reduction").fill("");
-  await page.getByTestId("resource-save").click();
+  await submitResourceAndSettle(page);
   await expect(page.getByTestId("resource-save-error")).toHaveText(/kontrollera/i);
 
   await page.getByTestId("resource-calendar-day-reduction").fill("50");

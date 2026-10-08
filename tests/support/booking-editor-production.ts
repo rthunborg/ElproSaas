@@ -401,33 +401,24 @@ export async function actualEditorBindings(): Promise<EditorBindings> {
   return bindings;
 }
 
-let faultReady: Promise<void> | undefined;
 async function editorFault<T>(fx: BookingFixture, correlation: string, stage: "after_acceptance" | "before_audit", run: () => Promise<T>) {
-  await (faultReady ??= adminQuery(`create schema if not exists test_support;
-    create table if not exists test_support.editor_faults(correlation_id uuid primary key,stage text not null);
-    revoke all on test_support.editor_faults from public,anon,authenticated,service_role;
-    create or replace function test_support.fail_editor_transaction() returns trigger language plpgsql set search_path='' as $$
-    declare v_keys jsonb;
-    begin
-      if exists(select 1 from test_support.editor_faults f where f.correlation_id=nullif(current_setting('app.booking_correlation_id',true),'')::uuid and f.stage=TG_ARGV[0]) then
-        select jsonb_agg(natural_key order by natural_key) into v_keys from public.booking_conflicts
-          where tenant_id=nullif(current_setting('app.editor_test_tenant',true),'')::uuid and status='accepted';
-        -- Acceptance marker is sourced from actual rows in this same transaction.
-        if v_keys is not null then raise exception 'forced editor transaction failure' using errcode='XX000',detail=v_keys::text; end if;
-      end if;
-      return null;
-    end $$;
-    revoke all on function test_support.fail_editor_transaction() from public,anon,authenticated,service_role;
-    create or replace function test_support.mark_editor_tenant() returns trigger language plpgsql set search_path='' as $$
-    begin perform set_config('app.editor_test_tenant',new.tenant_id::text,true); return new; end $$;
-    revoke all on function test_support.mark_editor_tenant() from public,anon,authenticated,service_role;
-    drop trigger if exists test_editor_tenant_marker on public.bookings;
-    create trigger test_editor_tenant_marker before insert or update on public.bookings for each row execute function test_support.mark_editor_tenant();
-    drop trigger if exists test_editor_after_acceptance on public.booking_conflicts;
-    create trigger test_editor_after_acceptance after update on public.booking_conflicts for each statement execute function test_support.fail_editor_transaction('after_acceptance');
-    drop trigger if exists test_editor_before_audit on public.audit_events;
-    create trigger test_editor_before_audit before insert on public.audit_events for each statement execute function test_support.fail_editor_transaction('before_audit');`).then(() => undefined));
-  await adminQuery("insert into test_support.editor_faults values($1,$2)", [correlation,stage]);
+  const [installed] = await adminQuery<{ ready: boolean }>(`
+    with expected(table_name, trigger_name, function_name, trigger_type, argument) as (
+      values ('bookings','test_editor_tenant_marker','mark_editor_tenant',23,''),
+        ('booking_conflicts','test_editor_after_acceptance','fail_editor_transaction',16,'after_acceptance'),
+        ('audit_events','test_editor_before_audit','fail_editor_transaction',6,'before_audit')
+    )
+    select to_regclass('test_support.editor_faults') is not null
+      and (select count(*) from expected e join pg_trigger t
+        on t.tgrelid=to_regclass('public.'||e.table_name) and t.tgname=e.trigger_name
+        and t.tgfoid=to_regprocedure('test_support.'||e.function_name||'()')
+        and not t.tgisinternal and t.tgenabled='O' and t.tgtype=e.trigger_type
+        and t.tgnargs=case when e.argument='' then 0 else 1 end
+        and t.tgargs=case when e.argument='' then ''::bytea
+          else convert_to(e.argument,'UTF8')||decode('00','hex') end)=3 as ready
+  `);
+  if (!installed?.ready) throw new Error("Seed-installed editor fault fixture is missing or invalid; apply the local test seed before running rollback cases");
+  await adminQuery("insert into test_support.editor_faults(correlation_id,stage) values($1,$2)", [correlation,stage]);
   const original = fx.adminClient; let reached = false; let acceptedKeysObserved: string[] = [];
   fx.adminClient = new Proxy(original,{ get(target,property) {
     if (property === "rpc") return async (name: string,args: Record<string,unknown>) => {
@@ -442,12 +433,6 @@ async function editorFault<T>(fx: BookingFixture, correlation: string, stage: "a
   try { return { value: await run(), get reached() { return reached; }, get acceptedKeysObserved() { return acceptedKeysObserved; } }; }
   finally {
     fx.adminClient = original;
-    await adminQuery("delete from test_support.editor_faults where correlation_id=$1", [correlation]);
-    await adminQuery(`drop trigger if exists test_editor_tenant_marker on public.bookings;
-      drop trigger if exists test_editor_after_acceptance on public.booking_conflicts;
-      drop trigger if exists test_editor_before_audit on public.audit_events;
-      drop function if exists test_support.mark_editor_tenant();
-      drop function if exists test_support.fail_editor_transaction();`);
-    faultReady = undefined;
+    await adminQuery("delete from test_support.editor_faults where correlation_id=$1 and stage=$2", [correlation,stage]);
   }
 }

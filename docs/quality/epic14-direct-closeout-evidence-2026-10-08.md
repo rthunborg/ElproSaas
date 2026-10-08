@@ -188,7 +188,7 @@ promise repeats the first error. The global DDL touches `bookings`,
 `booking_conflicts` and `audit_events`, so runner isolation must account for
 all interfering writers, including the separate job-runs suite.
 
-The browser job failed with 193 passed and four failed. All four fail during
+The browser job failed with 193 passed, four failed and four existing skips. All four failures occur during
 test-side review-proof setup with “booking detection is not configured.” The
 production app receives the synthetic booking key through Playwright's server
 environment, while the Playwright worker lacks it. This is a bounded CI
@@ -242,6 +242,95 @@ paths, strict fresh-schema denials, original concrete-row controls and
 deterministic full-row snapshots. It adds no broad review round and supplies
 no runtime PASS. The shared DDL runner repair and fresh exact-head CI remain
 open; completion and acceptance records remain unchanged.
+
+### Fresh ACL/worker fixes published — 1cd4ec02
+
+[Run 37772147075](https://github.com/rthunborg/ElproSaas/actions/runs/37772147075)
+completed on `1cd4ec028ffc7f0ec8ef77638950930d16612441`. Verification and isolated
+Storage recovery passed. The browser job passed with **196 passed, one flaky
+retry and four existing skips** (5.5 minutes). The flaky first attempt was the
+person-profile save test at line 81, where the saved-status element was absent;
+the retry passed. Its cause remains under bounded diagnosis. The four skips
+are the existing expired-file-link case and three quote follow-up/lost-reason
+retry-safety cases, and receive no coverage credit.
+
+The REQUIRED database job failed with **1,466 total, 1,461 passed, four failed
+and one existing isolated-recovery skip**, 253.89 seconds for the invocation.
+All 24 earlier ACL failures are gone. The remaining four failures reproduce
+the editor fault-trigger installation deadlock before assertions, so the pilot
+command after the integration suite did not execute. This failed full run is
+preserved; successful neighboring jobs do not make it PASS.
+
+### Editor fault hooks follow the existing seed lifecycle
+
+Actual root source already seeds correlation-scoped booking/conflict fault hooks
+before tests. The owned editor helper is being repaired to follow that pattern:
+install its three hooks during seeding and mutate only its own UUID/stage marker
+during each case. Runtime hook DDL and its rejected cached bootstrap are removed.
+This supersedes the proposed shared-runner repair for this Epic 14 failure; the
+Coordinator-owned configuration stays untouched. No cross-chat message was sent.
+
+The guard validated reuse of the same dedicated project and saved data under
+usage resource `23f9d9fe-372f-4ec5-8f75-170b72ae5f0a`; application migrations
+were not reset or reapplied. The complete current seed applied twice, native 0.
+Three hooks remained installed, marker count was zero, all control-table DML
+and both hook-function EXECUTE privileges were denied to anon/authenticated/
+service_role, and the 99-entry migration ledger count/digest stayed unchanged.
+The stage CHECK is created only for a fresh marker table; retained tables are
+not relabeled or silently altered. Current helper stage/argument and actual-key
+assertions retain the restricted fault behavior.
+
+A mistyped filter first executed two accepted-identity cases, native 0, with
+56 excluded cases; these are not rollback credit. The corrected filter executed
+all four create/update × fault-stage rollback cases, native 0, with 54 excluded
+cases. One complete six-file REQUIRED resource command run then passed **153/153,
+zero failed/skipped**, 111.286 seconds measured from JSON run start to last file
+end. This includes all 58 editor and 62 conflict cases plus the related round-two,
+review-fix, booking and replay suites. It does not replace full fresh-schema CI.
+
+Independent Sol 6.1 High source review found no consequential defect in the
+seed/helper repair, with the retained CHECK limitation explicitly qualified.
+Post-pack SQL proved zero remaining markers and all three hooks still present.
+The resource received an accepted Stop request with saved state preserved.
+Fresh exact-head CI for the harness repair, the profile flaky-attempt diagnosis
+and completion-record reconciliation remain open. No additional broad review
+round, performance/daylight certification or calendar acceptance is credited.
+
+### Profile sequencing and current complete browser execution
+
+The downloaded `1cd4ec02` report binds the failed first profile attempt to a
+snapshot with its panel present, save enabled and a validation alert. The
+exception date is blank while its kind remains `blocked_time`, despite an
+earlier empty-kind assertion. The server correctly refuses this shape. Three
+consecutive identical validation assertions could accept an earlier action's
+status; installed React source supports a delayed form reset, but the exact
+interleaving remains untraced. The repair is test-only: settle each invalid
+submission's real matching Next-action response before the next edit.
+
+The first patch unnecessarily awaited body completion for successful saves
+too. Its four-profile run failed, native 1: three passed, one timeout, zero
+skipped/flaky; JSON duration 81.658 seconds. The final save blocked at response
+completion until the existing 60-second test timeout. That error artifact has
+no page snapshot, so neither its UI state nor the precise EOF/CDP cause is
+claimed. The correction limits the added barrier to the three invalid submits;
+both successful submits retain their original saved-status and reload assertions.
+Timeouts, retry policy, data and all original validation/persistence checks remain.
+
+The corrected four-profile run passed, native 0: **four passed, zero failed,
+skipped or flaky**, JSON duration 6.675 seconds. One complete run of the current
+booking/profile pack then passed, native 0: **23 passed, zero failed, skipped
+or flaky**, JSON duration 65.835 seconds. This is one actual complete run,
+separate from the earlier 23-case pass and failed profile diagnostic.
+The same Next 16.3.8 production build was reused because product source is
+unchanged by these harness fixes. Independent High review found no consequential
+defect in the corrected test, its real response witnesses or author trail.
+
+The dedicated Chrome start request returned a broker response timeout.
+No duplicate launch was attempted: List subsequently proved the new owned
+registration active with verified startup evidence. After the current browser
+consumers finished, SQL again proved zero editor markers and three hooks; the
+app, browser and database usage registrations received accepted Stop requests,
+preserving saved state. Fresh CI for the combined harness fixes remains required.
 
 Performance targets and representative volumes remain owner-pending and
 unmeasured. Human manual accessibility/daylight evidence remains unexecuted;
