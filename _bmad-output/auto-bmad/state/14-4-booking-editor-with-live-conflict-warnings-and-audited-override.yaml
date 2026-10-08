@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: codex/epic14-resume
 status: done
-updated_at: "2026-10-07T16:15:20Z"
+updated_at: "2026-10-08T13:58:04Z"
 started_at: "2026-10-07T11:04:30Z"
 completed_at: "2026-10-07T16:15:20Z"
 active_seconds: 13263
@@ -44,13 +44,13 @@ spec_approved: true
 build:
   status: done
   blocking_condition: null
-  followup_review_recommended: true
+  followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
   warnings: [oversized]
 followup_passes: 1
 hitl_halt: "auto-continued (epic â€” no halt)"
-review_unverified: true
+review_unverified: false
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -73,10 +73,10 @@ retro:
   doc: null
   verdict: null
   open_action_items: 0
-bmad_status_flipped_at: null
+bmad_status_flipped_at: 9
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/86"
-ci_run_url: null
-ci_status: unknown
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/37786814317"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null
@@ -140,6 +140,10 @@ overrides:
   final_browser_two_run_passed: 19
   current_guard_server_resource_id: 395a78d3-7e48-4edd-a4e1-76e156313251
   large_http_request_bytes: 1120245
+  direct_closeout_source_head: 179e86c2f96d684310b8c51af59d58ea3e23be78
+  direct_closeout_ci_run_id: "37786814317"
+  direct_closeout_clearance_date: 2026-10-08
+  direct_closeout_evidence: docs/quality/epic14-direct-closeout-evidence-2026-10-08.md
 constraints:
   - "Approved PhaseB manifest-governed Story14.4 only; hardPhaseC exclusions."
   - "Retain owner-approved ContractC; allfour14.3 checks passed beforeeditor exposure."

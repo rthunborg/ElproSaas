@@ -556,3 +556,62 @@ and three hooks. The database registration received an accepted Stop request,
 preserving saved state; verified shutdown is not asserted. See the
 [author handoff](epic14-admin-pilot-closeout-2026-10-08.md). Final author-trail
 review and fresh five-job CI remain pending before official completion.
+
+### Confirmed five-job source gate — 2026-10-08
+
+[CI 37786814317](https://github.com/rthunborg/ElproSaas/actions/runs/37786814317)
+on `179e86c2f96d684310b8c51af59d58ea3e23be78` completed successfully with
+all five required jobs: verification, database, isolated Storage recovery,
+general browser and dashboard browser. Verification passed **2,159 units /
+zero failures/skips**, 23.969 seconds, including build and containment checks.
+The empty migration/seed reset and full REQUIRED integration/RLS suite passed:
+**1,478 total / 1,477 passed / zero failed / one preserved skip**, 275.25 seconds.
+The subsequent unchanged Epic 11 pilot executed successfully: exact 120/24
+profile, two authenticated requests/read, Admin p95 **15.363932 ms** and
+synthetic permission p95 **6.183487 ms**, within the unchanged 250/25 ms limits.
+The shared 50-ID cap and three-request ceiling remain unchanged.
+
+Isolated recovery passed **one test**. General browser passed **197 tests /
+zero failures or flaky retries / four existing skips**, reported 3.7 minutes;
+dashboard browser passed **57 tests / zero failures, skips or flakiness**,
+reported 1.3 minutes. The integration recovery body and four browser bodies
+remain skipped; separate recovery execution does not relabel a skipped body
+as coverage. All earlier failures and local diagnostics remain explicit above.
+
+This confirms eligibility for the owner-approved bounded metadata closeout.
+Current review flags, official sprint transitions and the new dated
+retrospective are being reconciled against this actual source gate; publication
+readiness still requires final metadata review and fresh checks on its head.
+
+### Canonical official completion — 2026-10-08
+
+The root applied the four exact canonical story transitions from review to done;
+the final transition lifted Epic 14 to done. Scoped completeness reports four
+stories and an empty pending list. All current specification/build follow-up
+flags and story/epic review holds are false; phase-9 markers are recorded.
+Original pipeline timestamps, counters, baseline revisions, scores and prior
+failure records are preserved. The successor retrospective is
+[accepted-with-open-items](../../_bmad-output/implementation-artifacts/epic-14-retro-2026-10-08.md);
+the rejected October 7 document remains untouched. The epic state links the
+successor and the canonical report appends this dated disposition.
+
+Exactly three existing action selectors changed: CI and review are done;
+quality is in progress. Performance, manual observations and calendar-host
+acceptance remain open: four open/in-progress actions total. Forty-four
+structural/maintenance advisories (three High, 41 Medium), 176 deferred
+obligations, NFR CONCERNS, performance UNKNOWN and manual NONE remain tracked.
+Contract D host execution remains mandatory in Story 15.1 before calendar
+exposure/completion. Unrelated epic and prior-retro actions are preserved.
+
+These records describe completion against the confirmed source gate above.
+Independent final metadata review and fresh five-job CI on the publication
+commit remain required before making PR 86 ready. Their exact final-head result
+will be linked in PR metadata; no self-referential CI commit is claimed here.
+No merge, hosted migration or deployment is included in this closeout.
+
+Independent Sol 6.1 High final metadata review found no consequential findings:
+completion, current clearance, retained history and four remaining actions are
+consistent with the confirmed source gate. Final metadata-head CI is next. The
+canonical report's branch is the retained PR tracking branch codex/epic14-resume;
+the local publication checkout is codex/epic14-closeout and pushes to that same
+existing PR branch.

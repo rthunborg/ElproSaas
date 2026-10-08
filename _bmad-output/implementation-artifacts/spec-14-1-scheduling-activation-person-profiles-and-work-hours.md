@@ -5,7 +5,7 @@ created: '2026-09-29'
 status: 'done'
 baseline_revision: '93dbf8432d420ecf6fcd29e732be7ca136801534'
 review_loop_iteration: 3
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-14-context.md'
@@ -253,3 +253,8 @@ The latest repair replaces only EOF completion with the actual observed pending 
 The parent-owned complete two-file profile/operator-console pack passed natively with 12 passed, zero failed, zero skipped and zero flaky, 28.741 seconds JSON-reported run duration. All four profile cases and eight operator cases executed on the rebuilt combined-main Next 16.3.8 production app; exact report `tmp/epic14-closeout-stack/browser-profile-pending-operator.json` has zero top-level errors. Parent post-run SQL readback reports zero editor markers and three hooks. This is actual local evidence for the latest helper and separately authored operator fixture repair; it does not rewrite prior CI failures.
 
 Fresh full exact-head five-job CI remains pending. This consumes no additional broad round; historical passes, original CI flake and both EOF failures remain distinct evidence. Reset timing and response-EOF/stream/CDP cause remain untraced, and no official story/epic completion or merge claim is made. Existing performance, manual physical/daylight and Story 15.1 calendar obligations retain their separate status.
+
+
+### Current direct-closeout clearance — 2026-10-08
+
+Author: `/root/kernel_fix`, `gpt-6.1-sol` High, for this bounded metadata reconciliation only; original implementation/fix authorship remains unchanged. Root confirmed all five required gates (verify, db, recovery-storage-loader, e2e, dashboard-e2e) passed on source `179e86c2f96d684310b8c51af59d58ea3e23be78` in [the exact-head run](https://github.com/rthunborg/ElproSaas/actions/runs/37786814317). Actual results: `units 2,159/2,159 passed/zero failed/zero skipped; REQUIRED integration 1,478 total/1,477 passed/zero failed/one preserved skip in275.25s; unchanged real pilot exact120/24profile, two requests/read, Admin p95=15.363932ms≤250ms and synthetic p95=6.183487ms≤25ms; independent recovery one passed/zero failed/zero skipped; general browser197passed/zero failed/zero flaky/four inherited skips in3.7m; dashboard browser57passed/zero failed/zero flaky/zero skipped in1.3m. Skipped integration/browser bodies are unexecuted and receive no coverage credit; independent recovery executes its own separate proof`. Independent narrow High reviews and root-retained evidence are linked in [the direct-closeout record](../../docs/quality/epic14-direct-closeout-evidence-2026-10-08.md). Current follow-up recommendation/review-unverified flags are cleared for the approved direct closeout; historical true recommendations, scores, failures, original pipeline timestamps, baseline and completed broad rounds remain unchanged. This is no additional broad review or score recalculation. Representative performance remains UNKNOWN; manual accessibility/daylight remains NONE, NFR CONCERNS and retained maintenance advisories remain open, and Story15.1 ContractD calendar obligations remain mandatory. No hosted enablement/deployment, skipped-case coverage or further product completion is claimed.
