@@ -280,7 +280,7 @@ The root owns the resource guard lifecycle and uses its exact latest trusted con
 ## Suggested Review Order
 
 Author: original Story 19.1 implementation delegate (gpt-6.1-sol / High), with the verification/fix delegate (gpt-6.1-sol / High) owning the guarded-browser, payload-capture, query-fault, responsive-header and Round 1 corrections. Phase 6 test author (gpt-6.1-sol / High) owns the appended overlap and successive-retry rationale below.
-Reconciled against final implementation commit `7ee80eeda329bc84e99c860c22a1670b1cd8f58c`, including the narrow Round 2 responsive patch, plus this spec-only provenance refresh, 2026-10-07. Review the full original implementation from `b8ccf1575ae94b33487470a08899f10022a8c3dc`; original recorded rationale is retained. Historical Round 1 evidence is preserved; Phase 6 and Round 2 evidence are recorded below. CI-specific stops are refreshed against f997370d41238b89dca68b122d022ddcbf352a25 plus the current dashboard cwd and startup-test working tree, 2026-10-08.
+Reconciled against final implementation commit `7ee80eeda329bc84e99c860c22a1670b1cd8f58c`, including the narrow Round 2 responsive patch, plus this spec-only provenance refresh, 2026-10-07. Review the full original implementation from `b8ccf1575ae94b33487470a08899f10022a8c3dc`; original recorded rationale is retained. Historical Round 1 evidence is preserved; Phase 6 and Round 2 evidence are recorded below. CI-specific stops are refreshed against reviewed scheduling commit `1ecb193ad065332c5b48aa59717b67bc20a57c50`, retaining the earlier dashboard cwd repair `4bb0b3f76f240f748b44e249c192e88d25064d53` and widget-inventory repair `f997370d41238b89dca68b122d022ddcbf352a25`, plus this spec-only evidence reconciliation, 2026-10-08.
 
 ### Operational entry and usable explanations
 
@@ -370,7 +370,20 @@ The CI startup fix author anchors both proxy and production app commands to the 
 
 Evidence: `node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/e2e/dashboard-ci-startup.test.ts` passed 2/0/0; an in-memory negative control deleting both cwd settings failed 0/2/0 with the doubled proxy/Next paths, without modifying files or launching services. Full `pnpm run test:unit` passed 2,054 / failed 0 / skipped 1 existing Linux-xattrs test (2,055 total, 19.2s). `pnpm typecheck`, focused lint and diff checks passed. The separate inventory author ran six manifest/source assertions with a temporary focused Vitest configuration without globalSetup: 6/0/0, 692ms; its code-only commit is `f997370d41238b89dca68b122d022ddcbf352a25`, independently reviewed with no findings.
 
-Limits: the failing remote dashboard job performed zero browser attempts because proxy startup failed; fresh remote CI must verify automatic startup after this correction. A local list-only probe could not collect without the cleaned-up ignored fixture.json artifact; no fixture was fabricated and no managed resources were launched. These path and inventory assertions add no fresh DB/RLS or browser execution evidence. Two completed broad review rounds remain unchanged; this follow-up uses only narrow independent regression and trail review.
+Limits: the first remote dashboard run `37766806362` performed zero browser attempts because proxy startup failed. The subsequent run `37768476568` verified automatic startup and passed all 57 dedicated dashboard cases; its independent database teardown failure and the required scheduling rerun are recorded below. A local list-only probe could not collect without the cleaned-up ignored fixture.json artifact; no fixture was fabricated and no managed resources were launched. These path and inventory assertions add no fresh DB/RLS or browser execution evidence. Two completed broad review rounds remain unchanged; this follow-up uses only narrow independent regression and trail review.
+
+### Required integration scheduling without test loss
+
+The High scheduling author isolates the existing job-run rollback suite because its global audit-events trigger teardown conflicted with concurrent database transactions. Normal integration files retain parallel execution in group 0; only that unchanged DDL suite runs in group 1 after the earlier suites finish their teardown hooks, preserving all assertions and required gates.
+
+- `vitest.config.ts:43` — `name: "integration-parallel"`: includes normal integration files while excluding the single DDL suite.
+- `vitest.config.ts:55` — `sequence: { groupOrder: 1 }`: runs the exclusive audit-DDL group after parallel suite teardown.
+- `tests/unit/scripts/verify/integration-test-partitions.test.ts:33` — `installed Vitest collects every integration file once`: checks exact coverage, required setup, timeouts and zero retries.
+- `tests/unit/scripts/verify/integration-test-partitions.test.ts:74` — `installed Vitest finishes parallel teardown first`: proves teardown ordering and detects deliberately reversed interference.
+
+Evidence reported by the scheduling author and independently checked by a High narrow reviewer: code commit `1ecb193ad065332c5b48aa59717b67bc20a57c50` resolves all 123 integration files exactly once (122 parallel, one audit-DDL). The focused Node suite passed 3/0/0; its installed-Vitest synthetic scheduler probe passed all three cases in the intended order, then asserted the one intentional failure and interference message with reversed nonzero groups. Required globalSetup, alias, 30-second test/hook timeouts and failure handling remain unchanged; no retry, skip or assertion changes were introduced. Typecheck, focused ESLint and diff checks passed; independent High review returned No findings.
+
+Limits: the synthetic scheduler proves suite afterAll completion before the next group begins, without proving worker-process termination or executing the real database suites. It adds no local DB/RLS, browser or full-unit evidence. Fresh required CI must validate the real database schedule and the chained pilot-performance command; the failed run below did not execute that pilot. Two completed broad review rounds and the frozen intent remain unchanged; this continuation receives only a narrow independent trail check.
 
 ## Historical Auto Run Result
 
@@ -531,6 +544,8 @@ Files changed (whole author-owned code/test/spec inventory since `b8ccf1575ae94b
 - `tests/unit/components/dashboard/widget-state.test.ts` — Covers dashboard presentation state semantics.
 - `tests/unit/e2e/server-read-proxy.test.ts` — Verifies proxy target rejection and zero forwarding through its real handler.
 - `tests/unit/e2e/dashboard-ci-startup.test.ts` — Verifies both CI Node entry points resolve from repository-root startup cwd.
+- `vitest.config.ts` — Schedules the unchanged global audit-DDL suite after normal parallel integration teardown.
+- `tests/unit/scripts/verify/integration-test-partitions.test.ts` — Verifies exact installed-runner coverage and synthetic positive/negative teardown ordering.
 - `tests/integration/rls/dashboard-pipeline.rls.test.ts` — Verifies live authority, tenant boundaries and actual source/page/batch reads.
 - `tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts` — Implements 50 actual-browser dashboard acceptance cases and strict payload observation.
 - `tests/e2e/dashboard/playwright.config.ts` — Defines dedicated dashboard collection, fixtures and browser settings.
@@ -571,3 +586,11 @@ Author-owned repair, preserving the approved intent, earlier review findings, te
 The independent database failure at [job 113277399149](https://github.com/rthunborg/ElproSaas/actions/runs/37766806362/job/113277399149) was the two stale Epic 10 empty-widget pins. Reported full DB result: 1,217 passed / 2 failed / 1 explicit dedicated-recovery skip. The subsequent pilot-performance command did not execute because the preceding test:int command failed. The dedicated recovery-loader job succeeded; that coverage remains distinct from the skipped general-DB case.
 
 Current local correction evidence and limits are recorded in the CI follow-up concern within the single Suggested Review Order. Independent gpt-6.1-sol / Low narrow dashboard regression and trail review returned No findings; it independently reran the two startup checks (2/0/0) and reference checker (39 stops / 0 errors). No new broad review round was started. The root owns fresh CI publication, final report/checkpoint decisions and any resource lifecycle.
+
+### Fresh CI result and reviewed integration scheduling continuation
+
+[CI run 37768476568](https://github.com/rthunborg/ElproSaas/actions/runs/37768476568) tested `e91769e0182e45be13e89b3e95a4a13539503d54` and completed with overall failure. Reported results: dedicated dashboard 57 passed; general browser 174 passed / four existing skips; verify and dedicated recovery succeeded. The general DB run executed 1,218 passed / one failed / one explicit isolated-recovery skip. Its sole `40P01` failure occurred during the pre-existing job-run global audit-trigger teardown. The chained pilot-performance command did not execute; dedicated recovery success does not convert the skipped general-DB case into coverage.
+
+The High author then committed the bounded scheduling repair `1ecb193ad065332c5b48aa59717b67bc20a57c50` and received independent High narrow review with No findings. Its exact 123-file partition and focused 3/0/0 evidence are documented in the single Suggested Review Order above. That evidence demonstrates completion of earlier suite teardown hooks before the next group, not termination of worker processes or fresh real-DB execution.
+
+This spec-only reconciliation preserves frozen intent, terminal metadata, two completed broad rounds and coordinator commits `e36b8046dc4c73f7e3874c2e5b84fcc50856ca22` and `72148207a94a1337a447bf607acf78b711e540b2`. Independent gpt-6.1-sol / Low narrow trail review returned No findings and independently verified 43 stops / 0 reference errors, unchanged frozen intent/frontmatter and the precise teardown-only guarantee; no additional broad review is started. Root owns publication and the fresh required CI run. Database and pilot gates remain unverified after the scheduling repair until that run completes.
