@@ -113,3 +113,55 @@ Coordinator verified final head2c768b0b52e96dfcf7615eef8ff321ff744c6150 and all 
 ## Epic14 remaining database gate — 2026-10-08 13:14 UTC
 
 PR86 remains draft/open atabff9615b6a5b6540953f2efb28454076f007deb. Verify, isolated recovery, general browser and dashboard browser jobs passed; database job failed. Owning session remains active, adding narrow result-code diagnostics around four concurrent review-preview calls while preserving four-success and one-booking/one-audit assertions. No merge, new worker, test waiver or checkout takeover is authorized by these failed results. Existing Story19.1 and Documents preparation merges remain complete. Safe sprint writer release and Documents oracle/admission prerequisites remain outstanding.
+
+## Epic 14 direct closeout and merge handoff — 2026-10-08
+
+Epic 14's owning session completed the authorized direct closeout. PR 86 was
+marked ready for review at `07b0da7b2a57d29bb7fa442e0b7750f585f7c22e`.
+[Final completion CI 37789635802](https://github.com/rthunborg/ElproSaas/actions/runs/37789635802)
+passed all five required jobs on that exact head: verify, database, isolated
+Storage recovery, general browser and dashboard browser. Independent Sol 6.1
+High final metadata and publication checks found no consequential findings;
+source/test/SQL/config were unchanged from the prior five-job green source
+head `179e86c2f96d684310b8c51af59d58ea3e23be78`.
+
+Actual final-head execution: 2,159 unit passes, zero failures/skips; REQUIRED
+integration/RLS 1,478 total, 1,477 passed, zero failed, one existing recovery
+skip (174.68 seconds), after a fresh empty migration-and-seed reset. The
+separate isolated recovery test passed without skips. General browser: 197
+passed, zero failed/flaky, four existing skips (3.9 minutes). Dashboard browser:
+57 passed, zero failed/skipped/flaky (1.6 minutes). The unchanged Epic 11 pilot
+executed with the exact 120/24 membership profile, two authenticated requests
+per read and p95 8.52765/3.444568 ms under the unchanged three-request and
+250/25 ms limits; combined database/pilot duration 181.63 seconds under 300.
+Skipped bodies receive no coverage credit; the pilot does not certify Epic 14
+representative or full-page performance.
+
+All four official Epic 14 stories and the epic are done. The successor dated
+retrospective is accepted-with-open-items; the rejected October 7 retrospective
+and previous lane history remain intact. The CI and review actions are done;
+Four existing actions remain open or
+in progress: 44 structural/maintenance advisories (three High, 41 Medium),
+representative performance targets/evidence, manual observations, and mandatory
+Story 15.1 Contract D calendar-host acceptance. Formal trace remains 36/36 FULL,
+supplementary 74/77 FULL, NFR CONCERNS, performance UNKNOWN and manual NONE;
+176 deferred obligations and the original six archived items are preserved.
+See the [dated closeout record](../../../docs/quality/epic14-direct-closeout-evidence-2026-10-08.md)
+and [successor retrospective](../../implementation-artifacts/epic-14-retro-2026-10-08.md).
+
+Actual disposition is **merge handoff**, not merge: PR 86 remains open, with
+no merge commit or deployment performed by the Epic 14 owner. The owner
+handed off the exact green head above; branches are retained. This appended
+lane checkpoint is a subsequent documentation publication; any later head
+must receive its own exact-head required checks before merge. The owning
+session will record that final publication head/run in PR metadata and its
+handoff, preserving this completed execution as a dated fact.
+
+The shared sprint writer is **released**: the official transitions are
+committed; the checked 07b completion worktree was clean, and no further sprint
+edits are pending.
+Documents backlog-only registration can now be serialized by the coordinator
+under its existing authorization. Documents product implementation remains
+gated by oracle evidence, canonical registration and the recorded contract,
+checkpoint and ownership admission requirements. This writer release creates
+no implementation assignment or prerequisite waiver.
