@@ -372,3 +372,28 @@ automated focus/viewport assertions do not replace it. Contract D's actual
 Schema/Resurser empty-slot click/drag, interval/person context and keyboard/dialog
 parity remain mandatory in Story 15.1 before calendar exposure/completion. The
 176 retained deferred obligations are not swept or silently resolved.
+
+### Combined-main unit expectation repair
+
+[CI 37777002683](https://github.com/rthunborg/ElproSaas/actions/runs/37777002683)
+on `b7ac3504e357d16f3bc120ce317f164db4285429` failed verification:
+2,151 unit cases, 2,150 passed, one failed, zero skipped. The four downstream
+database, general browser, recovery and dashboard jobs were skipped and receive
+no acceptance credit. Incoming Story 19.1's complete 101-ID query test expected
+two batches using an obsolete 100-ID assumption; the approved shared 50-ID
+limit correctly issued three. Production behavior and limits are unchanged.
+
+The bounded test repair preserves every original 101/501-row fixture and pins
+50 independently. Complete 101/501/1,001-ID results now require exact chunk
+sizes, all IDs exactly once, exact counts/money and the complete query sequence.
+The focused file passed all 46 cases, and local full units passed: **2,153 total,
+2,152 passed, zero failed, one existing Windows xattr skip**, native 0, 9.589
+seconds. Focused lint and typecheck also passed. These pure-reader tests do not
+replace live database/browser gates. See the
+[author handoff](epic14-main-query-batch-closeout-2026-10-08.md).
+Fresh five-job CI remains required before official completion.
+
+Independent Sol 6.1 High bounded review found no consequential defect in this
+repair or its author trail. All seven handoff and 47 existing Story 19.1 review
+stops validate; bytes outside its existing review-order section are preserved.
+This follow-up adds no broad review round or status transition.
