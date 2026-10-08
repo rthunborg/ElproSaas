@@ -107,6 +107,8 @@ One Phase B — one PRD, one architecture extension, one epics doc — internall
 
 ### Requirements depth per wave (PB-D10)
 
+**2026-10-07 exception:** The owner approved preparing an E20-only early checkpoint and full Documents stories while E14 continues. The [checkpoint record](early-b2-documents-checkpoint-2026-10-07.md) governs its requirements/schema/oracle/story review and conditional sequencing. All general wave-checkpoint obligations below remain; preparation approval is not evidence that those reviews are complete.
+
 - **B1a + B1b:** full FR depth in §8.1–§8.2. These FRs are build-ready pending their named gates.
 - **B2 + B3:** coarse FR groups in §8.3–§8.4. Each group bounds the module's parity scope (traceable to §6 rows) and is expanded to full FR depth at the wave-boundary checkpoint before its wave begins. Coarse groups are **not** build-ready as written; expanding them is a required checkpoint output.
 - **Wave boundaries (B1a→B1b→B2→B3) are formal re-scope checkpoints:** mini-retro plus re-validation (and FR expansion) of the next wave's content before it starts.
@@ -392,7 +394,9 @@ Numbering continues from the Phase A PRD (FR1–FR61 delivered and frozen). Phas
 
 ### 8.3 Wave B2 — Asset & service operations `[coarse]`
 
-- FR109 `[coarse]` (E20): **Global documents center** — a searchable cross-module file index aggregating the entity-scoped `files`/`file_links` metadata of all active modules (PB-D6), with preview/download via tenant-authorized signed URLs and archive/restore semantics consistent with archive-over-delete (P54–P55).
+- FR109 `[expanded in early checkpoint; dispatch conditions pending]` (E20): **Global documents center** — a searchable cross-module file index aggregating the entity-scoped `files`/`file_links` metadata of all active modules (PB-D6), with preview/download via tenant-authorized signed URLs and archive/restore semantics consistent with archive-over-delete (P54–P55).
+  Full FR109 acceptance criteria and bounded story preparation: [early E20 checkpoint](early-b2-documents-checkpoint-2026-10-07.md). Its unresolved conditions remain explicit; this expansion does not certify general B2 readiness.
+
 - FR110 `[coarse]` (E21): **Rentals** — rental item register, quick rental flow, rental orders (incl. grouped), delivery notes, return flows, rental history, duplicate item, and rental billing records that feed billing basis (P39–P40).
 - FR111 `[coarse]` (E22): **Assets** — register for vehicles/tools/equipment with assignments to employees, asset events (service/inspection/insurance), asset documents, fault reports, mileage logs, and QR/label PDF generation (P41, P43).
 - FR112 `[coarse]` (E22): **Asset public QR route + proactive scanning** — a public QR lookup/fault-report route under ADR-B004 rules, and proactive asset scans producing notifications via E13 under ADR-B002 (P42, P44).
@@ -507,7 +511,7 @@ Wave acceptance is evaluated at each wave-boundary checkpoint; phase acceptance 
 - AC-B2-5: Billing bases are produced across jobs, rentals, and service; integer-öre; immutable once locked; export path works; real-invoicing use remains blocked pending the tax gates (NFR49) — demo track unaffected.
 - AC-B2-6: The Fortnox spike report exists and feeds ADR-B005 and the N-5 owner conversation.
 - AC-B2-7: Migration classification round 2 is completed for each B2 module before its data-migration story (NFR52).
-- AC-B2-8: B2's coarse FRs (FR109–FR118) were expanded to full FR depth at the B1b→B2 checkpoint before B2 build began.
+- AC-B2-8: B2's coarse FRs (FR109–FR118) are expanded to full FR depth at the B1b→B2 checkpoint before their build begins. **Bounded owner sequencing amendment, 2026-10-07:** E20/FR109 alone may use the recorded [early Documents checkpoint](early-b2-documents-checkpoint-2026-10-07.md), conditional on completed requirements expansion, schema review, oracle disposition, and full-story review before E20 implementation. This is no B1b exit waiver, no E19 completion, and no authorization for other B2 builds; FR110–FR118 remain at the normal checkpoint.
 
 ### Wave B3
 

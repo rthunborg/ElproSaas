@@ -1,5 +1,7 @@
 # Epic pipeline (`/auto-bmad epic`)
 
+Parallel opt-in: an explicit --parallel --plan invocation uses parallel-epic.md for admission, isolated worker dispatch and integration in place of sequential E5. Preserve E0/E2 and E8/E_final gates through the coordinator. Without the opt-in this file is unchanged.
+
 Epic mode drives a **whole epic** — every actionable story — in one run, then **one PR**: N branches / PRs / CI-waits / merges collapse into one.
 
 Epic mode runs **unattended between E0 and E_final** (warned + confirmed at E0.11):

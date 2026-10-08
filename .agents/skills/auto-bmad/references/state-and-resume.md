@@ -1,5 +1,7 @@
 # Config, state & resume
 
+Parallel ownership: before normal target selection, explicit parallel coordinator/worker invocations follow parallel-epic.md. The shared SQLite claim/journal store is authoritative for concurrent ownership; per-story YAML remains phase evidence. Never use copied active_story or stale heartbeat age to take over a parallel assignment.
+
 Everything auto-bmad persists lives under `{output_folder}/auto-bmad/` (`{output_folder}` = `core.output_folder` from the BMAD central TOML config — read only through `preflight.py --central-config-only`, never by hand). One section each below:
 - `config.yaml` — project config, created on first run.
 - `state/{key}.yaml` — one resumable state file per story (epic mode adds the anchor `state/epic/epic-{e}.yaml`).
