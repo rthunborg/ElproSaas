@@ -10,7 +10,7 @@
     "status": "blocked",
     "review_loop_iteration": 0,
     "followup_review_recommended": false,
-    "baseline_revision": "ab1ca0445b58f5f496be0d938906c744b6dff87e",
+    "baseline_revision": "42f5cf60d1ded6d814c2c0f61b70b312144ce10e",
     "context": [
       "AGENTS.md",
       "docs/process/review-order.md",
@@ -25,7 +25,9 @@
       "_bmad-output/planning-artifacts/ux-design-specification-phase-b.md",
       "docs/decisions/ADR-B008-quote-review-authority-and-derived-artifact-validity.md",
       "_bmad-output/auto-bmad/preparation/story-20-1/source-authorization-design.md",
-      "_bmad-output/auto-bmad/preparation/story-20-1/owner-boundary-decision-2026-10-08.md"
+      "_bmad-output/auto-bmad/preparation/story-20-1/owner-boundary-decision-2026-10-08.md",
+      "_bmad-output/auto-bmad/preparation/story-20-1/selected-link-contract-design.md",
+      "_bmad-output/auto-bmad/preparation/story-20-1/checkpoint-reconciliation.md"
     ],
     "warnings": [
       "oversized"
@@ -36,7 +38,7 @@
   "auto_run_result": {
     "present": true,
     "status": "blocked",
-    "blocking_condition": "canonical story20.1 not found; live Documents oracle observation unavailable; exact Documents-specific checked-contract admission, reviewed checkpoint and serialized claims pending. Owner-approved optionA does not authorize implementation or global policy changes."
+    "blocking_condition": "live Documents oracle disposition unavailable; independent exact Documents selected-link contract review, complete audited/pinned20.1\u201320.3 specifications, checkpoint closure and current migration/path/shared-claim admission pending. Canonical registration and owner-approved optionA are resolved; neither authorizes implementation or global policy changes by itself."
   },
   "last_review_pass": null,
   "status": "blocked",

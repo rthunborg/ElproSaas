@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "disposition": "registration-applied-locally-not-merged",
+  "disposition": "registration-integrated",
   "target": "_bmad-output/implementation-artifacts/sprint-status.yaml",
   "expected_base_git_blob_sha1_lf": "68d4a3d72f2d3782af36ee5d90e3193fcf4b1ed5",
   "expected_base_git_blob_sha1_bytes": "f31cd52eefc30e164fda9841fd9cca775ef62a64",
@@ -418,5 +418,26 @@
     },
     "spec_sha256_lf": "7e475bfd42adc41e61fc4ccba5f399a7816025fdf37ad89d12d299c1aba489ab",
     "source": "actual canonical files; helper exit zero"
+  },
+  "current_registration": {
+    "status": "applied-and-integrated",
+    "registration_pr": 90,
+    "merge_sha": "42f5cf60d1ded6d814c2c0f61b70b312144ce10e",
+    "current_preparation_branch": "codex/documents-selected-link-contract-preparation",
+    "current_preparation_base_sha": "42f5cf60d1ded6d814c2c0f61b70b312144ce10e",
+    "canonical_stories_status": "backlog",
+    "epic_story_count": 3,
+    "first_story_is_first": true,
+    "first_story_is_last": false,
+    "first_story_stories_after": 2,
+    "verification": "Actual story_plan.py --epic 20 against canonical sprint and planning; exit zero",
+    "current_spec_pin_authority": "admission.json; historical spec hashes in this artifact are provenance only",
+    "implementation_authorized": false,
+    "ready_promotion_performed": false
+  },
+  "historical_evidence_labels": {
+    "evidence": "Original actual lookup failure and prospective temporary-copy checks before registration",
+    "actual_registration_followup": "Actual local registration evidence before PR90 merge; registration_pr_merged=false was true only at that observation",
+    "spec_sha256_lf": "Historical reviewed registration-spec pin, not the current contract-preparation pin"
   }
 }

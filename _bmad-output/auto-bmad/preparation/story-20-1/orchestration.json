@@ -144,6 +144,45 @@
       "agent_identity": "/root/registration_audit",
       "escalation_reason": "",
       "recorded_after_dispatch": false
+    },
+    {
+      "phase": "selected-link-contract-design",
+      "role": "documents_spec",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_spec",
+      "escalation_reason": "Selected-source authorization, signing prepare/finalize and audit binding contract",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "selected-link-contract-independent-review",
+      "role": "documents_audit",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_audit",
+      "escalation_reason": "Independent sensitive contract review",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "integrated-registration-current-doc-reconciliation",
+      "role": "registration_plan",
+      "profile": "standard",
+      "model": "gpt-6.1-sol",
+      "effort": "low",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/registration_plan",
+      "escalation_reason": "",
+      "recorded_after_dispatch": true
     }
   ],
   "reservations": [
@@ -211,5 +250,26 @@
     "implementation_authorized": false,
     "merge_authority": "coordinator after exact-head review and CI",
     "spec_revision_unchanged": "7e475bfd42adc41e61fc4ccba5f399a7816025fdf37ad89d12d299c1aba489ab"
+  },
+  "contract_design_lane": {
+    "branch": "codex/documents-selected-link-contract-preparation",
+    "base_sha": "42f5cf60d1ded6d814c2c0f61b70b312144ce10e",
+    "upstream_merges": {
+      "PR86": "8a7debbee83c9a4f6eb8ec4496ba2f7ad7db4b4b",
+      "PR87": "7db3ded1e903131122eedbf9abd27548bc9c3375",
+      "PR88": "7da9e8f3b63ffe6ed243f3f9ecc413fb56fe25a7",
+      "PR89": "23c48b34c8a6c9158eeaf0edfca74e628d575cbc",
+      "PR90": "42f5cf60d1ded6d814c2c0f61b70b312144ce10e"
+    },
+    "mode": "selected-link contract design preparation only",
+    "implementation_authorized": false,
+    "merge_authority": "coordinator after exact-head required CI",
+    "remaining_precise_gates": [
+      "Missing authorized Lovable target and actual evidence or explicit oracle disposition",
+      "Complete audited pinned canonical20.2/20.3 specs before E20 dispatch",
+      "Final independent High contract/spec pin and checkpoint closure",
+      "Physical migration timestamp and exact implementation write-path admission",
+      "Current-base revalidation and successful coordinator worker claims; no run exists"
+    ]
   }
 }

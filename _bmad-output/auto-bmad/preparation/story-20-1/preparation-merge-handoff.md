@@ -1,18 +1,18 @@
-# Documents backlog registration and preparation handoff
+# Documents selected-link contract preparation handoff
 
-Preparation deliverable: complete. Implementation admission: blocked.
+Current lane: contract-design preparation on `codex/documents-selected-link-contract-preparation`, based on `42f5cf60d1ded6d814c2c0f61b70b312144ce10e`. Implementation admission remains blocked.
 
-The coordinator applied the reviewed three-row backlog registration on `codex/documents-backlog-registration`, from integrated main `8a7debbee83c9a4f6eb8ec4496ba2f7ad7db4b4b`. The registration PR remains unmerged. Actual canonical helpers resolve all three authorized E20 keys/titles as backlog, count three, and 20.1 first=true, last=false, after=2. Epic14, 14.1–14.4 and 19.1 remain done. registration.json preserves original failed/prospective evidence and adds the actual follow-up. registration.patch is historical and must not be applied twice.
+PR90 already integrated the three-story backlog registration at that base. Actual canonical enumeration confirms all three authorized E20 keys/titles remain backlog, count three, with 20.1 first=true, last=false, after=2. Registration is not a pending merge prerequisite. registration.json preserves its earlier evidence with explicit historical labels; registration.patch must not be applied twice.
 
-The only planning amendment adds three parser-readable headings and exact key mappings to the existing E20 candidate list. It creates no new specifications or acceptance criteria. The reviewed spec remains pinned at LF SHA256 `7e475bfd42adc41e61fc4ccba5f399a7816025fdf37ad89d12d299c1aba489ab`; status is blocked and implementation_authorized=false. Owner-approved option A and source-authority semantics remain untouched.
+The current preparation PR concerns the selected-link contract design and its review evidence. The High author owns specification and contract content; the independent reviewer owns the audit; the coordinator owns admission and current spec/review pins. Consult admission.json for the current revision and unresolved gates. The former `7e475bfd42adc41e61fc4ccba5f399a7816025fdf37ad89d12d299c1aba489ab` spec hash is historical registration provenance.
 
-Coordinator-only merge prerequisites for this registration/preparation PR:
+Coordinator-only merge prerequisites for the current contract-preparation PR:
 
-- Independent narrow review of the three backlog rows, title/key amendment and updated evidence; no material unresolved artifact defect.
+- Complete independent review of the final contract-preparation revision and reconcile its exact pin in admission records.
 - Identify the exact pushed PR head and verify required CI at that head.
-- Confirm the diff contains only registration/planning/preparation artifacts; no app, schema, migration, package, environment or module activation change.
-- Perform the authorized merge serially. Merging registration does not approve implementation.
+- Confirm the diff remains the authorized preparation scope, without product implementation, schema/migrations, dependencies/environment, module activation or ready promotion.
+- Perform the authorized merge serially. A preparation merge does not approve implementation.
 
-Remaining implementation prerequisites: registration PR merge; authorized live oracle access/evidence or explicit owner disposition (zero live observations, no waiver); independently reviewed checked-wrapper contract and exact write paths; early checkpoint closure on final approved revision; fresh integrated-base contract validation; shared reservation reconciliation and validated worker admission. approved=false, executable_parallel_plan=false and implementation_authorized=false remain. No worker, claim or managed resource was started.
+Remaining implementation gates are recorded by the coordinator and High author: oracle disposition, checked-contract review, checkpoint closure, exact ownership, fresh-base validation and validated admission. This reconciliation does not close them, interpret the source-authority contract, start a worker or claim, or change implementation authorization.
 
-The coordinator reports PR86 (`8a7debbe`), PR87 (`7db3ded1`), PR88 (`7da9e8f3`) and PR89 (`23c48b34`) merged into this integrated base. Historical unmerged reservations and dependency-audit failures remain historical evidence; merged upstream work does not itself prove released ownership or validated current contracts. The original spec baseline remains provenance, not a claim of fresh validation.
+Coordinator-verified integrated upstreams: PR86 `8a7debbee83c9a4f6eb8ec4496ba2f7ad7db4b4b`; PR87 `7db3ded1e903131122eedbf9abd27548bc9c3375`; PR88 `7da9e8f3b63ffe6ed243f3f9ecc413fb56fe25a7`; PR89 `23c48b34c8a6c9158eeaf0edfca74e628d575cbc`; PR90 `42f5cf60d1ded6d814c2c0f61b70b312144ce10e`. Historical reservations and failures remain provenance rather than current blocking claims; ownership and contract validation still require their recorded dispositions.
