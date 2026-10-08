@@ -1,0 +1,542 @@
+{
+  "workflow": "bmad-testarch-nfr",
+  "epic": 14,
+  "assessment_date": "2026-10-07T15:43:50.0835919Z",
+  "overall_status": "CONCERNS",
+  "overall_risk": "MEDIUM",
+  "domain_assessments": {
+    "security": {
+      "domain": "security",
+      "status": "CONCERNS",
+      "risk_level": "MEDIUM",
+      "execution_mode": "sequential",
+      "new_product_executions": 0,
+      "findings": [
+        {
+          "category": "Authentication boundary",
+          "status": "PASS",
+          "threshold": "Authenticated current active member and trusted actor required for resource/booking authority",
+          "description": "Recorded actual no-member/invited/disabled/anon and actor-spoof checked calls deny; current recipient identity after operation-row lock is separately exercised.",
+          "evidence": [
+            "epic-14-gate-iter1-evidence.json",
+            "story14-3-r2-check-summary.json",
+            "traceability/epic-14/coverage-matrix.json"
+          ],
+          "recommendations": []
+        },
+        {
+          "category": "Authorization and tenant isolation",
+          "status": "PASS",
+          "threshold": "FORCE RLS, H4/exact policies, matrix entitlement and row scope; foreign parent and lower-role writes denied without mutation/audit",
+          "description": "Actual checked-resource boundary correction covers concrete foreign membership/profile, 31 direct RPC denials, four planner positives and exact two-tenant no-op; booking Montor joined-own visibility and revoked replay are independently mapped FULL.",
+          "evidence": [
+            "tests/integration/commands/resources-boundaries.int.test.ts",
+            "epic-14-gate-iter1-evidence.json",
+            "traceability/epic-14/coverage-matrix.json"
+          ],
+          "recommendations": []
+        },
+        {
+          "category": "Input and acceptance authority",
+          "status": "PASS",
+          "threshold": "Current server facts/identity, explicit complete warning review, nonblank reason, complete selected logical groups, trusted actor/time, atomic audit",
+          "description": "Actual checked commands/SQL reject substitutions, forged/stale/expired/partial/unrelated groups and client acceptance data with exact no-write snapshots; real whole-group acceptance and rollback/retry persist expected actor/reason/SQL-time/audit.",
+          "evidence": [
+            "story14-4-r2-finalization-manifest.json",
+            "story14-4-verification.md",
+            "traceability/epic-14/coverage-matrix.json"
+          ],
+          "recommendations": []
+        },
+        {
+          "category": "Scoped secret and artifact handling",
+          "status": "PASS",
+          "threshold": "No client service role or privileged unauthenticated surface; retained artifacts exclude private fixture credentials/proofs/cookies",
+          "description": "Recorded source/bundle containment passes and captured artifact scans/redactions support this scoped invariant. Existing public synthetic credential defaults do not establish a private-secret incident. This is not full history/operational-rotation certification.",
+          "evidence": [
+            "story14-3-r2-check-summary.json",
+            "story14-4-r2-artifact-scan.json",
+            "story14-4-r2-independent-artifact-scan.json",
+            "epic-14-gate-iter1-artifact-scan.json"
+          ],
+          "recommendations": []
+        },
+        {
+          "category": "Dependency vulnerability gate",
+          "status": "PASS",
+          "threshold": "Recorded audit-high gate: zero known critical/high advisories",
+          "description": "Recorded compatible sharp 0.35.5 repair and audit-high native zero; two moderate advisories remain disclosed. No fresh audit, advisory-database currency or penetration certification is claimed.",
+          "evidence": [
+            "story14-3-r2-check-summary.json",
+            "story14-4-verification.md"
+          ],
+          "recommendations": []
+        },
+        {
+          "category": "Hosted data protection",
+          "status": "CONCERNS",
+          "threshold": "UNKNOWN operational encryption/retention attestation for this audit",
+          "description": "Local isolation and synthetic fixture evidence cannot certify hosted TLS/encryption-at-rest, backup key custody or organization compliance.",
+          "evidence": [
+            "test-design-epic-14.md",
+            "nfr-assessment-epic-14.md"
+          ],
+          "recommendations": [
+            "Security/operations owner should attach approved hosting encryption evidence before claiming operational certification; do not introduce the Phase C legal/GDPR program into Epic 14."
+          ]
+        },
+        {
+          "category": "API abuse and OWASP breadth",
+          "status": "CONCERNS",
+          "threshold": "UNKNOWN rate/concurrency quotas and broad OWASP audit evidence",
+          "description": "Bounded payload and ordinary browser policy proof do not establish sustained abuse resistance, penetration testing or all OWASP dimensions. No identified reachable production bypass is asserted.",
+          "evidence": [
+            "story14-4-verification.md",
+            "story14-4-r2-browser-evidence.json"
+          ],
+          "recommendations": [
+            "Security/operations owner should define applicable abuse capacity targets and evidence separately before an API security certification claim; retain existing checked validation and payload guards."
+          ]
+        },
+        {
+          "category": "Operational MFA and key lifecycle",
+          "status": "CONCERNS",
+          "threshold": "UNKNOWN applicable MFA/rotation acceptance and live evidence",
+          "description": "Current authenticated-call and proof rejection tests do not verify hosted MFA administration, key rotation drill or complete secret-store operational lifecycle.",
+          "evidence": [
+            "test-design-epic-14.md",
+            "story14-3-r2-check-summary.json"
+          ],
+          "recommendations": [
+            "Security/operations owner should record applicable operational MFA/key-lifecycle requirements and evidence; no configuration/hosted mutation is authorized by this audit."
+          ]
+        }
+      ],
+      "compliance": {
+        "epic14_authz_rls": "PASS",
+        "epic14_input_audit_authority": "PASS",
+        "recorded_audit_high": "PASS",
+        "hosted_encryption_attestation": "CONCERNS",
+        "SOC2": "N/A",
+        "GDPR_full_program": "N/A",
+        "HIPAA": "N/A",
+        "PCI-DSS": "N/A",
+        "ISO27001": "N/A"
+      },
+      "priority_actions": [
+        "Retain mandatory empty-chain + seed + REQUIRED integration CI and follow-up-review caveats before merge.",
+        "Attach approved operational encryption, abuse and key-lifecycle evidence before certification claims; full legal/GDPR program remains Phase C."
+      ],
+      "summary": "Defined Epic 14 auth/RLS/input/audit/secret-containment evidence passes; broader operational security dimensions remain unmeasured. 5 PASS, 3 CONCERNS, 0 FAIL; advisory MEDIUM risk, no new demonstrated vulnerability or release authority."
+    },
+    "performance": {
+      "domain": "performance",
+      "status": "CONCERNS",
+      "risk_level": "MEDIUM",
+      "execution_mode": "sequential",
+      "new_product_executions": 0,
+      "findings": [
+        {
+          "category": "Response times and perceived speed",
+          "status": "CONCERNS",
+          "threshold": "UNKNOWN p95/p99 HTTP, engine/save, page-load and TTI targets",
+          "description": "No eligible latency/load/TTI measurement exists. 40.545 seconds is targeted runner/fixture elapsed, not HTTP response duration; 90 seconds is a bounded interceptor wait, not an SLO.",
+          "evidence": [
+            "test-design-epic-14.md",
+            "story14-4-r2-browser-evidence.json",
+            "traceability/epic-14/gate-decision.json"
+          ],
+          "recommendations": [
+            "Product/architecture and test owner should approve endpoint/engine/save latency thresholds and a representative volume matrix, then capture benchmark distributions with declared setup and timing boundaries."
+          ]
+        },
+        {
+          "category": "Throughput and representative scale",
+          "status": "CONCERNS",
+          "threshold": "UNKNOWN requests/s, concurrent users, persons, horizon bookings, assignees and exceptions",
+          "description": "Actual 1000-group/select-one HTTP200 durable success proves functional transport for that synthetic fixture only; it does not establish representative tenant volume, throughput or concurrency capacity.",
+          "evidence": [
+            "test-design-epic-14.md",
+            "story14-4-r2-browser-evidence.json"
+          ],
+          "recommendations": [
+            "Approve representative tenant/horizon/assignee/exception loads and concurrent workload shape; retain per-stage throughput/error measurements and exact fixture description."
+          ]
+        },
+        {
+          "category": "Resource usage",
+          "status": "CONCERNS",
+          "threshold": "UNKNOWN CPU, memory, connection pool and query budget",
+          "description": "No current accepted CPU/memory/pool profiling evidence exists. Historical 44-client diagnostic cannot be converted into a capacity guarantee or failure attribution.",
+          "evidence": [
+            "test-design-epic-14.md",
+            "nfr-assessment-epic-14.md"
+          ],
+          "recommendations": [
+            "Test/operations owner should attach resource and query-plan measurements to the approved workload, with declared warm/cold cache and environment limits."
+          ]
+        },
+        {
+          "category": "Optimization and bottlenecks",
+          "status": "CONCERNS",
+          "threshold": "UNKNOWN measured optimization target",
+          "description": "Shared pure engine, configured rules and bounded transport are architecture facts; no workload bottleneck/optimization impact is measured. Earlier different-build 900/select300 HTTP500 has unknown cause, not a controlled counterfactual.",
+          "evidence": [
+            "test-design-epic-14.md",
+            "story14-4-r2-browser-evidence.json",
+            "story14-4-verification.md"
+          ],
+          "recommendations": [
+            "Collect benchmark/query-plan baseline after target approval, then propose only changes justified by the measured bottleneck; do not invent caching/indexing/CDN requirements."
+          ]
+        }
+      ],
+      "compliance": {
+        "14.NFR-PERF-001": "CONCERNS",
+        "approved_latency_target": "CONCERNS",
+        "approved_scale_target": "CONCERNS"
+      },
+      "priority_actions": [
+        "Approve representative volumes and latency/resource/throughput thresholds before performance PASS or scalability claims.",
+        "Measure engine/HTTP/save duration separately from fixture/test elapsed under the approved profile."
+      ],
+      "summary": "4 CONCERNS, 0 PASS, 0 FAIL. Performance/scalability remain UNKNOWN as required by the test design; no measured threshold breach or performance certification is invented."
+    },
+    "reliability": {
+      "domain": "reliability",
+      "status": "CONCERNS",
+      "risk_level": "MEDIUM",
+      "execution_mode": "sequential",
+      "new_product_executions": 0,
+      "findings": [
+        {
+          "category": "Atomic commands and fault rollback",
+          "status": "PASS",
+          "threshold": "Booking/assignees/detection/selected acceptance/outcome/audit commit together or exact no-op",
+          "description": "Recorded actual create/update faults, conflict preparation, post-acceptance/pre-audit rollback, renewed-review retry and same-key replay verify exact durable state, one booking/audit and current authority. All four Contract C portions pass before 14.4.",
+          "evidence": [
+            "story14-3-r2-check-summary.json",
+            "story14-4-verification.md",
+            "traceability/epic-14/coverage-matrix.json"
+          ],
+          "recommendations": []
+        },
+        {
+          "category": "Determinism and current facts",
+          "status": "PASS",
+          "threshold": "Pure no-I/O/no-clock engine, shared preview/save, current-row reevaluation, Stockholm/DST golden correctness",
+          "description": "Fourteen pure named cases pass in UTC, Los_Angeles and Tokyo; current conflict62 and current-row/identity-wait cases execute. Identical acceptance identity retains evidence; changed collision reopens, stale preview requires renewed review.",
+          "evidence": [
+            "story14-3-r2-check-summary.json",
+            "story14-3-r2-named-audit.json",
+            "traceability/epic-14/coverage-matrix.json"
+          ],
+          "recommendations": []
+        },
+        {
+          "category": "Connected form failure and recovery",
+          "status": "PASS",
+          "threshold": "360x640 unsent draft preserved, explicit retry, no success before server confirmation, no duplicate durable state",
+          "description": "Actual browser failed-phone-save and lost-response/identical retry bodies plus SQL snapshots cover suitable draft retention, explicit retry, held-save guards and server-confirmed persistence. No offline queue/sync claim is made.",
+          "evidence": [
+            "story14-4-r2-browser-evidence.json",
+            "story14-4-verification.md",
+            "traceability/epic-14/coverage-matrix.json"
+          ],
+          "recommendations": []
+        },
+        {
+          "category": "Operational monitoring",
+          "status": "CONCERNS",
+          "threshold": "UNKNOWN runtime metrics/tracing/error tracker and alert delivery targets",
+          "description": "Durable audit/result artifacts support forensic assertions, not deployed RED metrics, operational alert routing, APM or error-tracker transport.",
+          "evidence": [
+            "nfr-assessment-epic-14.md",
+            "test-design-epic-14.md"
+          ],
+          "recommendations": [
+            "Operations owner should record applicable sanitized metrics/error tracking and an alert-delivery proof before operational reliability claims."
+          ]
+        },
+        {
+          "category": "Availability",
+          "status": "CONCERNS",
+          "threshold": "UNKNOWN availability SLA and observation window",
+          "description": "No uptime series, redundant-service/failover observation or incident record is available. Local green tests do not establish uptime.",
+          "evidence": [
+            "test-design-epic-14.md"
+          ],
+          "recommendations": [
+            "Operations/product owner should define any applicable SLA and attach measured uptime over its declared window before an availability claim."
+          ]
+        },
+        {
+          "category": "Error rate",
+          "status": "CONCERNS",
+          "threshold": "UNKNOWN operational error-rate target",
+          "description": "Pass/fail case counts and diagnostic interceptor timeouts are not production request error rates; no numerator/denominator/window telemetry exists.",
+          "evidence": [
+            "story14-4-r2-browser-evidence.json",
+            "epic-14-gate-iter1-evidence.json"
+          ],
+          "recommendations": [
+            "Define operational error classes/denominator/window and capture telemetry under approved workload; preserve deterministic test counts separately."
+          ]
+        },
+        {
+          "category": "MTTR and infrastructure recovery",
+          "status": "CONCERNS",
+          "threshold": "UNKNOWN MTTR; separate ADR DR RTO/RPO/backup/failover evidence unrecorded",
+          "description": "Transaction rollback and owner clock correction do not establish outage recovery time, restore/failover practice or immutable backup restoration. The 55-second zero-backward-step clock sample does not certify indefinite stability.",
+          "evidence": [
+            "story14-3-r2-check-summary.json",
+            "nfr-assessment-epic-14.md"
+          ],
+          "recommendations": [
+            "Operations owner should record applicable incident/recovery targets and drills separately from booking rollback evidence; no host/WSL changes are authorized here."
+          ]
+        },
+        {
+          "category": "CI burn-in and repeat stability",
+          "status": "CONCERNS",
+          "threshold": "UNKNOWN repeat-run stability target; nightly repetition planned but unrecorded",
+          "description": "Current terminal gates pass with disclosed CI-only Storage/Windows xattr skips, while browser evidence remains 18/19 diagnostic plus separate1/1 targeted same-build pass. No consecutive clean-run history or flakiness percentage exists; exact empty-chain Epic CI remains pending.",
+          "evidence": [
+            "story14-4-r2-browser-evidence.json",
+            "story14-3-r2-check-summary.json",
+            "epic-14-gate-iter1-evidence.json"
+          ],
+          "recommendations": [
+            "Retain mandatory empty-database migration chain+seed+REQUIRED Epic integration CI before merge; separately record planned bounded nightly repetition before a stability claim. Skips receive no acceptance credit."
+          ]
+        }
+      ],
+      "compliance": {
+        "epic14_atomic_recovery": "PASS",
+        "NFR48_retained_epic14": "PASS",
+        "NFR53_connected_forms": "PASS",
+        "availability_sla": "CONCERNS",
+        "error_rate": "CONCERNS",
+        "MTTR": "CONCERNS",
+        "burn_in": "CONCERNS"
+      },
+      "priority_actions": [
+        "Preserve current actual rollback/replay/DST/phone-retry evidence and mandatory empty-chain CI without rerunning unchanged local gates.",
+        "Define and evidence applicable uptime/error/MTTR/monitoring targets before operational claims; no DR certification from transaction rollback."
+      ],
+      "summary": "Defined Epic 14 data-integrity/determinism/connected recovery invariants pass. Operational availability, metrics, MTTR and burn-in remain unknown. 3 PASS, 5 CONCERNS, 0 FAIL; MEDIUM advisory evidence risk."
+    },
+    "maintainability": {
+      "domain": "maintainability",
+      "status": "CONCERNS",
+      "risk_level": "MEDIUM",
+      "execution_mode": "sequential",
+      "new_product_executions": 0,
+      "findings": [
+        {
+          "category": "Architecture and scope maintainability",
+          "status": "PASS",
+          "threshold": "One shared pure configurable engine; active resources and pending scheduling; no E15/PhaseC live surface",
+          "description": "Recorded deterministic/golden/config packs, source/bundle containment, manifest-derived scope gates and approved Contract C/D ownership support the invariant. No calendar host/offline/portal/AI/vendor API is credited.",
+          "evidence": [
+            "test-design-epic-14.md",
+            "story14-3-r2-check-summary.json",
+            "traceability/epic-14/coverage-matrix.json"
+          ],
+          "recommendations": []
+        },
+        {
+          "category": "Named acceptance and golden completeness",
+          "status": "PASS",
+          "threshold": "P0 100%, P1 at least95%; no skipped required acceptance credit",
+          "description": "Fresh formal36/36 FULL, named P0 8/8 and P1 66/66 FULL after five actual boundary cases; all mapped297 identities/38files unskipped. Three P2/P3 obligations remain NONE and are not concealed.",
+          "evidence": [
+            "traceability/epic-14/gate-decision.json",
+            "traceability/epic-14/coverage-matrix.json",
+            "epic-14-gate-iter1-evidence.json"
+          ],
+          "recommendations": []
+        },
+        {
+          "category": "Numeric code coverage",
+          "status": "CONCERNS",
+          "threshold": "At least80% line and branch for pure conflict/capacity once repository-approved reporter exists",
+          "description": "No approved reporter/current CI numeric coverage report or trend exists. 100% named AC coverage is not line/branch coverage and does not establish the deferred numeric target.",
+          "evidence": [
+            "test-design-epic-14.md",
+            "traceability/epic-14/gate-decision.json"
+          ],
+          "recommendations": [
+            "Test owner should record reporter approval and actual line/branch report when that condition is met; keep scenario/golden evidence separate."
+          ]
+        },
+        {
+          "category": "Code duplication",
+          "status": "CONCERNS",
+          "threshold": "UNKNOWN approved duplication limit",
+          "description": "No jscpd-equivalent report, largest-duplicate inventory or trend is present. Shared-engine proof prevents duplicate rule authority but cannot certify a percentage.",
+          "evidence": [
+            "test-design-epic-14.md",
+            "nfr-assessment-epic-14.md"
+          ],
+          "recommendations": [
+            "Engineering/test owner should define an applicable duplication threshold and attach a measured report before quantitative maintainability claims; do not refactor distinct protection layers solely for overlap."
+          ]
+        },
+        {
+          "category": "Recorded dependency and engineering gates",
+          "status": "PASS",
+          "threshold": "Canonical typecheck/lint/unit/build/lockfile/source+bundle checks pass; audit-high has no known critical/high findings",
+          "description": "Recorded native-zero gates, compatible sharp0.35.5 repair, two moderate advisories and13 inherited lint warnings remain explicit. Latest correction targeted lint/typecheck are clean. Exact empty-chain CI and Linux physical Storage/xattr proof remain separate release gates.",
+          "evidence": [
+            "story14-3-r2-check-summary.json",
+            "story14-4-r2-finalization-manifest.json",
+            "epic-14-gate-iter1-evidence.json"
+          ],
+          "recommendations": []
+        },
+        {
+          "category": "Operational observability and ownership",
+          "status": "CONCERNS",
+          "threshold": "UNKNOWN structured runtime log/error-tracker acceptance; follow-up authority retained",
+          "description": "Durable booking audits and detailed author trail do not establish structured operational logging/trace/error-tracker delivery. 14.1/14.2/14.4 follow-up recommendations remain recorded; this audit grants no review clearance.",
+          "evidence": [
+            "story14-4-r2-finalization-manifest.json",
+            "test-design-epic-14.md",
+            "nfr-assessment-epic-14.md"
+          ],
+          "recommendations": [
+            "Operations/engineering owner should attach sanitized structured log and error-tracking evidence before operational maintainability certification; root retains review/CI/merge authority."
+          ]
+        }
+      ],
+      "compliance": {
+        "epic14_scenario_golden_completeness": "PASS",
+        "epic14_scope_shared_engine": "PASS",
+        "recorded_audit_high": "PASS",
+        "coverage_80pct_lines_branches": "CONCERNS",
+        "duplication": "CONCERNS",
+        "operational_observability": "CONCERNS"
+      },
+      "priority_actions": [
+        "Keep formal/scenario completeness distinct from numeric code coverage; retain pending P2/P3 and ContractD obligations.",
+        "Record applicable coverage/duplication/observability targets and results before quantitative certification; do not clear review/CI gates."
+      ],
+      "summary": "3 PASS, 3 CONCERNS, 0 FAIL. Shared engine/scope, named high-priority completeness and recorded engineering gates pass; numeric maintainability and operational observability remain unmeasured."
+    }
+  },
+  "finding_counts": {
+    "PASS": 11,
+    "CONCERNS": 15,
+    "FAIL": 0,
+    "N/A": 0
+  },
+  "compliance_summary": {
+    "epic14_authz_rls": "PASS",
+    "epic14_input_audit_authority": "PASS",
+    "recorded_audit_high": "PASS",
+    "hosted_encryption_attestation": "CONCERNS",
+    "SOC2": "N/A",
+    "GDPR_full_program": "N/A",
+    "HIPAA": "N/A",
+    "PCI-DSS": "N/A",
+    "ISO27001": "N/A",
+    "14.NFR-PERF-001": "CONCERNS",
+    "approved_latency_target": "CONCERNS",
+    "approved_scale_target": "CONCERNS",
+    "epic14_atomic_recovery": "PASS",
+    "NFR48_retained_epic14": "PASS",
+    "NFR53_connected_forms": "PASS",
+    "availability_sla": "CONCERNS",
+    "error_rate": "CONCERNS",
+    "MTTR": "CONCERNS",
+    "burn_in": "CONCERNS",
+    "epic14_scenario_golden_completeness": "PASS",
+    "epic14_scope_shared_engine": "PASS",
+    "coverage_80pct_lines_branches": "CONCERNS",
+    "duplication": "CONCERNS",
+    "operational_observability": "CONCERNS"
+  },
+  "cross_domain_risks": [
+    {
+      "domains": [
+        "reliability",
+        "maintainability"
+      ],
+      "description": "Missing runtime metrics, structured operational log/error-tracker delivery and trend evidence limit detection of operational regressions; durable booking audits are separate.",
+      "impact": "MEDIUM"
+    },
+    {
+      "domains": [
+        "performance",
+        "reliability"
+      ],
+      "description": "Unknown approved load/latency/resource/error-rate targets prevent operational capacity and reliability claims; functional large-payload success does not establish these targets.",
+      "impact": "MEDIUM"
+    }
+  ],
+  "priority_actions": [
+    {
+      "domain": "security",
+      "action": "Retain mandatory empty-chain + seed + REQUIRED integration CI and follow-up-review caveats before merge.",
+      "urgency": "NORMAL"
+    },
+    {
+      "domain": "security",
+      "action": "Attach approved operational encryption, abuse and key-lifecycle evidence before certification claims; full legal/GDPR program remains Phase C.",
+      "urgency": "NORMAL"
+    },
+    {
+      "domain": "performance",
+      "action": "Approve representative volumes and latency/resource/throughput thresholds before performance PASS or scalability claims.",
+      "urgency": "NORMAL"
+    },
+    {
+      "domain": "performance",
+      "action": "Measure engine/HTTP/save duration separately from fixture/test elapsed under the approved profile.",
+      "urgency": "NORMAL"
+    },
+    {
+      "domain": "reliability",
+      "action": "Preserve current actual rollback/replay/DST/phone-retry evidence and mandatory empty-chain CI without rerunning unchanged local gates.",
+      "urgency": "NORMAL"
+    },
+    {
+      "domain": "reliability",
+      "action": "Define and evidence applicable uptime/error/MTTR/monitoring targets before operational claims; no DR certification from transaction rollback.",
+      "urgency": "NORMAL"
+    },
+    {
+      "domain": "maintainability",
+      "action": "Keep formal/scenario completeness distinct from numeric code coverage; retain pending P2/P3 and ContractD obligations.",
+      "urgency": "NORMAL"
+    },
+    {
+      "domain": "maintainability",
+      "action": "Record applicable coverage/duplication/observability targets and results before quantitative certification; do not clear review/CI gates.",
+      "urgency": "NORMAL"
+    }
+  ],
+  "risk_breakdown": {
+    "security": "MEDIUM",
+    "performance": "MEDIUM",
+    "reliability": "MEDIUM",
+    "maintainability": "MEDIUM"
+  },
+  "subagent_execution": "SEQUENTIAL (4 NFR domains), single primary High after actual agent thread limit refusal",
+  "child_launches": 0,
+  "independent_child_credit": false,
+  "performance_gain": "baseline; no parallel speedup claim",
+  "new_product_executions": 0,
+  "undefined_threshold_enforcement": "Performance entirely UNKNOWN: all four findings CONCERNS. Mixed domains only give PASS to explicitly defined eligible qualitative invariants.",
+  "adr_checklist": {
+    "met": 11,
+    "total": 29,
+    "concerns": 18,
+    "fail": 0,
+    "interpretation": "Significant broader operational evidence gaps; not an Epic14 formal coverage result or a product-defect count"
+  },
+  "release_authority": false,
+  "review_clearance": false,
+  "mandatory_ci_pending": true
+}

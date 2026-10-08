@@ -20,7 +20,9 @@ describe("Admin user management RLS and wrapper boundary (Story 11.3)", () => {
         "select status from public.tenant_memberships where tenant_id = $1 and user_id = $2",
         [fixture.tenantA.id, fixture.adminA.id],
       );
-      expect(error).not.toBeNull();
+      // The successor column grant exposes only the onboarding presentation timestamp.
+      // The independent readback below proves this protected lifecycle write did not persist.
+      expect(error).toMatchObject({ code: "42501" });
       expect(after).toEqual(before);
     } finally {
       await cleanupFixture(fixture);

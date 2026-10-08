@@ -1,0 +1,11 @@
+{
+  "reports": [
+    {
+      "filePath": "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md",
+      "sectionPresent": true,
+      "mode": "full-trail-candidate",
+      "refsCount": 20,
+      "errors": []
+    }
+  ]
+}

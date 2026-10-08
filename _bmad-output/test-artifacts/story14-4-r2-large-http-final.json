@@ -1,0 +1,153 @@
+{
+  "config": {
+    "argv": [
+      "C:\\nvm4w\\nodejs\\node.exe",
+      "C:\\DEV\\ElproSaas\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "tests/e2e/booking-editor.e2e.spec.ts",
+      "--grep",
+      "genuine 1000-group",
+      "--reporter=list,json"
+    ],
+    "configFile": "C:\\DEV\\ElproSaas\\playwright.config.ts",
+    "rootDir": "C:/DEV/ElproSaas/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "C:\\DEV\\ElproSaas\\tests\\e2e\\global-setup.ts",
+    "globalTeardown": "C:\\DEV\\ElproSaas\\tests\\e2e\\global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/DEV/ElproSaas/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "C:/DEV/ElproSaas/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.e2e.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 1,
+    "webServer": {
+      "command": "node node_modules/next/dist/bin/next build && node node_modules/next/dist/bin/next start --port 3100",
+      "url": "http://127.0.0.1:3100",
+      "timeout": 240000,
+      "reuseExistingServer": true,
+      "env": {
+        "NEXT_PUBLIC_SUPABASE_URL": "http://127.0.0.1:55421",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY": "[redacted]",
+        "NEXT_PUBLIC_APP_URL": "http://127.0.0.1:3100",
+        "SUPABASE_SERVICE_ROLE_KEY": "[redacted]",
+        "QUOTE_PDF_ATTESTATION_KEY_ID": "[redacted]",
+        "QUOTE_PDF_ATTESTATION_HMAC_SECRET": "[redacted]",
+        "BOOKING_CONFLICT_ATTESTATION_KEY_ID": "[redacted]",
+        "BOOKING_CONFLICT_ATTESTATION_HMAC_SECRET": "[redacted]",
+        "TENANT_PROVISIONING_ATTESTATION_KEY_ID": "[redacted]",
+        "TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET": "[redacted]",
+        "TENANT_PROVISIONING_ENABLED": "true",
+        "E2E_RESOURCE_SAVE_FAILURE_ENABLED": "true"
+      }
+    }
+  },
+  "suites": [
+    {
+      "title": "booking-editor.e2e.spec.ts",
+      "file": "booking-editor.e2e.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Story 14.4 booking editor retained browser acceptance",
+          "file": "booking-editor.e2e.spec.ts",
+          "line": 83,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Round2 genuine 1000-group issued review exceeds 1 MiB and saves through actual bounded HTTP action",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 180000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 38498,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-07T14:39:01.759Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "actual-save-transport-measurement",
+                          "contentType": "application/json",
+                          "body": "eyJib2R5Qnl0ZXMiOjExMjAyNDUsInN0YXR1cyI6MjAwLCJncm91cHMiOjEwMDAsInNlbGVjdGVkIjoxfQ=="
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5cbc46a2219367c6da4a-8e7efc645b66d10fef86",
+              "file": "booking-editor.e2e.spec.ts",
+              "line": 135,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-07T14:39:00.053Z",
+    "duration": 40544.979999999996,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

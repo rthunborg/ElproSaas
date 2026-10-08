@@ -1,0 +1,19 @@
+- [booking-editor-input.ts:26](/C:/DEV/ElproSaas/src/features/resources/booking-editor-input.ts:26) loses an unchanged endpoint’s precision when the other endpoint changes. Editing only the end converts the untouched start from `06:00:00.123456Z` to `06:00:00.000000Z`; it can also move a Stockholm fold timestamp to the earlier occurrence. Track changes independently for start and end.
+
+- [BookingEntry.tsx:39](/C:/DEV/ElproSaas/src/components/resources/BookingEntry.tsx:39) makes standalone bookings impossible to reopen through the shipped UI. Toolbar creation permits every connection to be empty, but toolbar summaries are suppressed and the remaining edit controls require a job or customer host. Provide a reachable edit entry for these bookings.
+
+- [BookingEntry.tsx:32](/C:/DEV/ElproSaas/src/components/resources/BookingEntry.tsx:32) hides booking read failures before rendering their error and retry control. `readBookingHost()` returns both capabilities false on failure, so this early return makes its error branch unreachable. Preserve an explicit failed-read state in the host.
+
+- [BookingEditor.tsx:128](/C:/DEV/ElproSaas/src/components/resources/BookingEditor.tsx:128) silently clears the selected facility when choosing a customer-level contact. Such contacts are explicitly offered as compatible with the selected facility, but their null `facilityId` overwrites it. Preserve the existing compatible facility.
+
+- [BookingEditor.tsx:130](/C:/DEV/ElproSaas/src/components/resources/BookingEditor.tsx:130) renders existing archived connections without matching options. The read layer excludes archived jobs, customers, facilities, and contacts, while reopened drafts retain those IDs. The picker can display “Ingen koppling” although saving retains the hidden connection. Include an explicit current-reference option or indicator.
+
+- [BookingEntry.tsx:20](/C:/DEV/ElproSaas/src/components/resources/BookingEntry.tsx:20) omits the job’s facility and contact from a new job-host draft. The page passes only job/customer IDs, although selecting that same job manually fills facility/contact through the picker handler. Opening “Boka” and selecting the same job therefore produce different connection defaults. Initialize both through the same context projection.
+
+- [bookings-read.ts:22](/C:/DEV/ElproSaas/src/features/resources/bookings-read.ts:22) identifies every assignee solely by eight characters of a profile UUID. These labels provide no mapping to the employees the manager needs to book; the role filter does not distinguish colleagues sharing a role. Supply an authorized, recognizable person label while retaining the ID internally.
+
+- [bookings-read.ts:131](/C:/DEV/ElproSaas/src/features/resources/bookings-read.ts:131) gives every untitled job the identical picker label “Arbetsorder.” Job titles are optional, so multiple ordinary jobs become indistinguishable despite belonging to different customers. Include safe customer context and a distinguishing job reference.
+
+- [booking-editor-input.ts:15](/C:/DEV/ElproSaas/src/features/resources/booking-editor-input.ts:15) rejects valid detector-generated aggregate identities above 4,000 characters. A complete over-capacity group with 95 booking UUIDs produces a 4,066-character logical ID, so its successful preview cannot subsequently be saved, even with empty acceptance selection. Use a bounded opaque logical identifier or accommodate every supported complete group consistently in TypeScript and SQL.
+
+- [BookingEditor.tsx:146](/C:/DEV/ElproSaas/src/components/resources/BookingEditor.tsx:146) allows descriptions beyond the server’s 4,000-character limit without identifying the offending field. Typing 4,001 characters turns preview into a generic validation failure and disables saving, while retaining an apparently unrestricted textarea. Enforce the supported limit and expose a description-specific validation message.

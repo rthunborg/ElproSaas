@@ -15,6 +15,8 @@ import { CustomerDetail } from "@/components/crm/CustomerDetail";
 import { EntityFilePanel } from "@/components/files/EntityFilePanel";
 import { readCustomerDetail } from "@/features/crm/read";
 import { readEntityFiles } from "@/features/files/read";
+import { BookingEntry } from "@/components/resources/BookingEntry";
+import { readBookingHost, readBookingEditorOptions } from "@/features/resources/bookings-read";
 
 export const dynamic = "force-dynamic";
 
@@ -131,6 +133,7 @@ export default async function CustomerDetailPage({
       customer={customer}
       facilities={facilities}
       contacts={contacts}
+      bookingPanel={<BookingEntry {...await readBookingHost({customerId})} options={await readBookingEditorOptions()} customerId={customerId} host="customer" />}
       filesPanel={
         <EntityFilePanel
           ownerType="customer"

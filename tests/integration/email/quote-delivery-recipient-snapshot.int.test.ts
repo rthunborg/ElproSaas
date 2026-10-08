@@ -205,7 +205,7 @@ describe("Story 13.4 quote delivery recipient snapshot", () => {
         `select o.state,o.recipient_normalized,o.recipient_source_type,o.recipient_source_id,o.delivery_sequence,a.recovery_state
            from public.email_outbox o
            join public.email_delivery_artifacts a on a.id=o.delivery_artifact_id and a.tenant_id=o.tenant_id
-          where o.tenant_id=$1 and o.quote_version_id=$2 order by o.created_at`,
+          where o.tenant_id=$1 and o.quote_version_id=$2 order by o.delivery_sequence`,
         [fixture.tenantA.id, quoteVersionId],
       );
       expect(rows).toEqual([

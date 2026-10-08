@@ -11,6 +11,7 @@
  * COVERAGE (test-design-epic-2.md P1, R-003; story AC2; Task 5.4).
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { adminQuery, closeAdminPool } from "../../factories/admin-sql";
 import {
   createTwoTenantFixture,
   makeAnonServerClient,
@@ -34,9 +35,30 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (stackUp && fixture) await cleanupFixture(fixture);
+  await closeAdminPool();
 });
 
 describe("Anonymous path cannot touch audit_events or record_audit_event (AC2 / R-003)", () => {
+  it("[P0] effective ACL grants audit reads only to authenticated", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const rows = await adminQuery<{ role: string; select: boolean; insert: boolean; update: boolean; delete: boolean; truncate: boolean; references: boolean; trigger: boolean }>(
+      `select role_name as role,
+              has_table_privilege(role_name, 'public.audit_events', 'select') as select,
+              has_table_privilege(role_name, 'public.audit_events', 'insert') as insert,
+              has_table_privilege(role_name, 'public.audit_events', 'update') as update,
+              has_table_privilege(role_name, 'public.audit_events', 'delete') as delete,
+              has_table_privilege(role_name, 'public.audit_events', 'truncate') as truncate,
+              has_table_privilege(role_name, 'public.audit_events', 'references') as references,
+              has_table_privilege(role_name, 'public.audit_events', 'trigger') as trigger
+         from unnest(array['anon', 'authenticated']) as roles(role_name)
+         order by role_name`,
+    );
+    expect(rows).toEqual([
+      { role: "anon", select: false, insert: false, update: false, delete: false, truncate: false, references: false, trigger: false },
+      { role: "authenticated", select: true, insert: false, update: false, delete: false, truncate: false, references: false, trigger: false },
+    ]);
+  });
+
   it("[P1] SELECT: an anonymous caller reads ZERO audit_events rows — denied at the privilege layer (no anon GRANT)", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const { data, error } = await anon.from("audit_events").select("*");

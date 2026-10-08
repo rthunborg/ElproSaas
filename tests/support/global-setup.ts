@@ -15,11 +15,31 @@
  * the suites never assume they may wipe a database out from under a developer.
  */
 import {
+  getLastStackReachabilityDiagnostic,
   isLocalStackReachable,
   LOCAL_TEST_QUOTE_PDF_KEY_ID,
   LOCAL_TEST_QUOTE_PDF_SECRET,
+  LOCAL_TEST_BOOKING_CONFLICT_KEY_ID,
+  LOCAL_TEST_BOOKING_CONFLICT_SECRET,
   STACK_REQUIRED,
+  type ReachabilityDiagnostic,
 } from "./test-env";
+
+export function formatRequiredStackError(
+  diagnostic: ReachabilityDiagnostic | undefined,
+): string {
+  const diagnosticSuffix = diagnostic
+    ? ` Reachability diagnostic: surface=${diagnostic.surface} method=${diagnostic.method} origin=${diagnostic.origin} status=${diagnostic.status ?? "none"} elapsed_ms=${diagnostic.elapsed_ms} reason=${diagnostic.reason} attempts=${diagnostic.attempts}.`
+    : "";
+
+  return (
+    "SUPABASE_TEST_REQUIRED=1 but the local Supabase stack is not reachable. " +
+    "Start it and reset the schema before the DB-backed suites:\n" +
+    "  supabase start && supabase db reset\n" +
+    "Tests run against the LOCAL stack only — never a shared dev/staging/prod project." +
+    diagnosticSuffix
+  );
+}
 
 export default async function globalSetup(): Promise<void> {
   // Test-runner-only counterpart to the idempotent local Vault fixture in seed.sql.
@@ -27,15 +47,12 @@ export default async function globalSetup(): Promise<void> {
   // non-public attestation variable is absent.
   process.env.QUOTE_PDF_ATTESTATION_KEY_ID ??= LOCAL_TEST_QUOTE_PDF_KEY_ID;
   process.env.QUOTE_PDF_ATTESTATION_HMAC_SECRET ??= LOCAL_TEST_QUOTE_PDF_SECRET;
+  process.env.BOOKING_CONFLICT_ATTESTATION_KEY_ID ??= LOCAL_TEST_BOOKING_CONFLICT_KEY_ID;
+  process.env.BOOKING_CONFLICT_ATTESTATION_HMAC_SECRET ??= LOCAL_TEST_BOOKING_CONFLICT_SECRET;
   const reachable = await isLocalStackReachable();
 
   if (!reachable && STACK_REQUIRED) {
-    throw new Error(
-      "SUPABASE_TEST_REQUIRED=1 but the local Supabase stack is not reachable. " +
-        "Start it and reset the schema before the DB-backed suites:\n" +
-        "  supabase start && supabase db reset\n" +
-        "Tests run against the LOCAL stack only — never a shared dev/staging/prod project.",
-    );
+    throw new Error(formatRequiredStackError(getLastStackReachabilityDiagnostic()));
   }
 
   if (!reachable) {

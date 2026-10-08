@@ -1,3 +1,4 @@
+import { seedBookingReadRows } from "../../support/bookings-atdd";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { buildEffectivePermissions } from "@/server/authz/role-catalogue";
 import { roleCatalogueForAdminUsers, type AdminUserRow } from "@/features/admin-users/read";
@@ -26,6 +27,7 @@ let clients: Record<TenantRole, TestServerClient>;
 let ownTableIds: Record<TenantTableName, string>;
 let foreignTableIds: Record<TenantTableName, string>;
 let selfTableIds: Record<TenantRole, Pick<Record<TenantTableName, string>, "tenant_memberships" | "membership_roles">>;
+let bookingTableIds: Record<TenantRole, Record<"bookings" | "booking_assignees" | "booking_conflicts", string>>;
 let personalTableIds: Record<TenantRole, Pick<Record<TenantTableName, string>, "notifications" | "notification_preferences">>;
 
 beforeAll(async () => {
@@ -50,6 +52,10 @@ beforeAll(async () => {
   }))) as Record<TenantRole, Pick<Record<TenantTableName, string>, "tenant_memberships" | "membership_roles">>;
   ownTableIds = await seedEveryTenantTable(fixture.base.tenantA.id, fixture.base.adminA.id);
   foreignTableIds = await seedEveryTenantTable(fixture.base.tenantB.id, fixture.base.adminB.id);
+  bookingTableIds = Object.fromEntries(await Promise.all(TENANT_ROLES.map(async (role) => {
+    const [profile] = await adminQuery<{id:string}>("insert into public.person_profiles(tenant_id,membership_id) values($1,$2) on conflict(membership_id) do update set membership_id=excluded.membership_id returning id", [fixture.base.tenantA.id,selfTableIds[role].tenant_memberships]);
+    return [role, await seedBookingReadRows(fixture.base.tenantA.id,profile.id)] as const;
+  }))) as typeof bookingTableIds;
   personalTableIds = Object.fromEntries(await Promise.all(TENANT_ROLES.map(async (role) => {
     const userId = fixture.users[role].id;
     const notification = (await adminQuery<{ id: string }>("insert into public.notifications (tenant_id, recipient_user_id, category, title, body, route, logical_subject_id, logical_period) values ($1, $2, 'quote.follow_up_due', 'Role harness', 'Personal notification', '/notifications', gen_random_uuid(), current_date) returning id", [fixture.base.tenantA.id, userId]))[0]?.id;
@@ -133,7 +139,13 @@ async function seedEveryTenantTable(tenantId: string, actorId: string): Promise<
   const provisioningRequest = (await adminQuery<{ request_id: string }>("insert into public.tenant_provisioning_requests (request_id, canonical_request_hash, tenant_id, actor_user_id, preview_hash) values (gen_random_uuid(), repeat('a',64), $1, $2, repeat('b',64)) returning request_id", [tenantId, actorId]))[0]?.request_id;
   const provisioningInvite = (await adminQuery<{ tenant_id: string }>("insert into public.tenant_provisioning_invites (tenant_id, membership_id, token_hash, normalized_email) values ($1, $2, repeat('c',64), 'role-harness@example.test') returning tenant_id", [tenantId, membership]))[0]?.tenant_id;
   if (!provisioningRequest || !provisioningInvite) throw new Error("role harness seed: provisioning rows missing");
+  const personProfile = (await adminQuery<{ id: string }>("insert into public.person_profiles (tenant_id, membership_id) values ($1, $2) returning id", [tenantId, membership]))[0]?.id;
+  const personWorkHours = personProfile && (await adminQuery<{ id: string }>("insert into public.person_work_hours (tenant_id, person_profile_id, entry_kind, weekday, starts_at, ends_at) values ($1, $2, 'weekly_shift', 1, '07:00', '16:00') returning id", [tenantId, personProfile]))[0]?.id;
+  const calendarDay = (await adminQuery<{ id: string }>("insert into public.tenant_calendar_days (tenant_id, local_date, variant) values ($1, '2099-01-01', 'closed') returning id", [tenantId]))[0]?.id;
+  if (!personProfile || !personWorkHours || !calendarDay) throw new Error("role harness seed: resource rows missing");
+  const bookingRows = await seedBookingReadRows(tenantId, personProfile);
   return {
+    ...bookingRows,
     tenants: tenantId, tenant_memberships: membership, membership_roles: membershipRole,
     membership_admin_operations: membershipOperation, audit_events: auditEvent, job_runs: jobRun,
     notifications: notification, notification_preferences: notificationPreference,
@@ -149,6 +161,7 @@ async function seedEveryTenantTable(tenantId: string, actorId: string): Promise<
     quote_acceptances: quoteAcceptance, quote_lost_reasons: quoteLostReason,
     quote_follow_ups: quoteFollowUp, jobs: job, job_events: jobEvent,
     tenant_provisioning_requests: provisioningRequest, tenant_provisioning_invites: provisioningInvite,
+    person_profiles: personProfile, person_work_hours: personWorkHours, tenant_calendar_days: calendarDay,
   };
 }
 
@@ -173,6 +186,8 @@ describe("Story 11.4 role harness", () => {
         ? selfTableIds[obligation.role][table]
         : table === "notifications" || table === "notification_preferences"
           ? personalTableIds[obligation.role][table]
+        : table === "bookings" || table === "booking_assignees" || table === "booking_conflicts"
+          ? bookingTableIds[obligation.role][table]
         : ownTableIds[table];
       const own = await adapter.read(clients[obligation.role] as never, ownId);
       if (adapter.directReadDenied) {
@@ -200,10 +215,13 @@ describe("Story 11.4 role harness", () => {
     }
   });
 
-  test("[P0] every generated command role boundary executes through the production envelope without denied audit effects", async (ctx) => {
+  // Each role is a separate bounded obligation. Keep every command probe and the
+  // unchanged 30-second budget; cumulative module growth must not turn a single
+  // all-role loop into a timeout under normal cross-file parallelism.
+  test.for(TENANT_ROLES)("[P0] generated command boundaries for %s execute through the production envelope without denied audit effects", async (role, ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
     const before = await adminQuery<{ count: string }>("select count(*)::text as count from public.audit_events where tenant_id = $1", [fixture.base.tenantA.id]);
-    for (const obligation of buildRoleHarnessCases().filter((entry) => entry.kind === "command")) {
+    for (const obligation of buildRoleHarnessCases().filter((entry) => entry.kind === "command" && entry.role === role)) {
       const result = await runCommandHarnessProbe({ command: obligation.id.slice("command:".length), client: clients[obligation.role] as never });
       expect(result.ok, obligation.id).toBe(obligation.expected === "allowed");
       if (!result.ok) expect(result.code, obligation.id).toBe("PERMISSION_DENIED");

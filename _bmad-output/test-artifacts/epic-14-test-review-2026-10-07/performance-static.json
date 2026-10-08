@@ -1,0 +1,4702 @@
+{
+  "files": [
+    {
+      "path": "C:/DEV/ElproSaas/.agents/skills/auto-bmad/scripts/tests/test_routing_migration.py",
+      "classification": "mechanical-routing-tests",
+      "full_source_bytes_loaded": 54615,
+      "line_count": 968,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/.claude/skills/auto-bmad/scripts/tests/test_routing_migration.py",
+      "classification": "mechanical-routing-tests",
+      "full_source_bytes_loaded": 54615,
+      "line_count": 968,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/.env.test.example",
+      "classification": "configuration",
+      "full_source_bytes_loaded": 607,
+      "line_count": 7,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/compose.test.yaml",
+      "classification": "configuration",
+      "full_source_bytes_loaded": 4612,
+      "line_count": 133,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/e2e/booking-editor.e2e.spec.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 39591,
+      "line_count": 532,
+      "navigation_lines": [
+        14,
+        23,
+        236,
+        275,
+        319
+      ],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 14,
+          "name": "page.goto",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        },
+        {
+          "line": 15,
+          "name": "page.getByLabel(\"E-post\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        },
+        {
+          "line": 16,
+          "name": "page.getByLabel(\"Lösenord\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        },
+        {
+          "line": 17,
+          "name": "page.getByRole(\"button\", { name: \"Logga in\" }).click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        },
+        {
+          "line": 23,
+          "name": "page.goto",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        },
+        {
+          "line": 24,
+          "name": "page.getByTestId(\"booking-entry-toolbar\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        },
+        {
+          "line": 31,
+          "name": "sheet.getByTestId(\"booking-description\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        },
+        {
+          "line": 32,
+          "name": "sheet.getByTestId(\"booking-start\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        },
+        {
+          "line": 33,
+          "name": "sheet.getByTestId(\"booking-end\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        },
+        {
+          "line": 34,
+          "name": "sheet.getByTestId(\"booking-work-role\").selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        },
+        {
+          "line": 35,
+          "name": "sheet.getByTestId(\"booking-status\").selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        },
+        {
+          "line": 76,
+          "name": "editor(page).getByTestId(\"booking-save\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        },
+        {
+          "line": 89,
+          "name": "editor(page).getByTestId(\"booking-close\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 91,
+          "name": "summary(page,row.id).getByTestId(\"booking-edit\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 94,
+          "name": "role.selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 94,
+          "name": "editor(page).getByTestId(\"booking-description\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 95,
+          "name": "editor(page).getByTestId(\"booking-options-retry\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 99,
+          "name": "editor(page).getByTestId(\"booking-options-retry\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 110,
+          "name": "editor(page).getByTestId(\"booking-facility\").selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 111,
+          "name": "editor(page).getByTestId(\"booking-close\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 113,
+          "name": "summary(page,row.id).getByTestId(\"booking-edit\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 114,
+          "name": "editor(page).getByTestId(\"booking-contact\").selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 115,
+          "name": "editor(page).getByTestId(\"booking-facility\").selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 123,
+          "name": "editor(page).getByTestId(\"booking-save\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 126,
+          "name": "editor(page).getByTestId(\"booking-retry\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 131,
+          "name": "editor(page).getByTestId(\"booking-retry\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 139,
+          "name": "(input as HTMLInputElement).click",
+          "ancestors": [
+            "ArrowFunction",
+            "CallExpression",
+            "ArrowFunction",
+            "CallExpression",
+            "AwaitExpression"
+          ]
+        },
+        {
+          "line": 141,
+          "name": "editor(page).getByTestId(\"booking-override-reason\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 143,
+          "name": "editor(page).getByTestId(\"booking-save\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 156,
+          "name": "editor(page).getByTestId(\"booking-close\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 158,
+          "name": "summary(page,row.id).getByTestId(\"booking-edit\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 159,
+          "name": "editor(page).getByTestId(\"booking-end\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 162,
+          "name": "editor(page).getByTestId(\"booking-close\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 164,
+          "name": "summary(page,row.id).getByTestId(\"booking-edit\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 165,
+          "name": "editor(page).getByTestId(\"booking-start\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 180,
+          "name": "editor(page).getByTestId(\"booking-customer\").selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 181,
+          "name": "editor(page).getByTestId(\"booking-facility\").selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 182,
+          "name": "editor(page).getByTestId(\"booking-contact\").selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 184,
+          "name": "jobOptions.selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 188,
+          "name": "editor(page).getByTestId(\"booking-close\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 191,
+          "name": "summary(page,row.id).getByTestId(\"booking-edit\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 196,
+          "name": "editor(page).getByTestId(\"booking-customer\").selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 199,
+          "name": "editor(page).getByTestId(\"booking-close\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 199,
+          "name": "summary(page,row.id).getByTestId(\"booking-edit\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 223,
+          "name": "editor(page).getByTestId(\"booking-close\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 224,
+          "name": "summary(page,row.id).getByTestId(\"booking-edit\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 236,
+          "name": "page.goto",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 237,
+          "name": "page.getByTestId(\"booking-entry-\" + host).click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 242,
+          "name": "editor(page).getByTestId(\"booking-customer\").selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 243,
+          "name": "editor(page).getByTestId(\"booking-facility\").selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 244,
+          "name": "editor(page).getByTestId(\"booking-contact\").selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 245,
+          "name": "editor(page).getByTestId(\"booking-contact\").selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 246,
+          "name": "editor(page).getByTestId(\"booking-facility\").selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 247,
+          "name": "editor(page).getByTestId(\"booking-job\").selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "IfStatement",
+            "Block",
+            "ArrowFunction"
+          ]
+        },
+        {
+          "line": 254,
+          "name": "summary(page, row.id).getByTestId(\"booking-edit\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 258,
+          "name": "editor(page).getByTestId(\"booking-description\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 269,
+          "name": "summary(page, row.id).getByTestId(\"booking-edit\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 272,
+          "name": "editor(page).getByTestId(\"booking-customer\").selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 274,
+          "name": "editor(page).getByTestId(\"booking-close\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 275,
+          "name": "page.goto",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 276,
+          "name": "summary(page,row.id).getByTestId(\"booking-edit\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 319,
+          "name": "page.goto",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 333,
+          "name": "editor(page).getByTestId(\"booking-description\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 336,
+          "name": "editor(page).getByTestId(\"booking-close\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "IfStatement",
+            "IfStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 342,
+          "name": "guard.getByTestId(\"booking-keep-editing\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 346,
+          "name": "guard.getByTestId(\"booking-discard\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 350,
+          "name": "page.getByTestId(\"booking-entry-toolbar\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 364,
+          "name": "editor(page).getByTestId(\"booking-close\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 370,
+          "name": "editor(page).getByTestId(\"booking-keep-editing\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 371,
+          "name": "editor(page).getByTestId(\"booking-save\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 401,
+          "name": "editor(page).getByTestId(\"booking-save\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 414,
+          "name": "editor(page).getByTestId(\"booking-retry\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 434,
+          "name": "editor(page).getByTestId(\"booking-override-reason\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 435,
+          "name": "editor(page).getByTestId(\"booking-save\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 444,
+          "name": "editor(page).getByTestId(\"booking-description\").fill",
+          "ancestors": [
+            "PropertyAccessExpression",
+            "CallExpression",
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList"
+          ]
+        },
+        {
+          "line": 461,
+          "name": "editor(page).getByTestId(\"booking-retry\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 465,
+          "name": "editor(page).getByTestId(\"booking-close\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 466,
+          "name": "summary(page,row.id).getByTestId(\"booking-edit\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 482,
+          "name": "editor(page).getByTestId(\"booking-end\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 502,
+          "name": "editor(page).getByTestId(\"booking-end\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/e2e/global-setup.ts",
+      "classification": "helper/fixture",
+      "full_source_bytes_loaded": 47702,
+      "line_count": 1102,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 609,
+          "name": "adminAClient.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/e2e/resources-person-profile.e2e.spec.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 10539,
+      "line_count": 175,
+      "navigation_lines": [
+        25,
+        35,
+        92,
+        104,
+        134
+      ],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 25,
+          "name": "page.goto",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        },
+        {
+          "line": 26,
+          "name": "page.getByLabel(\"E-post\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        },
+        {
+          "line": 27,
+          "name": "page.getByLabel(\"Lösenord\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        },
+        {
+          "line": 28,
+          "name": "page.getByRole(\"button\", { name: \"Logga in\" }).click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        },
+        {
+          "line": 35,
+          "name": "page.goto",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 37,
+          "name": "page.getByTestId(\"resource-default-work-role\").selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 38,
+          "name": "page.getByTestId(\"resource-weekday-1-start\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 39,
+          "name": "page.getByTestId(\"resource-weekday-1-end\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 40,
+          "name": "page.getByTestId(\"resource-break-1-start\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 41,
+          "name": "page.getByTestId(\"resource-break-1-end\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 42,
+          "name": "page.getByTestId(\"resource-exception-date\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 43,
+          "name": "page.getByTestId(\"resource-calendar-day-reduction\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 44,
+          "name": "page.getByTestId(\"resource-person-exception-date\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 45,
+          "name": "page.locator('select[name=\"personExceptionKind\"]').selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 46,
+          "name": "page.getByTestId(\"resource-save\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 54,
+          "name": "page.getByTestId(\"resource-weekday-1-start\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 55,
+          "name": "page.getByTestId(\"resource-weekday-1-end\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 56,
+          "name": "page.getByTestId(\"resource-save\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 58,
+          "name": "page.getByTestId(\"resource-weekday-1-start\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 59,
+          "name": "page.getByTestId(\"resource-weekday-1-end\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 61,
+          "name": "page.getByTestId(\"resource-person-exception-date\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 62,
+          "name": "page.getByTestId(\"resource-save\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 64,
+          "name": "page.getByTestId(\"resource-person-exception-date\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 66,
+          "name": "page.getByTestId(\"resource-calendar-day-reduction\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 67,
+          "name": "page.getByTestId(\"resource-save\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 70,
+          "name": "page.getByTestId(\"resource-calendar-day-reduction\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 71,
+          "name": "page.getByTestId(\"resource-weekday-1-start\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 72,
+          "name": "page.getByTestId(\"resource-weekday-1-end\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 73,
+          "name": "page.getByTestId(\"resource-break-1-start\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 74,
+          "name": "page.getByTestId(\"resource-break-1-end\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 75,
+          "name": "page.getByTestId(\"resource-exception-date\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 76,
+          "name": "page.getByTestId(\"resource-calendar-day-reduction\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 77,
+          "name": "page.locator('select[name=\"personExceptionKind\"]').selectOption",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 79,
+          "name": "page.getByTestId(\"resource-person-exception-date\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 80,
+          "name": "page.getByTestId(\"resource-save\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 92,
+          "name": "page.goto",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 104,
+          "name": "page.goto",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 106,
+          "name": "page.getByTestId(\"resource-weekday-1-start\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 107,
+          "name": "page.getByTestId(\"resource-weekday-1-end\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 108,
+          "name": "page.getByTestId(\"resource-save\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 113,
+          "name": "page.getByTestId(\"resource-retry-save\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 134,
+          "name": "page.goto",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 136,
+          "name": "page.locator('input[name=\"employmentPercentage\"]').fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 137,
+          "name": "page.getByTestId(\"resource-save\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 154,
+          "name": "page.getByTestId(\"resource-weekday-1-start\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 155,
+          "name": "page.getByTestId(\"resource-weekday-1-end\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 156,
+          "name": "page.getByTestId(\"resource-break-1-start\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 157,
+          "name": "page.getByTestId(\"resource-break-1-end\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 158,
+          "name": "page.getByTestId(\"resource-weekday-2-start\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 159,
+          "name": "page.getByTestId(\"resource-weekday-2-end\").fill",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 160,
+          "name": "page.getByTestId(\"resource-save\").click",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/e2e/support/booking-editor-atdd.ts",
+      "classification": "helper/fixture",
+      "full_source_bytes_loaded": 22965,
+      "line_count": 307,
+      "navigation_lines": [],
+      "readiness_lines": [
+        181
+      ],
+      "interesting_calls": [
+        {
+          "line": 181,
+          "name": "page.route",
+          "ancestors": [
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/e2e/support/resource-cdp-attachment.ts",
+      "classification": "helper/fixture",
+      "full_source_bytes_loaded": 2307,
+      "line_count": 58,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/factories/tenants/core.ts",
+      "classification": "helper/fixture",
+      "full_source_bytes_loaded": 21309,
+      "line_count": 493,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/capacity.json",
+      "classification": "golden-fixture",
+      "full_source_bytes_loaded": 4174,
+      "line_count": 203,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/conflicts.json",
+      "classification": "golden-fixture",
+      "full_source_bytes_loaded": 8322,
+      "line_count": 296,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/dst.json",
+      "classification": "golden-fixture",
+      "full_source_bytes_loaded": 1792,
+      "line_count": 69,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/regressions.json",
+      "classification": "golden-fixture",
+      "full_source_bytes_loaded": 13803,
+      "line_count": 487,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/audit-anon-isolation.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 5554,
+      "line_count": 116,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 101,
+          "name": "anon.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 64602,
+      "line_count": 862,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 49,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement"
+          ]
+        },
+        {
+          "line": 56,
+          "name": "b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 75,
+          "name": "b.snapshot",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 77,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction"
+          ]
+        },
+        {
+          "line": 79,
+          "name": "b.finalize",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 81,
+          "name": "b.snapshot",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 90,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction"
+          ]
+        },
+        {
+          "line": 119,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement"
+          ]
+        },
+        {
+          "line": 120,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement"
+          ]
+        },
+        {
+          "line": 121,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement"
+          ]
+        },
+        {
+          "line": 131,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction"
+          ]
+        },
+        {
+          "line": 151,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction"
+          ]
+        },
+        {
+          "line": 162,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction"
+          ]
+        },
+        {
+          "line": 163,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement"
+          ]
+        },
+        {
+          "line": 167,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "ArrowFunction",
+            "CallExpression",
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList"
+          ]
+        },
+        {
+          "line": 170,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 186,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "IfStatement"
+          ]
+        },
+        {
+          "line": 217,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction"
+          ]
+        },
+        {
+          "line": 260,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 274,
+          "name": "b.snapshot",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 285,
+          "name": "b.finalize",
+          "ancestors": [
+            "BinaryExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 308,
+          "name": "b.snapshot",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 312,
+          "name": "b.finalize",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 330,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement"
+          ]
+        },
+        {
+          "line": 332,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "ConditionalExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement"
+          ]
+        },
+        {
+          "line": 334,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 342,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "BinaryExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 354,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 364,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement"
+          ]
+        },
+        {
+          "line": 366,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 367,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction"
+          ]
+        },
+        {
+          "line": 368,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "ParenthesizedExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "PropertyAccessExpression"
+          ]
+        },
+        {
+          "line": 372,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 375,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 391,
+          "name": "b.snapshot",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 409,
+          "name": "b.finalize",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 411,
+          "name": "b.finalize",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 420,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction"
+          ]
+        },
+        {
+          "line": 421,
+          "name": "b.snapshot",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 439,
+          "name": "b.finalize",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 441,
+          "name": "b.finalize",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 450,
+          "name": "b.snapshot",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 454,
+          "name": "b.snapshot",
+          "ancestors": [
+            "CallExpression",
+            "PropertyAccessExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "AwaitExpression"
+          ]
+        },
+        {
+          "line": 455,
+          "name": "b.finalize",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 458,
+          "name": "b.snapshot",
+          "ancestors": [
+            "CallExpression",
+            "PropertyAccessExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "AwaitExpression"
+          ]
+        },
+        {
+          "line": 459,
+          "name": "b.snapshot",
+          "ancestors": [
+            "CallExpression",
+            "PropertyAccessExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "AwaitExpression"
+          ]
+        },
+        {
+          "line": 460,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 471,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement"
+          ]
+        },
+        {
+          "line": 480,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 487,
+          "name": "client.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 520,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement"
+          ]
+        },
+        {
+          "line": 521,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction"
+          ]
+        },
+        {
+          "line": 522,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction"
+          ]
+        },
+        {
+          "line": 546,
+          "name": "b.snapshot",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 688,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 698,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "CallExpression",
+            "ExpressionStatement",
+            "ForOfStatement"
+          ]
+        },
+        {
+          "line": 714,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction"
+          ]
+        },
+        {
+          "line": 717,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction"
+          ]
+        },
+        {
+          "line": 733,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 744,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement"
+          ]
+        },
+        {
+          "line": 760,
+          "name": "b.snapshot",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 764,
+          "name": "b.finalize",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 766,
+          "name": "b.finalize",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 774,
+          "name": "b.snapshot",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 778,
+          "name": "b.finalize",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 780,
+          "name": "b.finalize",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 809,
+          "name": "target.rpc",
+          "ancestors": [
+            "CallExpression",
+            "BinaryExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement"
+          ]
+        },
+        {
+          "line": 825,
+          "name": "target.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 839,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "BinaryExpression",
+            "ExpressionStatement",
+            "Block",
+            "ForStatement"
+          ]
+        },
+        {
+          "line": 845,
+          "name": "h.bookingCommand",
+          "ancestors": [
+            "AwaitExpression",
+            "BinaryExpression",
+            "ExpressionStatement",
+            "Block",
+            "IfStatement"
+          ]
+        },
+        {
+          "line": 847,
+          "name": "Array(expiredAttempts === 1 ? 2 : 3).fill",
+          "ancestors": [
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/booking-editor-review-fixes.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 5738,
+      "line_count": 59,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 21,
+          "name": "b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 31,
+          "name": "b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "ParenthesizedExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "PropertyAccessExpression"
+          ]
+        },
+        {
+          "line": 33,
+          "name": "b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 56,
+          "name": "b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/booking-editor-round2.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 3559,
+      "line_count": 39,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 10,
+          "name": "b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 12,
+          "name": "b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 18,
+          "name": "b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 20,
+          "name": "b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "ParenthesizedExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "PropertyAccessExpression"
+          ]
+        },
+        {
+          "line": 32,
+          "name": "b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/booking-editor.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 41585,
+      "line_count": 637,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 40,
+          "name": "h.b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 70,
+          "name": "h.b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 121,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 137,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 152,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 172,
+          "name": "h.b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 175,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 206,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 225,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 246,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "ParenthesizedExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "PropertyAccessExpression"
+          ]
+        },
+        {
+          "line": 276,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 298,
+          "name": "h.b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 313,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 324,
+          "name": "h.b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 330,
+          "name": "h.b.save",
+          "ancestors": [
+            "ArrayLiteralExpression",
+            "CallExpression",
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList"
+          ]
+        },
+        {
+          "line": 331,
+          "name": "h.b.save",
+          "ancestors": [
+            "ArrayLiteralExpression",
+            "CallExpression",
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList"
+          ]
+        },
+        {
+          "line": 346,
+          "name": "h.b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 352,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 355,
+          "name": "h.b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 370,
+          "name": "h.b.save",
+          "ancestors": [
+            "ArrowFunction",
+            "CallExpression",
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList"
+          ]
+        },
+        {
+          "line": 375,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 391,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 400,
+          "name": "h.b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 404,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 421,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 423,
+          "name": "h.b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 427,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 444,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 452,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 456,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 470,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 475,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 488,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 494,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 507,
+          "name": "h.b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 511,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 519,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 567,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 600,
+          "name": "h.b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 604,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "ParenthesizedExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "PropertyAccessExpression"
+          ]
+        },
+        {
+          "line": 620,
+          "name": "h.b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 624,
+          "name": "h.b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 14946,
+      "line_count": 221,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 144,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "ArrowFunction",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/bookings.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 36732,
+      "line_count": 488,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 94,
+          "name": "bindings.snapshot",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/quote-pdf-validity.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 72770,
+      "line_count": 1590,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 136,
+          "name": "adminA.rpc",
+          "ancestors": [
+            "ReturnStatement",
+            "Block",
+            "IfStatement",
+            "Block",
+            "FunctionDeclaration"
+          ]
+        },
+        {
+          "line": 147,
+          "name": "adminA.rpc",
+          "ancestors": [
+            "ReturnStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        },
+        {
+          "line": 165,
+          "name": "adminA.rpc",
+          "ancestors": [
+            "ReturnStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        },
+        {
+          "line": 235,
+          "name": "adminA.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 281,
+          "name": "observed.client.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 297,
+          "name": "observed.client.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 491,
+          "name": "sellerA.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 506,
+          "name": "adminB.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 625,
+          "name": "adminB.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 643,
+          "name": "adminB.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 651,
+          "name": "adminB.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 661,
+          "name": "adminB.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 699,
+          "name": "adminA.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 719,
+          "name": "adminA.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "ParenthesizedExpression",
+            "PropertyAccessExpression",
+            "PropertyAccessExpression",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 722,
+          "name": "adminA.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 726,
+          "name": "adminA.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "ParenthesizedExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "PropertyAccessExpression"
+          ]
+        },
+        {
+          "line": 727,
+          "name": "adminA.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "ParenthesizedExpression",
+            "PropertyAccessExpression",
+            "PropertyAccessExpression",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 737,
+          "name": "adminA.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 752,
+          "name": "adminB.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 1303,
+          "name": "adminA.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 1427,
+          "name": "adminA.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/resources-boundaries.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 20595,
+      "line_count": 321,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 66,
+          "name": "client.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 138,
+          "name": "targets.clientA.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 159,
+          "name": "targets.clientA.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 173,
+          "name": "targets.clientA.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 259,
+          "name": "actor.client.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 313,
+          "name": "targets.clientA.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/resources.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 11397,
+      "line_count": 112,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 13,
+          "name": "client.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 16,
+          "name": "client.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "ParenthesizedExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "PropertyAccessExpression"
+          ]
+        },
+        {
+          "line": 17,
+          "name": "client.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 28,
+          "name": "client.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "ParenthesizedExpression",
+            "PropertyAccessExpression",
+            "PropertyAccessExpression",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 29,
+          "name": "client.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "ParenthesizedExpression",
+            "PropertyAccessExpression",
+            "PropertyAccessExpression",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 40,
+          "name": "client.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 63,
+          "name": "client.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 71,
+          "name": "client.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 91,
+          "name": "(await makeAuthedServerClient(fixture.adminB)).rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 92,
+          "name": "(await makeAuthedServerClient(fixture.adminA)).rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 105,
+          "name": "anon.rpc",
+          "ancestors": [
+            "ArrayLiteralExpression",
+            "CallExpression",
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList"
+          ]
+        },
+        {
+          "line": 106,
+          "name": "anon.rpc",
+          "ancestors": [
+            "ArrayLiteralExpression",
+            "CallExpression",
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList"
+          ]
+        },
+        {
+          "line": 107,
+          "name": "anon.rpc",
+          "ancestors": [
+            "ArrayLiteralExpression",
+            "CallExpression",
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList"
+          ]
+        },
+        {
+          "line": 108,
+          "name": "anon.rpc",
+          "ancestors": [
+            "ArrayLiteralExpression",
+            "CallExpression",
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/update-job.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 16124,
+      "line_count": 340,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/components/booking-editor.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 11993,
+      "line_count": 165,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 15111,
+      "line_count": 306,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/features/booking-read-actions.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 11661,
+      "line_count": 158,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/jobs/job-runs.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 4904,
+      "line_count": 76,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/admin-user-management.rls.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 2937,
+      "line_count": 58,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/approved-public-acl-repair.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 5879,
+      "line_count": 167,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/bookings.rls.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 18658,
+      "line_count": 242,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 32,
+          "name": "client.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/calc-tables-migration-reset.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 17617,
+      "line_count": 354,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/crm-tables-migration-reset.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 12763,
+      "line_count": 269,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/cross-tenant-isolation.rls.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 38014,
+      "line_count": 756,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/file-tables-migration-reset.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 16978,
+      "line_count": 360,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/membership-self-grant.rls.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 6993,
+      "line_count": 165,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/migration-reset.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 32022,
+      "line_count": 671,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/onboarding-checklist.rls.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 9987,
+      "line_count": 135,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/pricing-tables-migration-reset.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 12255,
+      "line_count": 242,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/quote-follow-ups-migration-reset.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 11523,
+      "line_count": 207,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/quote-pipeline-read-model.rls.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 21191,
+      "line_count": 342,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/quote-review-authorization-migration-reset.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 9491,
+      "line_count": 191,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/resources.rls.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 3882,
+      "line_count": 36,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/role-harness.atdd.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 24326,
+      "line_count": 253,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 244,
+          "name": "Array(5).fill",
+          "ancestors": [
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/settings-rls.int.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 19415,
+      "line_count": 388,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/tenant-table-inventory.ts",
+      "classification": "helper/fixture",
+      "full_source_bytes_loaded": 98334,
+      "line_count": 2074,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/authz/role-harness.ts",
+      "classification": "helper/fixture",
+      "full_source_bytes_loaded": 14678,
+      "line_count": 252,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/booking-conflict-attestation.ts",
+      "classification": "helper/fixture",
+      "full_source_bytes_loaded": 17265,
+      "line_count": 196,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 37,
+          "name": "client.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 62,
+          "name": "client.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 157,
+          "name": "target.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 184,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 189,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 192,
+          "name": "fx.foreignClient.rpc",
+          "ancestors": [
+            "ArrowFunction",
+            "PropertyAssignment",
+            "ObjectLiteralExpression",
+            "ReturnStatement",
+            "Block"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/booking-conflicts-atdd.ts",
+      "classification": "helper/fixture",
+      "full_source_bytes_loaded": 14220,
+      "line_count": 205,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 77,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 104,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 125,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 139,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "ReturnStatement",
+            "CaseClause",
+            "CaseBlock",
+            "SwitchStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 140,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "ReturnStatement",
+            "CaseClause",
+            "CaseBlock",
+            "SwitchStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 141,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "ReturnStatement",
+            "CaseClause",
+            "CaseBlock",
+            "SwitchStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 142,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "ReturnStatement",
+            "CaseClause",
+            "CaseBlock",
+            "SwitchStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 143,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "ReturnStatement",
+            "CaseClause",
+            "CaseBlock",
+            "SwitchStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 144,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "ReturnStatement",
+            "CaseClause",
+            "CaseBlock",
+            "SwitchStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 145,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "ReturnStatement",
+            "CaseClause",
+            "CaseBlock",
+            "SwitchStatement",
+            "Block"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/booking-editor-atdd.ts",
+      "classification": "helper/fixture",
+      "full_source_bytes_loaded": 9484,
+      "line_count": 151,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/booking-editor-contract.ts",
+      "classification": "helper/fixture",
+      "full_source_bytes_loaded": 4373,
+      "line_count": 69,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/booking-editor-production.ts",
+      "classification": "helper/fixture",
+      "full_source_bytes_loaded": 35383,
+      "line_count": 453,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 111,
+          "name": "b.preview",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 113,
+          "name": "b.save",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 180,
+          "name": "target.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 238,
+          "name": "client.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 257,
+          "name": "client.rpc",
+          "ancestors": [
+            "ReturnStatement",
+            "Block",
+            "MethodDeclaration",
+            "ObjectLiteralExpression",
+            "VariableDeclaration"
+          ]
+        },
+        {
+          "line": 278,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 300,
+          "name": "target.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 308,
+          "name": "bindings.save",
+          "ancestors": [
+            "AwaitExpression",
+            "PropertyAssignment",
+            "ObjectLiteralExpression",
+            "ReturnStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 321,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "BinaryExpression",
+            "ExpressionStatement"
+          ]
+        },
+        {
+          "line": 399,
+          "name": "client.rpc",
+          "ancestors": [
+            "ReturnStatement",
+            "Block",
+            "MethodDeclaration",
+            "ObjectLiteralExpression",
+            "VariableDeclaration"
+          ]
+        },
+        {
+          "line": 434,
+          "name": "target.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/bookings-atdd.ts",
+      "classification": "helper/fixture",
+      "full_source_bytes_loaded": 21348,
+      "line_count": 294,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 91,
+          "name": "target.rpc",
+          "ancestors": [
+            "AwaitExpression",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 149,
+          "name": "client.rpc",
+          "ancestors": [
+            "ReturnStatement",
+            "Block",
+            "FunctionDeclaration",
+            "SourceFile"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/global-setup.ts",
+      "classification": "helper/fixture",
+      "full_source_bytes_loaded": 2964,
+      "line_count": 64,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/quote-send-diagnostics.ts",
+      "classification": "helper/fixture",
+      "full_source_bytes_loaded": 10393,
+      "line_count": 156,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 58,
+          "name": "target.rpc",
+          "ancestors": [
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block",
+            "ArrowFunction"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/scheduling-atdd.ts",
+      "classification": "helper/fixture",
+      "full_source_bytes_loaded": 3593,
+      "line_count": 56,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/stack-gate.ts",
+      "classification": "helper/fixture",
+      "full_source_bytes_loaded": 4674,
+      "line_count": 104,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/test-env.ts",
+      "classification": "helper/fixture",
+      "full_source_bytes_loaded": 12281,
+      "line_count": 281,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/admin-users/read-pagination.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 6797,
+      "line_count": 134,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/e2e/resource-cdp-attachment.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 1102,
+      "line_count": 22,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/resources/booking-attempt-transport.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 1765,
+      "line_count": 23,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/resources/booking-editor-input.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 7381,
+      "line_count": 108,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/resources/capacity-inputs.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 2962,
+      "line_count": 66,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/resources/resource-form-inputs.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 1349,
+      "line_count": 21,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/resources/schedule-form-merge.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 2506,
+      "line_count": 48,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/resources/schedule-read.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 935,
+      "line_count": 15,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/resources/work-hours.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 3540,
+      "line_count": 81,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/scheduling/capacity.golden.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 9201,
+      "line_count": 88,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/scheduling/conflicts.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 9163,
+      "line_count": 110,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/scheduling/dst.golden.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 4365,
+      "line_count": 46,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/quote-send-diagnostics.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 2311,
+      "line_count": 46,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 27,
+          "name": "observed.client.rpc",
+          "ancestors": [
+            "PropertyAccessExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "VariableDeclaration"
+          ]
+        },
+        {
+          "line": 39,
+          "name": "observed.client.rpc",
+          "ancestors": [
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        },
+        {
+          "line": 43,
+          "name": "observeQuoteSendRpcs(rejected.client).client.rpc",
+          "ancestors": [
+            "PropertyAccessExpression",
+            "CallExpression",
+            "AwaitExpression",
+            "ExpressionStatement",
+            "Block"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/scope/booking-editor-scope.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 1648,
+      "line_count": 26,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/scope/manifest-derivations.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 8740,
+      "line_count": 185,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/scope/manifest-shape.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 10290,
+      "line_count": 217,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/scope/resources-activation.atdd.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 1348,
+      "line_count": 28,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/security-headers.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 1158,
+      "line_count": 20,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/server/authz/permission-matrix.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 2979,
+      "line_count": 62,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/server/authz/role-catalogue.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 3524,
+      "line_count": 46,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": [
+        {
+          "line": 12,
+          "name": "Array(5).fill",
+          "ancestors": [
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/server/authz/role-harness.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 2907,
+      "line_count": 56,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/server/bookings/conflict-attestation.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 3068,
+      "line_count": 41,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/server/commands/bookings-validation.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 6028,
+      "line_count": 68,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/server/resources/e2e-save-failure.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 846,
+      "line_count": 14,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/support/global-setup.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 691,
+      "line_count": 19,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/support/test-env.test.ts",
+      "classification": "test-body",
+      "full_source_bytes_loaded": 4077,
+      "line_count": 120,
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "interesting_calls": []
+    }
+  ],
+  "context_files": [
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-1-scheduling-activation-person-profiles-and-work-hours.md",
+      "bytes": 29181
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-2-bookings-and-assignees-schema-and-transactional-commands.md",
+      "bytes": 80129
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-3-deterministic-conflict-engine-detection-core.md",
+      "bytes": 76408
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md",
+      "bytes": 72566
+    }
+  ],
+  "candidates": [
+    {
+      "path": "C:/DEV/ElproSaas/tests/e2e/booking-editor.e2e.spec.ts",
+      "navigation_lines": [
+        14,
+        23,
+        236,
+        275,
+        319
+      ],
+      "readiness_lines": [],
+      "calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/e2e/resources-person-profile.e2e.spec.ts",
+      "navigation_lines": [
+        25,
+        35,
+        92,
+        104,
+        134
+      ],
+      "readiness_lines": [],
+      "calls": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "calls": [
+        {
+          "line": 285,
+          "name": "b.finalize",
+          "ancestors": [
+            "BinaryExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 342,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "BinaryExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement",
+            "Block"
+          ]
+        },
+        {
+          "line": 809,
+          "name": "target.rpc",
+          "ancestors": [
+            "CallExpression",
+            "BinaryExpression",
+            "ExpressionStatement",
+            "Block",
+            "TryStatement"
+          ]
+        },
+        {
+          "line": 847,
+          "name": "Array(expiredAttempts === 1 ? 2 : 3).fill",
+          "ancestors": [
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "calls": [
+        {
+          "line": 144,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "ArrowFunction",
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/role-harness.atdd.int.test.ts",
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "calls": [
+        {
+          "line": 244,
+          "name": "Array(5).fill",
+          "ancestors": [
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/booking-editor-production.ts",
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "calls": [
+        {
+          "line": 321,
+          "name": "fx.adminClient.rpc",
+          "ancestors": [
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "BinaryExpression",
+            "ExpressionStatement"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/quote-send-diagnostics.ts",
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "calls": [
+        {
+          "line": 58,
+          "name": "target.rpc",
+          "ancestors": [
+            "VariableDeclaration",
+            "VariableDeclarationList",
+            "FirstStatement",
+            "Block",
+            "ArrowFunction"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/quote-send-diagnostics.test.ts",
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "calls": [
+        {
+          "line": 27,
+          "name": "observed.client.rpc",
+          "ancestors": [
+            "PropertyAccessExpression",
+            "CallExpression",
+            "PropertyAccessExpression",
+            "CallExpression",
+            "VariableDeclaration"
+          ]
+        },
+        {
+          "line": 39,
+          "name": "observed.client.rpc",
+          "ancestors": [
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/server/authz/role-catalogue.test.ts",
+      "navigation_lines": [],
+      "readiness_lines": [],
+      "calls": [
+        {
+          "line": 12,
+          "name": "Array(5).fill",
+          "ancestors": [
+            "CallExpression",
+            "ExpressionStatement",
+            "Block",
+            "ArrowFunction",
+            "CallExpression"
+          ]
+        }
+      ]
+    }
+  ]
+}

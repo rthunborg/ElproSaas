@@ -1,0 +1,147 @@
+{
+  "filesScanned": 28,
+  "additionalRedactions": 0,
+  "checked": "All new R2 captured reports/output compared in memory with approved fixture credential values; credential/proof fields, cookie/Authorization lines, bearer values and password URL userinfo checked without printing values. Browser env credential values and ephemeral diagnostic cookie lines were already redacted. Native counts/status/timing preserved; TXT whitespace normalization presentation-only.",
+  "files": [
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-api-focused-output.txt",
+      "additionalRedactions": 0,
+      "sha256": "5c3366e0ce0bbe1440f5744ef29a831481439bf182af02f09d85fc6f75c0d6c0"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-api-focused.json",
+      "additionalRedactions": 0,
+      "sha256": "e6d3540ddd74458ee260cf24e440976ad9fb807326bb4f160671d03f25e601a4"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-author-handoff.json",
+      "additionalRedactions": 0,
+      "sha256": "0a80dbc5a563c93d2b034ec56a9ce35883a4f6b78f9c7cfcfd22824472d3d84d"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-blind-hunter.md",
+      "additionalRedactions": 0,
+      "sha256": "6d4fc17082a5344d6ca009544553b5771d4e9224ebc7d4587f49b12280792978"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-booking-browser-diagnostic-output.txt",
+      "additionalRedactions": 0,
+      "sha256": "6070d440dd499e89c5c0b10e5d0f430fd01187002028e310570ff4f4ec97a013"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-booking-browser-diagnostic.json",
+      "additionalRedactions": 0,
+      "sha256": "fdc918658e40e7f313f2feb5d8aab3213d176a23b3e59ef145c2f59731dbdac4"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-browser-evidence.json",
+      "additionalRedactions": 0,
+      "sha256": "103a351ff1e5231ecb8cfeac2cc703e2fc945922aaf314ebeb3dd56418713fdd"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-build-final-output.txt",
+      "additionalRedactions": 0,
+      "sha256": "d139b6b2dd57db4e1a336fea623e07df2b795d1fd2bcb488790e3cf6dc32cccd"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-build-output.txt",
+      "additionalRedactions": 0,
+      "sha256": "cbeaa6f4779c75d4f7dca1582c2cb91c37d8aa049aa6b0e9ed16b6d2322b3678"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-components-final-output.txt",
+      "additionalRedactions": 0,
+      "sha256": "2bb872f020d308fb24a2f1bb5f4f5a0643df9e69a07d45c12deacc8ed84363be"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-components-final.json",
+      "additionalRedactions": 0,
+      "sha256": "02f06d16aaa1d91fa953615913a02870d5224f9b456fa844fe10200f68183b87"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-edge-case-hunter.json",
+      "additionalRedactions": 0,
+      "sha256": "5db83d6f116632529855780791a4f9855ed228ecb1a485559c23412a3ea80e25"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-external.md",
+      "additionalRedactions": 0,
+      "sha256": "892081dbb4970727c9c02527e52a031c0adf93d545295b793418d16ac04fac07"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-full-int-output.txt",
+      "additionalRedactions": 0,
+      "sha256": "ffff31afec537da1e5ab7f24e474dbd43681ef93dfea634d256a0dcc761b2111"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-full-int.json",
+      "additionalRedactions": 0,
+      "sha256": "2b9e833ff73466d7551febb494fc82be99da208650c19d0fa566d6f4299c4803"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-intent-alignment.md",
+      "additionalRedactions": 0,
+      "sha256": "230054a52f6a887b83a9a6fd20b7826421d59d6ba72813781443b667824fac0e"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-large-http-final-output.txt",
+      "additionalRedactions": 0,
+      "sha256": "6c2e6dc6b947b5a771219202c72a55e59c8b9b37ec5b8c60e2c56b89e4f55601"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-large-http-final.json",
+      "additionalRedactions": 0,
+      "sha256": "fa8b6d111a91303877fd4d1e4cb3aacbf033b6fd35d4fa6f43804e321e86c7a7"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-large-http-red-output.txt",
+      "additionalRedactions": 0,
+      "sha256": "7a89e691faaf3ebdedc84013ccf459e0e4c0761d85b3e1770157229d176e04cb"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-large-http-red.json",
+      "additionalRedactions": 0,
+      "sha256": "59d80184cc7ef5569bf5eef4345a0dfbfdf67d78169014747961979b450d7cf2"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-lint-diagnostic.txt",
+      "additionalRedactions": 0,
+      "sha256": "29935f22a8b09429a06744619c4c8a95d82d9899c705de7d1549ddaf6bc9d315"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-lint-results.txt",
+      "additionalRedactions": 0,
+      "sha256": "7e291bff3ab3208884c4ab1800f946f3343f2f64e5e9ee9ee54cbbdd789e85da"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-review-provenance-triage.md",
+      "additionalRedactions": 0,
+      "sha256": "8c5df1b0395f92c1db4c2d3afbe79c29d46aedf2d0ddeed30e2ae8cf2f604d29"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-security.md",
+      "additionalRedactions": 0,
+      "sha256": "9cafc937a67098745a41216a04e585aa380fd14f3814112a7e8b91b768096a04"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-unit-diagnostic.txt",
+      "additionalRedactions": 0,
+      "sha256": "e6168e8336691059d6dba528b40c8f614612df4787f3dedccd4480739d4c05ce"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-unit-results.txt",
+      "additionalRedactions": 0,
+      "sha256": "723bb4340ec2c78cac4df2e20b13e1d5ea04ea36f9cdef29ed726b9ee1f43392"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-verification-gap.md",
+      "additionalRedactions": 0,
+      "sha256": "aab808c5830704d07f783057e3b1af0ebd2dbc355035d87e822fd14c3055f31b"
+    },
+    {
+      "path": "_bmad-output/test-artifacts/story14-4-r2-working-tree-evidence.json",
+      "additionalRedactions": 0,
+      "sha256": "472dfe0867354884a2f5c848e4abf8cd4f726bedcb35622344ba092280e436b1"
+    }
+  ]
+}

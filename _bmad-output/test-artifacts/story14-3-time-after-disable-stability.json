@@ -1,0 +1,49 @@
+{
+  "readOnly": true,
+  "serviceClockMutations": false,
+  "samplerRuns": 1,
+  "expectedUnitMode": "disabled",
+  "runningGuardNativeExit": 0,
+  "ubuntuAlreadyRunningWsl2": true,
+  "gnuTimeoutVerified": true,
+  "before": {
+    "nativeExit": 0,
+    "stderrBytes": 0,
+    "values": {
+      "MainPID": "0",
+      "Id": "systemd-timesyncd.service",
+      "LoadState": "loaded",
+      "ActiveState": "inactive",
+      "SubState": "dead",
+      "FragmentPath": "/usr/lib/systemd/system/systemd-timesyncd.service",
+      "UnitFileState": "disabled"
+    }
+  },
+  "samplerNativeExit": 0,
+  "samplerTransportError": null,
+  "samplerStderrBytes": 0,
+  "metrics": {
+    "readOnly": true,
+    "rawDeadlineSeconds": 55,
+    "samples": 2734,
+    "backwardSteps": 0,
+    "minimumRealtimeDeltaMs": 11.932203,
+    "minimumAdjustedDeltaMs": 11.93219,
+    "rawElapsedMs": 55000.092697,
+    "adjustedToRawRatio": 1.0001272306764746,
+    "realtimeToRawRatio": 0.999944761838553
+  },
+  "after": {
+    "nativeExit": 0,
+    "stderrBytes": 0,
+    "values": {
+      "MainPID": "0",
+      "Id": "systemd-timesyncd.service",
+      "LoadState": "loaded",
+      "ActiveState": "inactive",
+      "SubState": "dead",
+      "FragmentPath": "/usr/lib/systemd/system/systemd-timesyncd.service",
+      "UnitFileState": "disabled"
+    }
+  }
+}

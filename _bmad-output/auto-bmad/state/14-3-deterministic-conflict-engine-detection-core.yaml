@@ -1,0 +1,198 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 14-3-deterministic-conflict-engine-detection-core
+epic_num: 14
+story_num: 3
+story_suffix: ""
+story_source: sprint
+spec_folder: null
+story_id: null
+branch: codex/epic14-resume
+status: done
+updated_at: "2026-10-08T13:58:03Z"
+started_at: "2026-10-06T11:47:14Z"
+completed_at: "2026-10-07T16:15:20Z"
+active_seconds: 15979
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+git_mode: remote
+base_branch: main
+selected_phase: tea_per_story
+selected_role: tea-delegate
+selected_profile: standard
+selected_model: gpt-6.1-sol
+selected_effort: high
+selected_host: codex
+selected_tier: subagents
+selected_route: subagent
+escalation_reason: "Sensitive Story14.3 authorization, identity-wait regressions and transactional integrity coverage"
+routing_ledger:
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: authorization, rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Sensitive Story14.3 authorization, identity-wait regressions and transactional integrity coverage\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: Scheduling/DST boundaries and authoritative atomic conflict persistence.
+epic_story_count: 4
+stories_after_in_epic: 1
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-3-deterministic-conflict-engine-detection-core.md"
+spec_approved: true
+build:
+  status: done
+  blocking_condition: null
+  followup_review_recommended: false
+  review_loop_iteration: 0
+  deferred_count: 0
+  warnings: [oversized]
+followup_passes: 0
+hitl_halt: "auto-continued (epic â€” no halt)"
+review_unverified: false
+story_trace: null
+legacy_review_resume: false
+legacy_review_iteration: null
+legacy_review_loop_done: false
+legacy_external_review_iterations: null
+legacy_convergence_unverified: false
+legacy_artifact_path: null
+commits: [d0e9cc3e, ad4642a1, 0c4ab83f, 007fe3cc, 2a6c9e6d, c8d0a881, 44247fc8, a9e2838e, 5d61f44c, 3e8e337a, f20ea393, 7f6c691d, 526c54b4, b1eb2474]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+retro:
+  doc: null
+  verdict: null
+  open_action_items: 0
+bmad_status_flipped_at: 9
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/86"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/37786814317"
+ci_status: passed
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work: []
+blockers: []
+overrides:
+  empty_chain_ci_required: true
+  unattended_run_confirmed_by_owner_request: true
+  explicit_test_db_port: 55422
+  all_four_transferred_checks_mandatory_before_14_4_and_pr: true
+  acceptance_contract_c_document: docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md
+  root_guard_resource_id: 48fc14f8-3810-46f8-ab4f-8c416abc7d57
+  no_data_reset: true
+  explicit_test_api_port: 55421
+  acceptance_contract_c_owner_approved: true
+  no_hosted_changes: true
+  atdd_unit_collected: 14
+  atdd_collected: 20
+  atdd_typecheck_native_exit: 0
+  atdd_sequential_fallback: "Host thread capacity; API High child, unit/E2E owner High sequential"
+  atdd_integration_collected: 6
+  atdd_e2e_applicability: N/A foundation no UI
+  atdd_native_exit: 0
+  atdd_skipped: 20
+  atdd_executed: 0
+  current_story_build_status: done
+  root_guard_stop_native_exit: 0
+  root_guard_shutdown_verified: false
+  implementation_executed: true
+  implementation_author_dispatch_failed: null
+  root_guard_stop_requested: false
+  resume_checkpoint: 60339ed8
+  resume_workspace: "C:/DEV/ElproSaas"
+  restore_after_fresh_author_capacity: true
+  fresh_author_capacity_confirmed: true
+  current_full_integration_passed: 1367
+  current_full_integration_failed: 0
+  current_full_integration_skipped: 1
+  representative_diagnostic_passed: 146
+  representative_diagnostic_failed: 0
+  independent_review_executed: true
+  owner_authorized_failure_diagnosis: true
+  diagnostic_resume_author_capacity_confirmed: true
+  completed_independent_review_rounds: 2
+  independent_review_layers_completed: 6
+  review_round_1_accepted_patches: 9
+  review_round_1_high_patches: 3
+  review_round_1_deferred: 0
+  review_round_1_rejected: 2
+  review_fixes_implemented: true
+  review_fixes_verification_complete: true
+  focused_review_fix_passed: 145
+  focused_review_fix_failed: 0
+  focused_review_fix_skipped: 0
+  db_clock_backward_steps_observed: 6
+  db_clock_min_backward_delta_ms: "-827.78"
+  canonical_lint_passed: true
+  owner_authorized_clock_diagnosis: true
+  clock_provider_owner_read_required: false
+  administrator_probe_executed: true
+  administrator_probe_guest_completion_verified: false
+  automatic_debug_shell_retry_supported: false
+  clock_service_config_changed: false
+  clock_provider_owner_read_complete: true
+  clock_provider_owner_read_status: 0
+  clock_provider_vm_chronyd_phc_confirmed: true
+  clock_provider_ubuntu_timesyncd_confirmed: true
+  clock_intervention_owner_execution_required: false
+  owner_clock_experiment_approved: true
+  owner_clock_experiment_executed: true
+  owner_clock_experiment_runtime_rollback_complete: true
+  owner_authorized_similar_wsl_operations: true
+  current_clock_stable: true
+  after_rollback_clock_samples: 2811
+  after_rollback_clock_backward_steps: 3
+  after_rollback_clock_min_delta_ms: "-1985.812987"
+  after_rollback_adjusted_raw_ratio: "1.071687471289135"
+  after_rollback_sampler_native_exit: 0
+  clock_service_config_changed_by_agent: false
+  owner_persistent_timesyncd_disable_confirmed: true
+  clock_stability_observation_seconds: 55
+  disabled_clock_samples: 2734
+  disabled_clock_backward_steps: 0
+  disabled_clock_adjusted_raw_ratio: "1.0001272306764746"
+  disabled_clock_sampler_native_exit: 0
+  root_guard_request_id: 369297fb-24fa-4f9e-bf52-4118cc19ed7a
+  root_guard_service_readiness_verified: true
+  current_compose_resource_id: 48fc14f8-3810-46f8-ab4f-8c416abc7d57
+  current_compose_outcome_verified: true
+  current_compose_stop_requested: false
+  isolated_service_and_schema_readiness_verified: true
+  current_migration_ledger_count: 95
+  prior_94_migration_ledger_hash_unchanged: true
+  current_db_clock_backward_steps: 0
+  current_loopback_rest_auth_storage_http_200: true
+  current_full_integration_native_exit: 0
+  sharp_security_patch_applied: true
+  current_audit_high_count: 0
+  generated_review_workflow_recovery_pending: false
+  review_round_2_layers_completed: 6
+  review_round_2_accepted_patches: 1
+  review_round_2_medium_patches: 1
+  review_round_2_deferred: 0
+  review_round_2_score: 3
+  current_full_integration_total: 1368
+  post_dev_coverage_complete: true
+  post_dev_coverage_new_tests: 0
+  post_dev_coverage_new_fixtures: 0
+  post_dev_coverage_summary: "_bmad-output/test-artifacts/automation-summary-14-3-deterministic-conflict-engine-detection-core.md"
+  post_dev_coverage_remaining_story_gaps: 0
+  direct_closeout_source_head: 179e86c2f96d684310b8c51af59d58ea3e23be78
+  direct_closeout_ci_run_id: "37786814317"
+  direct_closeout_clearance_date: 2026-10-08
+  direct_closeout_evidence: docs/quality/epic14-direct-closeout-evidence-2026-10-08.md
+constraints:
+  - "Approved Story14.3 scope and PhaseB manifest only; resources active, scheduling pending untilEpic15."
+  - Allfour transferred conflict checks mandatory before14.4/EpicPR.
+  - "Reuse verified guarded loopback stack; SQLonly forward migrations; noreset/ledgeredits/hosted/email."

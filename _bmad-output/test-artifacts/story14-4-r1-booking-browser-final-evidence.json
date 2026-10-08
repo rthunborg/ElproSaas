@@ -1,0 +1,30 @@
+{
+  "command": "node _bmad-output/test-artifacts/story14-4-run-local.mjs run node_modules/@playwright/test/cli.js test tests/e2e/booking-editor.e2e.spec.ts --reporter=list,json",
+  "nativeExit": 0,
+  "buildId": "TGBWaTwRYVJLLfZUysZQV",
+  "buildBefore": "TGBWaTwRYVJLLfZUysZQV",
+  "buildAfter": "TGBWaTwRYVJLLfZUysZQV",
+  "sourceFingerprint": "624e4347d9fd7ded2ec26164a7ec5655706ac597c20711b7aeeb395dde440fc8",
+  "serverOrigin": "http://127.0.0.1:3100",
+  "serverLifecycle": "66ebbb14-1f29-4cca-8907-ae16c4a30a97",
+  "guardCdpOrigin": "http://127.0.0.1:59601",
+  "executed": 15,
+  "passed": 15,
+  "failed": 0,
+  "skipped": 0,
+  "flaky": 0,
+  "durationMs": 61313.278,
+  "report": "story14-4-r1-booking-browser-final.json",
+  "priorDiagnostics": [
+    "story14-4-r1-booking-browser-preflight.json",
+    "story14-4-r1-booking-browser-diagnostic.json"
+  ],
+  "scope": "Retained Story14.4 entries; Story15.1 calendar click/drag pending; actual serialized action transport",
+  "executedSourceFingerprint": "7079fd92d3f60e599469ebd9aec7b3e8698137ce2627b53697509f174a8d90de",
+  "postVerificationCosmeticChange": {
+    "file": "tests/integration/components/booking-editor.test.ts",
+    "change": "Removed duplicate EOF newline, retaining exactly one final newline",
+    "semanticChange": false,
+    "newExecution": false
+  }
+}

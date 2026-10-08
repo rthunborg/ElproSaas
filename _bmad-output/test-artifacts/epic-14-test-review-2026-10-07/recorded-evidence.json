@@ -1,0 +1,98 @@
+{
+  "new_product_executions": 0,
+  "reports": [
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-focused.json",
+      "sha256": "adacdb2ef1aed356f0d21525c574d0a080529aff18f8bda8560a939f645d1ff1",
+      "counts": {
+        "numTotalTests": 5,
+        "numPassedTests": 5,
+        "numFailedTests": 0,
+        "numPendingTests": 0,
+        "success": true
+      },
+      "stats": null,
+      "source": "recorded raw runner report, not new execution"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-affected.json",
+      "sha256": "d383ee5d05879814069a123f2240023dddca42dfa294c21600f0a36ba9a3a3e9",
+      "counts": {
+        "numTotalTests": 47,
+        "numPassedTests": 47,
+        "numFailedTests": 0,
+        "numPendingTests": 0,
+        "success": true
+      },
+      "stats": null,
+      "source": "recorded raw runner report, not new execution"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-gate-iter1-full.json",
+      "sha256": "1d0cbb9ba8a8fc20fdb019191dbc452940dc14e766174dfdbbfc86abe4724dc3",
+      "counts": {
+        "numTotalTests": 1466,
+        "numPassedTests": 1465,
+        "numFailedTests": 0,
+        "numPendingTests": 1,
+        "success": true
+      },
+      "stats": null,
+      "source": "recorded raw runner report, not new execution"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-r2-full.json",
+      "sha256": "d3a750490831cf19e85676bef65701fb966ba43d4ae1d1700dcdfae012284db1",
+      "counts": {
+        "numTotalTests": 1368,
+        "numPassedTests": 1367,
+        "numFailedTests": 0,
+        "numPendingTests": 1,
+        "success": true
+      },
+      "stats": null,
+      "source": "recorded raw runner report, not new execution"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-full-int.json",
+      "sha256": "2b9e833ff73466d7551febb494fc82be99da208650c19d0fa566d6f4299c4803",
+      "counts": {
+        "numTotalTests": 1461,
+        "numPassedTests": 1460,
+        "numFailedTests": 0,
+        "numPendingTests": 1,
+        "success": true
+      },
+      "stats": null,
+      "source": "recorded raw runner report, not new execution"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-booking-browser-diagnostic.json",
+      "sha256": "fdc918658e40e7f313f2feb5d8aab3213d176a23b3e59ef145c2f59731dbdac4",
+      "counts": {},
+      "stats": {
+        "startTime": "2026-10-07T14:36:00.980Z",
+        "duration": 107569.72099999999,
+        "expected": 18,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "source": "recorded raw runner report, not new execution"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-large-http-final.json",
+      "sha256": "fa8b6d111a91303877fd4d1e4cb3aacbf033b6fd35d4fa6f43804e321e86c7a7",
+      "counts": {},
+      "stats": {
+        "startTime": "2026-10-07T14:39:00.053Z",
+        "duration": 40544.979999999996,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "source": "recorded raw runner report, not new execution"
+    }
+  ]
+}

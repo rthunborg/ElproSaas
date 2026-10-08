@@ -1,0 +1,263 @@
+{
+  "success": true,
+  "audit_native_exit": 0,
+  "product_tests_executed_this_run": 0,
+  "head": "fb0c54a866617ac0bee9ddaedf55b76e2509adf6",
+  "authored_revision": "4383b99be5ecbe11e67eb4bb0a838bee918bf357",
+  "product_delta_since_authored_revision": false,
+  "named_retained": {
+    "api": 58,
+    "browser": 13,
+    "component": 9,
+    "unit_input": 11,
+    "scope": 1,
+    "total": 92
+  },
+  "affected_integration": {
+    "commands/booking-editor.int.test.ts": {
+      "total": 58,
+      "passed": 58,
+      "failed": 0,
+      "pending": 0,
+      "skipped": 0
+    },
+    "commands/booking-editor-review-fixes.int.test.ts": {
+      "total": 2,
+      "passed": 2,
+      "failed": 0,
+      "pending": 0,
+      "skipped": 0
+    },
+    "commands/booking-conflicts.int.test.ts": {
+      "total": 62,
+      "passed": 62,
+      "failed": 0,
+      "pending": 0,
+      "skipped": 0
+    },
+    "commands/bookings.int.test.ts": {
+      "total": 16,
+      "passed": 16,
+      "failed": 0,
+      "pending": 0,
+      "skipped": 0
+    },
+    "commands/bookings-replay-authority.int.test.ts": {
+      "total": 12,
+      "passed": 12,
+      "failed": 0,
+      "pending": 0,
+      "skipped": 0
+    },
+    "rls/bookings.rls.test.ts": {
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "pending": 0,
+      "skipped": 0
+    },
+    "rls/migration-reset.int.test.ts": {
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "pending": 0,
+      "skipped": 0
+    }
+  },
+  "affected_total": 169,
+  "full_integration": {
+    "total": 1456,
+    "passed": 1455,
+    "failed": 0,
+    "skipped": 1,
+    "native_exit": "0 from trusted implementation execution summary; raw JSON has no native field"
+  },
+  "full_unit": {
+    "total": 2033,
+    "passed": 2032,
+    "failed": 0,
+    "skipped": 1,
+    "native_exit": "0 from trusted implementation execution summary; TAP has no native field"
+  },
+  "component_read": {
+    "total": 25,
+    "passed": 25,
+    "failed": 0,
+    "skipped": 0,
+    "native_exit": "0 from trusted implementation execution summary"
+  },
+  "browser": {
+    "total": 15,
+    "passed": 15,
+    "failed": 0,
+    "skipped": 0,
+    "flaky": 0,
+    "native_exit": 0,
+    "build": "TGBWaTwRYVJLLfZUysZQV",
+    "records": [
+      {
+        "title": "Round1 endpoint-only mounted edits preserve the other PostgreSQL instant exactly",
+        "ok": true,
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "Round1 compatible customer contact retains facility; archived current links remain visible and deliberately clearable",
+        "ok": true,
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "[P0] E2E-006 toolbar creates a standalone booking through the desktop sheet",
+        "ok": true,
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "[P0] E2E-006 job entry persists preconnection then reopens and edits",
+        "ok": true,
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "[P0] E2E-006 customer entry persists preconnection then reopens and edits",
+        "ok": true,
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "[P1] E2E-001/007 360x640 fullscreen editor scrolls without overflow and keeps actions reachable",
+        "ok": true,
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "[P1] E2E-002 reload chip counts persisted OPEN logical conflicts only",
+        "ok": true,
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "[P1] E2E-003/007 dirty Escape cancel retains draft and discard restores entry focus",
+        "ok": true,
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "[P1] E2E-003/007 dirty close cancel retains draft and discard restores entry focus",
+        "ok": true,
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "[P1] E2E-003/007 dirty back cancel retains draft and discard restores entry focus",
+        "ok": true,
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "[P1] E2E-003 in-flight save blocks Escape close and back until confirmed",
+        "ok": true,
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "[P0] E2E-004/005 phone failure keeps unsent draft and explicit retry confirms one durable save",
+        "ok": true,
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "[P0] E2E-005 phone lost committed response replays one booking assignments conflicts and attributable audit",
+        "ok": true,
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "[P1] AC2/ E2E-007 latest warning wins and preview failure remains visibly unknown",
+        "ok": true,
+        "results": [
+          "passed"
+        ]
+      },
+      {
+        "title": "[P1] E2E-007 keyboard focus remains in sheet and warnings announce explanatory timeline",
+        "ok": true,
+        "results": [
+          "passed"
+        ]
+      }
+    ]
+  },
+  "component_records": [
+    "Story 14.4 booking editor \u2014 structural and state semantics Round1 failed host authority renders safe retry without booking controls or data",
+    "Story 14.4 booking editor \u2014 structural and state semantics Round1 current archived references are visibly selected but unavailable for new selection",
+    "Story 14.4 booking editor \u2014 structural and state semantics reopening a summary projects only valid command facts and exact microseconds",
+    "Story 14.4 booking editor \u2014 structural and state semantics existing assignment remains visible when its person is absent from new-booking options",
+    "Story 14.4 booking editor \u2014 structural and state semantics [P1] 14.4-COMP-001 renders a named modal sheet with approved controls and no recurrence",
+    "Story 14.4 booking editor \u2014 structural and state semantics [P1] 14.4-COMP-002 binds approved fields and multi-person draft with availability and role filter",
+    "Story 14.4 booking editor \u2014 structural and state semantics [P1] 14.4-COMP-002 standalone draft renders all four optional connection pickers without required",
+    "Story 14.4 booking editor \u2014 structural and state semantics [P1] 14.4-COMP-002 reusable person/start/end prefill is rendered without a calendar host",
+    "Story 14.4 booking editor \u2014 structural and state semantics [P1] 14.4-COMP-004 warning explains rule/person/window/collision and accessible timeline without color",
+    "Story 14.4 booking editor \u2014 structural and state semantics [P1] 14.4-COMP-004 failed preview visibly remains unknown with an explicit retry",
+    "Story 14.4 booking editor \u2014 structural and state semantics [P1] 14.4-COMP-003 latest response wins when an older success arrives last",
+    "Story 14.4 booking editor \u2014 structural and state semantics [P1] 14.4-COMP-003 obsolete failed response cannot replace newest warning set",
+    "Story 14.4 booking editor \u2014 structural and state semantics [P1] 14.4-COMP-003 changed candidate immediately retires old warnings and explicit review while pending"
+  ],
+  "unit_named_records": [
+    "[P1] 14.4-UNIT-INPUT-001 canonical decision orders logical identities and trims reason",
+    "[P1] 14.4-UNIT-INPUT-002 duplicate selected logical identities do not form a valid decision",
+    "[P0] 14.4-UNIT-INPUT-003 closed human decision rejects authority and transport fields",
+    "[P1] 14.4-UNIT-INPUT-004 current-set review cannot carry a whitespace-only reason",
+    "[P1] 14.4-UNIT-INPUT-005 reviewed warning set permits an empty selected subset",
+    "[P1] 14.4-UNIT-INPUT-006 equivalent permutations produce the same canonical business decision",
+    "[P1] 14.4-UNIT-INPUT-007 untouched displayed minutes preserve exact PostgreSQL microseconds",
+    "[P1] 14.4-UNIT-INPUT-008 changed Stockholm fold input uses the existing earliest-instant policy",
+    "[P1] 14.4-UNIT-INPUT-009 changed Stockholm gap input uses the existing first-valid-instant policy",
+    "[P1] 14.4-UNIT-INPUT-010 changed full-day spring bounds span Stockholm's 23-hour local day",
+    "[P1] 14.4-UNIT-INPUT-011 changed full-day autumn bounds span Stockholm's 25-hour local day"
+  ],
+  "scope_named_record": "[P0] 14.4-GOV-001 active resources command rejects E15 fields while scheduling surfaces remain pending",
+  "contract_c_transfers": {
+    "14.3-INT-003": [
+      "Story 14.3 authoritative conflict persistence [P0] 14.3-INT-003 fresh actual CREATE commits exact conflicts, assignments, outcome and one target audit"
+    ],
+    "14.3-INT-004": [
+      "Story 14.3 authoritative conflict persistence [P1] 14.3-INT-004 replace old/new assignees/windows, preserve accepted keys, refresh peers and cancellation"
+    ],
+    "14.3-INT-005": [
+      "Story 14.3 authoritative conflict persistence [P1] 14.3-INT-005 CREATE and UPDATE post-conflict/audit faults roll back every durable column"
+    ],
+    "14.3-INT-006": [
+      "Story 14.3 authoritative conflict persistence [P0] 14.3-INT-006 stale save requires deliberate renewed review under the original command UUID"
+    ]
+  },
+  "source_hashes_verified": 48,
+  "source_fingerprint": "624e4347d9fd7ded2ec26164a7ec5655706ac597c20711b7aeeb395dde440fc8",
+  "post_verification_cosmetic_change": {
+    "file": "tests/integration/components/booking-editor.test.ts",
+    "change": "Removed duplicate EOF newline, retaining exactly one final newline",
+    "semanticChange": false,
+    "newExecution": false
+  },
+  "limits": [
+    "Raw report success is not native exit evidence",
+    "Historical RED comments/checklist are not current skip status",
+    "Contract D actual calendar click/drag remains pending Story15.1",
+    "Two unrelated recovery skips receive no acceptance credit",
+    "No numeric coverage or performance measurement"
+  ]
+}

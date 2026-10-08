@@ -14,10 +14,10 @@
  * Presentation only — it is NOT a security boundary. The actual mutation authority is
  * the 3.1 envelope command behind the form's server action.
  */
-import { useCallback, useEffect, useId, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useId, useRef } from "react";
 
 const FOCUSABLE =
-  'a[href], button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  'a[href], button:not(:disabled), input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"]):not([aria-disabled="true"])';
 
 export function Dialog({
   open,
@@ -26,6 +26,7 @@ export function Dialog({
   children,
   initialFocusRef,
   busy = false,
+  variant = "dialog",
 }: {
   readonly open: boolean;
   readonly onClose: () => void;
@@ -40,12 +41,14 @@ export function Dialog({
    * cancel button must be disabled independently (this only owns the Dialog's chrome close paths).
    */
   readonly busy?: boolean;
+  readonly variant?: "dialog" | "sheet";
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   // The element that had focus when the dialog opened — focus returns here on close.
   const returnFocusRef = useRef<HTMLElement | null>(null);
+  const focusInitialized = useRef(false);
   const titleId = useId();
 
   // Capture the invoking control and move focus INTO the dialog on open; lock body
@@ -63,6 +66,7 @@ export function Dialog({
   useEffect(() => {
     if (!open) return;
     returnFocusRef.current = document.activeElement as HTMLElement | null;
+    focusInitialized.current = true;
     const target =
       initialFocusRef?.current ??
       contentRef.current?.querySelector<HTMLElement>(FOCUSABLE) ??
@@ -72,11 +76,21 @@ export function Dialog({
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
+      focusInitialized.current = false;
       document.body.style.overflow = previousOverflow;
       // Return focus to the control that opened the dialog (predictable focus, AC3).
       returnFocusRef.current?.focus();
     };
   }, [open, initialFocusRef]);
+
+  // Disabling/removing a focused form control must not release focus to the page.
+  useLayoutEffect(() => {
+    if (!open || !focusInitialized.current || !panelRef.current) return;
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && panelRef.current.contains(active) && !active.matches(":disabled")) return;
+    const fallback = closeButtonRef.current && !closeButtonRef.current.matches(":disabled") ? closeButtonRef.current : panelRef.current;
+    (contentRef.current?.querySelector<HTMLElement>(FOCUSABLE) ?? fallback).focus();
+  });
 
   // Close the dialog ONLY when not busy — the single guard shared by every chrome dismiss path
   // (Escape, backdrop, header X). A mid-flight dismissal would reset the caller's local state while
@@ -99,12 +113,12 @@ export function Dialog({
       const focusables = panel.querySelectorAll<HTMLElement>(
         FOCUSABLE,
       );
-      if (focusables.length === 0) return;
+      if (focusables.length === 0) {event.preventDefault(); panel.focus(); return;}
       const first = focusables[0];
       const last = focusables[focusables.length - 1];
-      if (!panel.contains(document.activeElement)) {
+      if (![...focusables].includes(document.activeElement as HTMLElement)) {
         event.preventDefault();
-        first.focus();
+        (event.shiftKey ? last : first).focus();
         return;
       }
       if (event.shiftKey && document.activeElement === first) {
@@ -121,7 +135,7 @@ export function Dialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center">
+    <div className={variant === "sheet" ? "fixed inset-0 z-50 flex justify-end" : "fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center"}>
       <button
         type="button"
         aria-label="Stäng dialogruta"
@@ -133,10 +147,11 @@ export function Dialog({
       <div
         ref={panelRef}
         role="dialog"
+        tabIndex={-1}
         aria-modal="true"
         aria-labelledby={titleId}
         onKeyDown={onKeyDown}
-        className="relative z-10 w-full max-w-lg rounded-lg bg-white shadow-xl"
+        className={variant === "sheet" ? "relative z-10 flex h-dvh w-full flex-col bg-white shadow-xl sm:max-w-xl" : "relative z-10 w-full max-w-lg rounded-lg bg-white shadow-xl"}
       >
         <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4">
           <h2 id={titleId} className="text-lg font-semibold text-zinc-900">
@@ -148,7 +163,7 @@ export function Dialog({
             onClick={guardedClose}
             disabled={busy}
             aria-label="Stäng"
-            className="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-60"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 disabled:opacity-60"
           >
             <svg
               viewBox="0 0 24 24"
@@ -164,7 +179,7 @@ export function Dialog({
             </svg>
           </button>
         </div>
-        <div ref={contentRef} className="px-5 py-4">
+        <div ref={contentRef} className={variant === "sheet" ? "min-h-0 flex-1 overflow-y-auto px-5 py-4" : "px-5 py-4"}>
           {children}
         </div>
       </div>

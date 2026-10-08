@@ -1,0 +1,15 @@
+{
+  "readOnly": true,
+  "nativeExit": 0,
+  "stderrBytes": 0,
+  "scope": "already-running backend PID1 namespace/cgroup and existing tool/socket paths only",
+  "identityLines": [
+    "PID1_NAME|init(docker-des",
+    "PID1_NSPID|NSpid:\t1",
+    "PID1_PIDNS|pid:[4026532219]",
+    "PID1_MNTNS|mnt:[4026532217]",
+    "PID1_CGROUP|/",
+    "EXISTING_TOOL|docker|/usr/local/bin/docker",
+    "EXISTING_SHARED_SOCKET_ROOT|/mnt/host/wsl/docker-desktop/shared-sockets"
+  ]
+}

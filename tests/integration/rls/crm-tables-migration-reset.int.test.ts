@@ -206,32 +206,42 @@ describe("CRM migration reset green — customers/facilities/contacts (AC1/AC5)"
     }
   });
 
-  it("[P0][11.2] GRANTs: authenticated SELECT only; audited wrappers own writes; anon NOTHING", async (testCtx) => {
+  it("[P0][11.2] effective ACL: authenticated SELECT only; audited wrappers own writes; anon NOTHING", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const rows = await adminQuery<{ grantee: string; privilege_type: string }>(
-      `select grantee, privilege_type from information_schema.role_table_grants
-         where table_schema = 'public' and table_name = any($1::text[])`,
+    // has_table_privilege includes inherited PUBLIC/bootstrap grants; the grants
+    // view alone cannot show that an effective privilege is absent.
+    const rows = await adminQuery<{
+      table_name: string;
+      role: string;
+      select: boolean;
+      insert: boolean;
+      update: boolean;
+      delete: boolean;
+      truncate: boolean;
+      references: boolean;
+      trigger: boolean;
+    }>(
+      `select table_name, role_name as role,
+              has_table_privilege(role_name, 'public.' || table_name, 'select') as select,
+              has_table_privilege(role_name, 'public.' || table_name, 'insert') as insert,
+              has_table_privilege(role_name, 'public.' || table_name, 'update') as update,
+              has_table_privilege(role_name, 'public.' || table_name, 'delete') as delete,
+              has_table_privilege(role_name, 'public.' || table_name, 'truncate') as truncate,
+              has_table_privilege(role_name, 'public.' || table_name, 'references') as references,
+              has_table_privilege(role_name, 'public.' || table_name, 'trigger') as trigger
+         from unnest($1::text[]) as tables(table_name)
+         cross join unnest(array['anon', 'authenticated']) as roles(role_name)
+         order by table_name, role_name`,
       [[...CRM_TABLES]],
     );
-    const authed = rows
-      .filter((r) => r.grantee === "authenticated")
-      .map((r) => r.privilege_type);
-    expect(authed).toContain("SELECT");
-    expect(authed).not.toContain("INSERT");
-    expect(authed).not.toContain("UPDATE");
-    expect(authed).not.toContain("DELETE");
-    // anon has NO DML grant (SELECT/INSERT/UPDATE/DELETE) on the CRM tables — the
-    // load-bearing isolation contract. NOTE: Supabase's default privileges grant
-    // every role (anon included) the non-DML REFERENCES/TRIGGER/TRUNCATE on new
-    // `public` tables (the foundation tables tenants/tenant_memberships/audit_events
-    // carry the same anon REFERENCES/TRIGGER/TRUNCATE), so assert specifically that
-    // anon holds NONE of the four data-access privileges, not that it has zero rows.
-    const DML = ["SELECT", "INSERT", "UPDATE", "DELETE"];
-    const anonDml = rows
-      .filter((r) => r.grantee === "anon")
-      .map((r) => r.privilege_type)
-      .filter((p) => DML.includes(p));
-    expect(anonDml).toEqual([]);
+    expect(rows).toEqual(
+      [...CRM_TABLES]
+        .sort()
+        .flatMap((table_name) => [
+          { table_name, role: "anon", select: false, insert: false, update: false, delete: false, truncate: false, references: false, trigger: false },
+          { table_name, role: "authenticated", select: true, insert: false, update: false, delete: false, truncate: false, references: false, trigger: false },
+        ]),
+    );
   });
 
   it("[P0/AC7] no supplier/credential/sync/import/external-mapping column appears on any CRM table", async (testCtx) => {

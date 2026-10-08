@@ -1,0 +1,78 @@
+{
+  "storyId": "14.2",
+  "workflow": "bmad-testarch-atdd",
+  "outcome": "done",
+  "tdd_phase": "RED_SCAFFOLDS",
+  "execution_mode": "subagent",
+  "total_tests": 18,
+  "api_db_rls_tests": 18,
+  "e2e_tests": 0,
+  "component_tests": 0,
+  "all_tests_skipped": true,
+  "priority_coverage": {
+    "P1": 16,
+    "P0": 2
+  },
+  "fixtures_created": 1,
+  "generatedTestFiles": [
+    "tests/integration/commands/bookings.int.test.ts",
+    "tests/integration/rls/bookings.rls.test.ts"
+  ],
+  "checkIDs": [
+    "14.2-INT-001",
+    "14.2-INT-002",
+    "14.2-INT-003",
+    "14.2-INT-004",
+    "14.2-INT-005",
+    "14.2-INT-006",
+    "14.2-INT-007",
+    "14.2-DB-001",
+    "14.2-DB-002",
+    "14.2-DB-003",
+    "14.2-DB-004",
+    "14.2-DB-005",
+    "14.2-INT-009",
+    "14.2-INT-010",
+    "14.2-RLS-001",
+    "14.2-RLS-002",
+    "14.2-RLS-003",
+    "14.2-RLS-004"
+  ],
+  "collection": {
+    "collected": 18,
+    "native_exit": 0,
+    "acceptance_evidence": "none",
+    "failed": 0,
+    "executed": 0,
+    "skipped": 18,
+    "passed": 0
+  },
+  "compile": {
+    "native_exit": 0,
+    "command": "pnpm exec tsc --noEmit --incremental false"
+  },
+  "red_activation": "not-executed",
+  "transferred_checks": [
+    "14.3-INT-003",
+    "14.3-INT-004",
+    "14.3-INT-005",
+    "14.3-INT-006"
+  ],
+  "open_business_questions": [],
+  "deferred_work": [
+    "Align snake_case BookingInput fields and createBooking/updateBooking exports with the final actual provider types. Replace provisional dynamic import if necessary; never substitute a local command implementation.",
+    "Bind checkedBookingRpc to final create_booking/update_booking named arguments. Current p_tenant_id/p_actor_user_id/p_correlation_id/p_input shape is provisional, not an approved SQL signature.",
+    "Bind private create_result/update_outcomes column names and each update outcome digest/result field to actual schema. Snapshot uses all columns so no outcome/audit change is hidden.",
+    "Bind conflict person_profile_id, starts_at/ends_at and accepted/resolved metadata names to actual migration. Fixture inserts may need real required private booking seed fields after schema implementation.",
+    "Implement a local seed-only, private correlation-scoped forced_booking_failures(correlation_id,stage) seam after real booking/assignee preparation, with no production fault parameter or authenticated/anon execution grants. Reuse existing forced_audit_failures for audit rollback.",
+    "Reuse createRoleAwarePhaseAFixture and actual per-role person_profiles. Setup is inside skipped bodies; no beforeAll probes or DB access during skipped enumeration.",
+    "Existing createJob accepts customer/title. Optional job-owned facility/contact links are fixture SQL established before immutable job snapshot.",
+    "Enroll table public projections and concrete own/shared/coworker/foreign workflow fixtures in shared H4/cross-tenant/role-harness/migration inventory during implementation; this worker owns no shared helper edits."
+  ],
+  "blockers": [],
+  "checklist": "_bmad-output/test-artifacts/atdd-checklist-spec-14-2-bookings-and-assignees-schema-and-transactional-commands.md",
+  "product_or_spec_changes": false,
+  "resources_launched": false,
+  "hosted_access": false,
+  "git_actions": false
+}

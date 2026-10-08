@@ -1,0 +1,15 @@
+{
+  "before": {
+    "count": 98,
+    "latest": "20261007121724"
+  },
+  "after": {
+    "count": 99,
+    "latest": "20261007131222"
+  },
+  "priorHashBefore": "75f73622c68c50c9d257130cfc47025b3d734d6c598fcca718c36f32f111db5d",
+  "priorHashAfter": "75f73622c68c50c9d257130cfc47025b3d734d6c598fcca718c36f32f111db5d",
+  "priorLedgerUnchanged": true,
+  "file": "supabase/migrations/20261007131222_booking_editor_review_round1_fixes.sql",
+  "sha256": "c9743b6df4e7ee24e9541220dce171bd7865d70f72144a8560eb86e9823066c0"
+}

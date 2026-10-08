@@ -1,0 +1,28 @@
+{
+  "readOnly": true,
+  "scope": "comm/NSpid/namespace/cgroup/executable of chronyd and systemd-timesyncd only; no argv/env",
+  "observations": [
+    {
+      "distro": "Ubuntu-24.04",
+      "runningProven": true,
+      "nativeExit": 0,
+      "stderrBytes": 0,
+      "targetedIdentityLines": [
+        "PROCESS|156|systemd-timesyn",
+        "NSPID|NSpid:\t156",
+        "PIDNS|pid:[4026532394]",
+        "MNTNS|mnt:[4026532398]",
+        "EXE|/usr/lib/systemd/systemd-timesyncd",
+        "CGROUP|/system.slice/systemd-timesyncd.service",
+        "END"
+      ]
+    },
+    {
+      "distro": "docker-desktop",
+      "runningProven": true,
+      "nativeExit": 0,
+      "stderrBytes": 0,
+      "targetedIdentityLines": []
+    }
+  ]
+}

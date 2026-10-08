@@ -1,0 +1,85 @@
+{
+  "success": true,
+  "workflow": "bmad-testarch-automate",
+  "story": "14.4",
+  "detected_stack": "frontend",
+  "execution": {
+    "requestedMode": "auto",
+    "resolvedMode": "subagent",
+    "probeEnabled": true,
+    "supports": {
+      "subagent": true,
+      "agentTeam": false
+    },
+    "foreground_workers_completed": 2
+  },
+  "worker_files": [
+    "tea-automate-api-tests-14-4-2026-10-07T13-43-47Z.json",
+    "tea-automate-e2e-tests-14-4-2026-10-07T13-43-47Z.json"
+  ],
+  "worker_sha256": {
+    "tea-automate-api-tests-14-4-2026-10-07T13-43-47Z.json": "2c553411bd11e91dca9933ddbe19fabf0011a79d002150c6e395dbc96b4bb81d",
+    "tea-automate-e2e-tests-14-4-2026-10-07T13-43-47Z.json": "b93f818b16840465e71e149bc5f7b2fd8f42f850a8dfab0fd222e0fc96ed7b77"
+  },
+  "total_tests": 0,
+  "api_tests": 0,
+  "e2e_tests": 0,
+  "backend_tests": 0,
+  "component_tests": 0,
+  "unit_tests": 0,
+  "fixtures_created": 0,
+  "factories_created": 0,
+  "helpers_created": 0,
+  "api_test_files": 0,
+  "e2e_test_files": 0,
+  "backend_test_files": 0,
+  "priority_coverage": {
+    "P0": 0,
+    "P1": 0,
+    "P2": 0,
+    "P3": 0
+  },
+  "retained_existing_priority_tags": {
+    "P0": 64,
+    "P1": 28,
+    "P2": 0,
+    "P3": 0
+  },
+  "knowledge_fragments_used": [
+    "api-request",
+    "api-testing-patterns",
+    "auth-session",
+    "burn-in",
+    "ci-burn-in",
+    "data-factories",
+    "file-utils",
+    "fixture-architecture",
+    "fixtures-composition",
+    "intercept-network-call",
+    "library-integration-mandate",
+    "log",
+    "network-error-monitor",
+    "network-first",
+    "network-recorder",
+    "overview",
+    "playwright-cli",
+    "playwright-utils-mandate",
+    "recurse",
+    "selective-testing",
+    "selector-resilience",
+    "test-levels-framework",
+    "test-priorities-matrix",
+    "test-quality"
+  ],
+  "playwright_utils_deviations": [],
+  "pactjs_utils_deviations": [],
+  "pact_mcp_reachable": false,
+  "pact_fallback_source": "provider-source",
+  "new_coverage_gaps": [],
+  "product_tests_executed_this_run": 0,
+  "product_gates_rerun_this_run": [],
+  "evidence_audit": "story14-4-automation-audit.json",
+  "performance_gain": "Unmeasured; no sequential baseline or fabricated speedup",
+  "decision": "Retain existing meaningful coverage; avoid duplicate tests and unused infrastructure",
+  "pending_transferred_work": "14.4-E2E-006 actual calendar click/drag remains mandatory in Story15.1 before applicable calendar exposure/completion"
+}

@@ -53,3 +53,10 @@ test("[P0] 11.1-UNIT-004 a sensitive field is withheld only when no held role gr
   assert.equal(resolveSensitiveFieldEntitlement({ roles: ["montor", "projektledare"], module: "quotes", field: "cost_price_ore" }).withheld, false);
   assert.equal(resolveSensitiveFieldEntitlement({ roles: ["montor", "saljare"], module: "quotes", field: "cost_price_ore" }).withheld, true);
 });
+
+test("14.2 booking read/write capabilities preserve Montor own-read permission and deny mutation",()=>{
+ for(const role of ["tenant_admin","projektledare","montor","saljare","ekonomi"]){
+  assert.equal(resolveCapability({roles:[role],module:"resources",capability:"Bookings.View"}).granted,["tenant_admin","projektledare","montor"].includes(role));
+  assert.equal(resolveCapability({roles:[role],module:"resources",capability:"Bookings.Manage"}).granted,["tenant_admin","projektledare"].includes(role));
+ }
+});

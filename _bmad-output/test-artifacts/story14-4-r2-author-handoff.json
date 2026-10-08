@@ -1,0 +1,105 @@
+{
+  "done": true,
+  "status": "all nine patches fixed and verified; independent narrow final trail check requested; no author commit/resource actions",
+  "fixCounts": {
+    "accepted": 9,
+    "fixed": 9,
+    "high": 1,
+    "medium": 8,
+    "deferred": 0
+  },
+  "evidence": {
+    "buildId": "ZtvjBbekFSgZQChOruaeT",
+    "sourceFiles": 53,
+    "sourceFingerprint": "f34ee23dc52a0f92f6de0ea24b0328946c5dbe96d1c6a34986abcef20e94712a",
+    "requiredIntegration": {
+      "registered": 1461,
+      "passed": 1460,
+      "failed": 0,
+      "skipped": 1,
+      "nativeExit": 0
+    },
+    "actualAffected": {
+      "passed": 172,
+      "failed": 0,
+      "skipped": 0
+    },
+    "units": {
+      "registered": 2036,
+      "passed": 2035,
+      "failed": 0,
+      "skipped": 1,
+      "nativeExit": 0
+    },
+    "componentsReads": {
+      "passed": 27,
+      "failed": 0,
+      "skipped": 0,
+      "nativeExit": 0
+    },
+    "browser": "18 successful bodies from19 diagnostic, then corrected large affected1/1; same build;0skips/0flaky; not single19-pass run",
+    "actualLargeHTTP": {
+      "bytes": 1120245,
+      "status": 200,
+      "groups": 1000,
+      "accepted": 1,
+      "open": 999
+    },
+    "reviewOrder": {
+      "sections": 1,
+      "stops": 20,
+      "nativeExit": 0,
+      "errors": 0
+    },
+    "frozenIntentUnchanged": true
+  },
+  "absoluteChangedPaths": [
+    "C:/DEV/ElproSaas/next.config.ts",
+    "C:/DEV/ElproSaas/src/components/crm/Dialog.tsx",
+    "C:/DEV/ElproSaas/src/components/resources/BookingEditor.tsx",
+    "C:/DEV/ElproSaas/src/features/resources/booking-actions.ts",
+    "C:/DEV/ElproSaas/src/features/resources/booking-editor-input.ts",
+    "C:/DEV/ElproSaas/src/features/resources/booking-transport.ts",
+    "C:/DEV/ElproSaas/src/server/bookings/editor-preview.ts",
+    "C:/DEV/ElproSaas/tests/e2e/booking-editor.e2e.spec.ts",
+    "C:/DEV/ElproSaas/tests/e2e/support/booking-editor-atdd.ts",
+    "C:/DEV/ElproSaas/tests/integration/components/booking-editor.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/features/booking-read-actions.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/booking-editor-round2.int.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/security-headers.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/resources/booking-attempt-transport.test.ts",
+    "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-verification.md",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-api-focused-output.txt",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-api-focused.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-artifact-scan.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-booking-browser-diagnostic-output.txt",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-booking-browser-diagnostic.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-browser-evidence.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-build-final-output.txt",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-build-output.txt",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-components-final-output.txt",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-components-final.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-full-int-output.txt",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-full-int.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-large-http-final-output.txt",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-large-http-final.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-large-http-red-output.txt",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-large-http-red.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-lint-diagnostic.txt",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-lint-results.txt",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-unit-diagnostic.txt",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-unit-results.txt",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r2-working-tree-evidence.json"
+  ],
+  "openQuestions": [],
+  "deferred": [],
+  "blockers": [],
+  "limits": [
+    "One existing fullINT recovery physical-loader skip; one existing Windows xattr unit skip, neither acceptance",
+    "Mocked reads/SSR and synthetic helper envelopes labeled separately from actual HTTP/SQL",
+    "Original unknown Auth setup and unidentified partial fixture limitation retained",
+    "Mandatory empty-DB Epic CI and transferred15.1 calendar acceptance still required",
+    "R2 automatic broad follow-up is complete; recommendation remains true, no automatic R3 initiated; narrow check provides no broad-round credit"
+  ]
+}

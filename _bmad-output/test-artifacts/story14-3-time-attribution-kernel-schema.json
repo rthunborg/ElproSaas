@@ -1,0 +1,55 @@
+{
+  "readOnly": true,
+  "source": "actual running kernel BTF only",
+  "functionPrototypes": [
+    {
+      "name": "do_adjtimex",
+      "arguments": [
+        {
+          "name": "txc",
+          "type": "__kernel_timex*"
+        }
+      ]
+    },
+    {
+      "name": "do_settimeofday64",
+      "arguments": [
+        {
+          "name": "ts",
+          "type": " timespec64*"
+        }
+      ]
+    },
+    {
+      "name": "hv_set_host_time",
+      "arguments": [
+        {
+          "name": "work",
+          "type": "work_struct*"
+        }
+      ]
+    }
+  ],
+  "timexFields": [
+    {
+      "name": "modes",
+      "offsetBytes": 0,
+      "type": "unsigned int"
+    },
+    {
+      "name": "offset",
+      "offsetBytes": 8,
+      "type": "long long int"
+    },
+    {
+      "name": "freq",
+      "offsetBytes": 16,
+      "type": "long long int"
+    },
+    {
+      "name": "tick",
+      "offsetBytes": 88,
+      "type": "long long int"
+    }
+  ]
+}

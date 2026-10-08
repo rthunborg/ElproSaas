@@ -12,7 +12,7 @@ test("[P0] role catalogue contains the five stored roles and only active manifes
   assert.deepEqual(catalogue.roles.map((role) => role.activeMemberLabel), Array(5).fill("Aktiva medlemmar"));
   assert.equal(catalogue.roles.find((role) => role.role === "tenant_admin")?.activeMemberCount, 2);
   assert.equal(catalogue.roles.find((role) => role.role === "saljare")?.activeMemberCount, 1);
-  assert.ok(catalogue.roles.flatMap((role) => role.grants).every((grant) => grant.wave !== "B1b"));
+  assert.ok(catalogue.roles.flatMap((role) => role.grants).every((grant) => grant.wave !== "B1b" || grant.module === "resources"));
   const activeModuleIds = new Set(SCOPE_MANIFEST.modules.filter((module) => module.status === "active").map((module) => module.id));
   assert.ok(catalogue.roles.flatMap((role) => role.sensitiveEntitlements).every((entitlement) => activeModuleIds.has(entitlement.split(".")[0] ?? "")));
   assert.match(catalogue.arbetsledareGuidance, /inom ett jobb/i);

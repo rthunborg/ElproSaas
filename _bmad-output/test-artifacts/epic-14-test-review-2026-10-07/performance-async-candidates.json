@@ -1,0 +1,391 @@
+{
+  "method": "All85fullreads; TypeScript typechecker PromiseLike candidates; implicit callback returns and runner-owned registration excluded; manual await ownership adjudication required",
+  "promise_calls": 3230,
+  "candidates": [
+    {
+      "file": "C:/DEV/ElproSaas/tests/e2e/support/booking-editor-atdd.ts",
+      "line": 178,
+      "callee": "routeWork",
+      "variable": "pending",
+      "ancestors": [
+        "VariableDeclaration",
+        "VariableDeclarationList",
+        "FirstStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 283,
+      "callee": "invoke",
+      "variable": "pendingWriter",
+      "ancestors": [
+        "BinaryExpression",
+        "ExpressionStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 285,
+      "callee": "finalize",
+      "variable": "pendingFinalize",
+      "ancestors": [
+        "BinaryExpression",
+        "ExpressionStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 342,
+      "callee": "rpc",
+      "variable": "revoke",
+      "ancestors": [
+        "BinaryExpression",
+        "ExpressionStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 345,
+      "callee": "resolve",
+      "variable": "revoke",
+      "ancestors": [
+        "BinaryExpression",
+        "ExpressionStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 346,
+      "callee": "resolve",
+      "variable": "replay",
+      "ancestors": [
+        "BinaryExpression",
+        "ExpressionStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 346,
+      "callee": "authoritativeBookingRpc",
+      "variable": "replay",
+      "ancestors": [
+        "CallExpression",
+        "BinaryExpression",
+        "ExpressionStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 572,
+      "callee": "invoke",
+      "variable": "accept",
+      "ancestors": [
+        "BinaryExpression",
+        "ExpressionStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 603,
+      "callee": "invoke",
+      "variable": "accept",
+      "ancestors": [
+        "BinaryExpression",
+        "ExpressionStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 649,
+      "callee": "invoke",
+      "variable": "accept",
+      "ancestors": [
+        "BinaryExpression",
+        "ExpressionStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 809,
+      "callee": "resolve",
+      "variable": "pending",
+      "ancestors": [
+        "BinaryExpression",
+        "ExpressionStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "line": 809,
+      "callee": "rpc",
+      "variable": "pending",
+      "ancestors": [
+        "CallExpression",
+        "BinaryExpression",
+        "ExpressionStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "line": 168,
+      "callee": "resolve",
+      "variable": "revocation",
+      "ancestors": [
+        "VariableDeclaration",
+        "VariableDeclarationList",
+        "FirstStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "line": 168,
+      "callee": "manage",
+      "variable": "revocation",
+      "ancestors": [
+        "CallExpression",
+        "VariableDeclaration",
+        "VariableDeclarationList",
+        "FirstStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "line": 170,
+      "callee": "resolve",
+      "variable": "pending",
+      "ancestors": [
+        "BinaryExpression",
+        "ExpressionStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "line": 170,
+      "callee": "authoritativeBookingRpc",
+      "variable": "pending",
+      "ancestors": [
+        "CallExpression",
+        "BinaryExpression",
+        "ExpressionStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/bookings.int.test.ts",
+      "line": 69,
+      "callee": "all",
+      "variable": "pending",
+      "ancestors": [
+        "BinaryExpression",
+        "ExpressionStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/bookings.int.test.ts",
+      "line": 473,
+      "callee": "bookingCommand",
+      "variable": "pending",
+      "ancestors": [
+        "BinaryExpression",
+        "ExpressionStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/booking-editor-production.ts",
+      "line": 321,
+      "callee": "then",
+      "variable": "revocation",
+      "ancestors": [
+        "BinaryExpression",
+        "ExpressionStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/booking-editor-production.ts",
+      "line": 321,
+      "callee": "resolve",
+      "variable": "revocation",
+      "ancestors": [
+        "PropertyAccessExpression",
+        "CallExpression",
+        "BinaryExpression",
+        "ExpressionStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/booking-editor-production.ts",
+      "line": 321,
+      "callee": "rpc",
+      "variable": "revocation",
+      "ancestors": [
+        "CallExpression",
+        "PropertyAccessExpression",
+        "CallExpression",
+        "BinaryExpression",
+        "ExpressionStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/booking-editor-production.ts",
+      "line": 327,
+      "callee": "direct",
+      "variable": "attempt",
+      "ancestors": [
+        "BinaryExpression",
+        "ExpressionStatement",
+        "Block",
+        "TryStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/quote-send-diagnostics.ts",
+      "line": 58,
+      "callee": "rpc",
+      "variable": "query",
+      "ancestors": [
+        "VariableDeclaration",
+        "VariableDeclarationList",
+        "FirstStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/test-env.ts",
+      "line": 242,
+      "callee": "resolve",
+      "variable": "stackReachabilitySuccess",
+      "ancestors": [
+        "BinaryExpression",
+        "ExpressionStatement",
+        "IfStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/test-env.ts",
+      "line": 266,
+      "callee": "resolve",
+      "variable": "storageReachabilitySuccess",
+      "ancestors": [
+        "BinaryExpression",
+        "ExpressionStatement",
+        "IfStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/quote-send-diagnostics.test.ts",
+      "line": 27,
+      "callee": "throwOnError",
+      "variable": "query",
+      "ancestors": [
+        "VariableDeclaration",
+        "VariableDeclarationList",
+        "FirstStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/quote-send-diagnostics.test.ts",
+      "line": 27,
+      "callee": "single",
+      "variable": "query",
+      "ancestors": [
+        "PropertyAccessExpression",
+        "CallExpression",
+        "VariableDeclaration",
+        "VariableDeclarationList",
+        "FirstStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/quote-send-diagnostics.test.ts",
+      "line": 27,
+      "callee": "rpc",
+      "variable": "query",
+      "ancestors": [
+        "PropertyAccessExpression",
+        "CallExpression",
+        "PropertyAccessExpression",
+        "CallExpression",
+        "VariableDeclaration",
+        "VariableDeclarationList",
+        "FirstStatement",
+        "Block"
+      ]
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/quote-send-diagnostics.test.ts",
+      "line": 39,
+      "callee": "rpc",
+      "variable": null,
+      "ancestors": [
+        "CallExpression",
+        "ExpressionStatement",
+        "Block"
+      ]
+    }
+  ]
+}

@@ -15,5 +15,6 @@ test("all application paths receive the conservative browser policy without repl
   assert.equal(headers["strict-transport-security"], undefined);
   assert.equal(headers["access-control-allow-origin"], undefined);
   assert.equal(headers["access-control-allow-credentials"], undefined);
-  assert.equal(nextConfig.experimental?.serverActions, undefined);
+  assert.equal(nextConfig.experimental?.serverActions?.bodySizeLimit, "4mb");
+  assert.equal(nextConfig.experimental?.serverActions?.allowedOrigins, undefined);
 });

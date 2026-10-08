@@ -15,6 +15,8 @@ const eslintConfig = defineConfig([
     ".agents/**",
     "supabase/.temp/**",
     "tmp/**",
+    // Immutable BMAD render cache contains generated Markdown/JSON, not source.
+    "_bmad/render/**",
   ]),
 ]);
 

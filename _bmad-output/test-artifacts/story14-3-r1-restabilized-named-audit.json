@@ -1,0 +1,571 @@
+{
+  "testedBaseline": "719ffb2dc74807b9d8c1242e4d383f3e34f665f9",
+  "fullReviewBaseline": "2a6c9e6d6859987590f2e875f695a75c16125af6",
+  "requiredFlag": true,
+  "workerCount": 8,
+  "fileParallelism": true,
+  "full": {
+    "nativeExit": 0,
+    "total": 1366,
+    "passed": 1365,
+    "failed": 0,
+    "skipped": 1,
+    "success": true
+  },
+  "checks": [
+    {
+      "anchor": "14.3-INT-001",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "Story 14.3 authoritative conflict persistence [P1] 14.3-INT-001 frozen internal preview and real save use identical normalized conflicts",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "14.3-INT-002",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "Story 14.3 authoritative conflict persistence [P1] 14.3-INT-002 a stale signed preview writes nothing after a peer booking commits",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "14.3-INT-003",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "Story 14.3 authoritative conflict persistence [P0] 14.3-INT-003 fresh actual CREATE commits exact conflicts, assignments, outcome and one target audit",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "14.3-INT-004",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "Story 14.3 authoritative conflict persistence [P1] 14.3-INT-004 replace old/new assignees/windows, preserve accepted keys, refresh peers and cancellation",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "14.3-INT-005",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "Story 14.3 authoritative conflict persistence [P1] 14.3-INT-005 CREATE and UPDATE post-conflict/audit faults roll back every durable column",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "14.3-INT-006",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "Story 14.3 authoritative conflict persistence [P0] 14.3-INT-006 real save refreshes stale facts under the original command UUID",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "three real stale attempts",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "Story 14.3 authoritative conflict persistence [P0] AC10 three real stale attempts exhaust as retryable SERVER_ERROR without target/outcome/audit writes",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "distinct-key concurrent bookings",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "Story 14.3 authoritative conflict persistence [P0] AC10 distinct-key concurrent bookings cannot commit a conflict-free write skew",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "AC10 schedule holds first gate",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "[P0] AC10 schedule holds first gate before row lock; waiting finalize verifies coherent facts",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "AC10 profile holds first gate",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "[P0] AC10 profile holds first gate before row lock; waiting finalize verifies coherent facts",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "AC10 calendar holds first gate",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "[P0] AC10 calendar holds first gate before row lock; waiting finalize verifies coherent facts",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "AC10 combined_form holds first gate",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "[P0] AC10 combined_form holds first gate before row lock; waiting finalize verifies coherent facts",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "AC10 work_role_upsert holds first gate",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "[P0] AC10 work_role_upsert holds first gate before row lock; waiting finalize verifies coherent facts",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "AC10 work_role_active holds first gate",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "[P0] AC10 work_role_active holds first gate before row lock; waiting finalize verifies coherent facts",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "AC10 membership holds first gate",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "[P0] AC10 membership holds first gate before row lock; waiting finalize verifies coherent facts",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "AC10 invitation_acceptance holds first gate",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "[P0] AC10 invitation_acceptance holds first gate before row lock; waiting finalize verifies coherent facts",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "every participant in four-booking",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "[P0] AC8 every participant in four-booking daily capacity is retrievable and refreshed independently",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "persisted dated absence",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "[P0] AC2 persisted dated absence and blocked time produce independent literal UTC warnings",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "after the operation-row lock wait",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "[P0] AC10 invitation expiry is checked after the operation-row lock wait before activation",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "otherwise valid expired proof",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "[P0] AC11 correctly signed otherwise valid expired proof isolates database clock and maximum lifetime",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "otherwise valid future proof",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "[P0] AC11 correctly signed otherwise valid future proof isolates database clock and maximum lifetime",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "otherwise valid oversized proof",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "[P0] AC11 correctly signed otherwise valid oversized proof isolates database clock and maximum lifetime",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "previous incomplete normalization version",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "[P0] AC11 previous incomplete normalization version cannot authorize a fresh commit",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "refreshes 1 genuine signed expiries",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "[P0] AC10 actual save refreshes 1 genuine signed expiries during gate waits under the same command UUID",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "refreshes 3 genuine signed expiries",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "[P0] AC10 actual save refreshes 3 genuine signed expiries during gate waits under the same command UUID",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "units": [
+    {
+      "id": "14.3-UNIT-001",
+      "passedNames": [
+        "ok 560 - [P0] 14.3-UNIT-001 shared assignee emits exact stable pair/person/window"
+      ]
+    },
+    {
+      "id": "14.3-UNIT-002",
+      "passedNames": [
+        "ok 561 - [P1] 14.3-UNIT-002 adjacent half-open intervals clear, microsecond overlap real"
+      ]
+    },
+    {
+      "id": "14.3-UNIT-003",
+      "passedNames": [
+        "ok 562 - [P1] 14.3-UNIT-003 only colliding people appear, permutations have identical bytes"
+      ]
+    },
+    {
+      "id": "14.3-UNIT-004",
+      "passedNames": [
+        "ok 557 - [P0] 14.3-UNIT-004 every positive overrun warns regardless of injected threshold"
+      ]
+    },
+    {
+      "id": "14.3-UNIT-005",
+      "passedNames": [
+        "ok 563 - [P1] 14.3-UNIT-005 outside actual shifts retains partial/whole violating windows"
+      ]
+    },
+    {
+      "id": "14.3-UNIT-006",
+      "passedNames": [
+        "ok 564 - [P1] 14.3-UNIT-006 split shifts, break and overlapping absence/blocked emit one identity"
+      ]
+    },
+    {
+      "id": "14.3-UNIT-007",
+      "passedNames": [
+        "ok 565 - [P1] 14.3-UNIT-007 only supplied access window emits exact warning"
+      ]
+    },
+    {
+      "id": "14.3-UNIT-008",
+      "passedNames": [
+        "ok 566 - [P1] 14.3-UNIT-008 explicit missing required role warns, matching role clears it"
+      ]
+    },
+    {
+      "id": "14.3-UNIT-009",
+      "passedNames": [
+        "ok 569 - [P1] 14.3-UNIT-009 spring gap uses first valid instant across all-day/multi-day"
+      ]
+    },
+    {
+      "id": "14.3-UNIT-010",
+      "passedNames": [
+        "ok 570 - [P1] 14.3-UNIT-010 fall fold uses earlier instant and retains exact microseconds"
+      ]
+    },
+    {
+      "id": "14.3-UNIT-011",
+      "passedNames": [
+        "ok 567 - [P1] 14.3-UNIT-011 frozen inputs yield sorted byte-identical output without clock/I/O"
+      ]
+    },
+    {
+      "id": "14.3-UNIT-012",
+      "passedNames": [
+        "ok 558 - [P0] 14.3-UNIT-012 six formula terms isolate each change and layered subtraction once"
+      ]
+    },
+    {
+      "id": "14.3-UNIT-013",
+      "passedNames": [
+        "ok 559 - [P1] 14.3-UNIT-013 overtime is explicitly injected data and never default capacity"
+      ]
+    },
+    {
+      "id": "14.3-UNIT-014",
+      "passedNames": [
+        "ok 568 - [P1] 14.3-UNIT-014 named immutable miss/phantom packs protect every corrected defect"
+      ]
+    }
+  ],
+  "timezones": [
+    {
+      "zone": "UTC",
+      "nativeExit": 0,
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "unitIds": [
+        "14.3-UNIT-001",
+        "14.3-UNIT-002",
+        "14.3-UNIT-003",
+        "14.3-UNIT-004",
+        "14.3-UNIT-005",
+        "14.3-UNIT-006",
+        "14.3-UNIT-007",
+        "14.3-UNIT-008",
+        "14.3-UNIT-009",
+        "14.3-UNIT-010",
+        "14.3-UNIT-011",
+        "14.3-UNIT-012",
+        "14.3-UNIT-013",
+        "14.3-UNIT-014"
+      ],
+      "nativeExitEvidence": "trusted exec_command completion"
+    },
+    {
+      "zone": "America-Los_Angeles",
+      "nativeExit": 0,
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "unitIds": [
+        "14.3-UNIT-001",
+        "14.3-UNIT-002",
+        "14.3-UNIT-003",
+        "14.3-UNIT-004",
+        "14.3-UNIT-005",
+        "14.3-UNIT-006",
+        "14.3-UNIT-007",
+        "14.3-UNIT-008",
+        "14.3-UNIT-009",
+        "14.3-UNIT-010",
+        "14.3-UNIT-011",
+        "14.3-UNIT-012",
+        "14.3-UNIT-013",
+        "14.3-UNIT-014"
+      ],
+      "nativeExitEvidence": "trusted exec_command completion"
+    },
+    {
+      "zone": "Asia-Tokyo",
+      "nativeExit": 0,
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "unitIds": [
+        "14.3-UNIT-001",
+        "14.3-UNIT-002",
+        "14.3-UNIT-003",
+        "14.3-UNIT-004",
+        "14.3-UNIT-005",
+        "14.3-UNIT-006",
+        "14.3-UNIT-007",
+        "14.3-UNIT-008",
+        "14.3-UNIT-009",
+        "14.3-UNIT-010",
+        "14.3-UNIT-011",
+        "14.3-UNIT-012",
+        "14.3-UNIT-013",
+        "14.3-UNIT-014"
+      ],
+      "nativeExitEvidence": "trusted exec_command completion"
+    }
+  ],
+  "allNamedChecksPassed": true,
+  "all14UnitIdsPassed": true,
+  "skips": [
+    {
+      "file": "tests/integration/ops/recovery-storage-immutability.int.test.ts",
+      "name": "isolated recovery Storage physical-loader proof serves loader-materialized bytes without mutating logical rows and rejects generic plus quote-PDF overwrite attempts",
+      "status": "skipped"
+    }
+  ],
+  "historical49CaseReportsDidNotRegisterTwoAC10Cases": true,
+  "historicalFull1366_1362_3_1Preserved": true,
+  "ioMatrix": [
+    {
+      "scenario": "Shared assignee",
+      "unitIds": [
+        "14.3-UNIT-001",
+        "14.3-UNIT-002",
+        "14.3-UNIT-003"
+      ],
+      "integrationAnchors": [
+        "14.3-INT-001"
+      ],
+      "passed": true
+    },
+    {
+      "scenario": "Availability and capacity",
+      "unitIds": [
+        "14.3-UNIT-004",
+        "14.3-UNIT-005",
+        "14.3-UNIT-006",
+        "14.3-UNIT-012"
+      ],
+      "integrationAnchors": [
+        "persisted dated absence",
+        "every participant in four-booking"
+      ],
+      "passed": true
+    },
+    {
+      "scenario": "Optional job inputs",
+      "unitIds": [
+        "14.3-UNIT-007",
+        "14.3-UNIT-008",
+        "14.3-UNIT-013"
+      ],
+      "integrationAnchors": [],
+      "passed": true
+    },
+    {
+      "scenario": "Preview becomes stale",
+      "unitIds": [],
+      "integrationAnchors": [
+        "14.3-INT-002",
+        "14.3-INT-006",
+        "three real stale attempts"
+      ],
+      "passed": true
+    },
+    {
+      "scenario": "Fresh create/update",
+      "unitIds": [],
+      "integrationAnchors": [
+        "14.3-INT-003",
+        "14.3-INT-005",
+        "otherwise valid expired proof",
+        "otherwise valid future proof",
+        "otherwise valid oversized proof"
+      ],
+      "passed": true
+    },
+    {
+      "scenario": "Existing workflow",
+      "unitIds": [],
+      "integrationAnchors": [
+        "14.3-INT-004",
+        "every participant in four-booking"
+      ],
+      "passed": true
+    },
+    {
+      "scenario": "Retry/revocation",
+      "unitIds": [],
+      "integrationAnchors": [
+        "distinct-key concurrent bookings",
+        "AC10 schedule holds first gate",
+        "AC10 profile holds first gate",
+        "AC10 calendar holds first gate",
+        "AC10 combined_form holds first gate",
+        "AC10 work_role_upsert holds first gate",
+        "AC10 work_role_active holds first gate",
+        "AC10 membership holds first gate",
+        "AC10 invitation_acceptance holds first gate"
+      ],
+      "passed": true
+    }
+  ],
+  "ioMatrixCount": 7,
+  "allSevenMatrixRowsPassed": true,
+  "transferredChecks": [
+    {
+      "anchor": "14.3-INT-003",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "Story 14.3 authoritative conflict persistence [P0] 14.3-INT-003 fresh actual CREATE commits exact conflicts, assignments, outcome and one target audit",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "14.3-INT-004",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "Story 14.3 authoritative conflict persistence [P1] 14.3-INT-004 replace old/new assignees/windows, preserve accepted keys, refresh peers and cancellation",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "14.3-INT-005",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "Story 14.3 authoritative conflict persistence [P1] 14.3-INT-005 CREATE and UPDATE post-conflict/audit faults roll back every durable column",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "anchor": "14.3-INT-006",
+      "matches": [
+        {
+          "file": "tests/integration/commands/booking-conflicts.int.test.ts",
+          "name": "Story 14.3 authoritative conflict persistence [P0] 14.3-INT-006 real save refreshes stale facts under the original command UUID",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "allFourTransfersExecutedUnskipped": true
+}

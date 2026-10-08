@@ -75,6 +75,9 @@ const PINNED_TENANT_TABLES = [
   "quote_review_authorizations",
   "jobs",
   "job_events",
+  "person_profiles",
+  "person_work_hours",
+  "tenant_calendar_days", "bookings", "booking_assignees", "booking_conflicts",
   "job_runs",
   "notifications",
   "notification_preferences",
@@ -144,7 +147,7 @@ test("10.1-UNIT-SHAPE-02 (AC2): every `active` module has an epic reference + an
   for (const m of active) {
     assert.ok(m.epic && m.epic.length > 0, `active module ${m.id} must carry an epic reference`);
     assert.ok(m.activatedAt && m.activatedAt.length > 0, `active module ${m.id} must carry an activatedAt date`);
-    assert.ok(m.wave === "A" || m.id === "rbac" || m.id === "provisioning" || m.id === "notifications", `only approved Phase B activations may be active (${m.id})`);
+    assert.ok(m.wave === "A" || m.id === "rbac" || m.id === "provisioning" || m.id === "notifications" || m.id === "resources", `only approved Phase B activations may be active (${m.id})`);
   }
 });
 
@@ -156,7 +159,7 @@ test("10.1-UNIT-SHAPE-03 (AC2): the `active` set reproduces exactly the 7 Phase-
   assert.deepEqual(sortedUnique(routes), sortedUnique(PINNED_NAV_ROUTES));
 });
 
-test("13.4-UNIT-SHAPE-04: the `active` set reproduces exactly the 41 tenant tables (pinned, non-circular)", async () => {
+test("14.2-UNIT-SHAPE-04: the `active` set reproduces exactly the 47 tenant tables (pinned, non-circular)", async () => {
   // Baseline was 24 (Phase A); Story 10.2 enrolled quote_lost_reasons (→ 25) and Story 10.3 enrols
   // quote_follow_ups (→ 26); Story 10.8 adds quote_review_authorizations (→ 27), and Story 11.1
   // enrolls membership_roles plus membership_admin_operations (→ 29). Story 12.1 adds two
@@ -166,7 +169,7 @@ test("13.4-UNIT-SHAPE-04: the `active` set reproduces exactly the 41 tenant tabl
   const tables = manifest.modules
     .filter((m) => m.status === "active")
     .flatMap((m) => m.tenantTables);
-  assert.equal(tables.length, 41, "the active tenant-table union must total exactly 41 (no dup, no gap)");
+  assert.equal(tables.length, 47, "the active tenant-table union must total exactly 47 (no dup, no gap)");
   assert.deepEqual(sortedUnique(tables), sortedUnique(PINNED_TENANT_TABLES));
 });
 
@@ -183,7 +186,7 @@ test("10.1-UNIT-SHAPE-06 (AC2): every Phase B module is `pending` (no live Phase
   const phaseB = manifest.modules.filter((m) => m.wave !== "A");
   assert.ok(phaseB.length > 0, "expected Phase B pending modules to be modeled");
   for (const m of phaseB) {
-    if (m.id === "rbac" || m.id === "provisioning" || m.id === "notifications") continue;
+    if (m.id === "rbac" || m.id === "provisioning" || m.id === "notifications" || m.id === "resources") continue;
     assert.equal(m.status, "pending", `Phase B module ${m.id} must be pending in 10.1`);
     assert.equal(m.navItems.length, 0, `pending module ${m.id} must wire no nav route`);
     assert.equal(m.tenantTables.length, 0, `pending module ${m.id} must enroll no tenant table`);

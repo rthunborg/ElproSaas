@@ -1,0 +1,24 @@
+{
+  "workflow": "bmad-testarch-nfr",
+  "mode": "Create",
+  "target": "Epic 14",
+  "timestamp": "2026-10-07T15-40-26-879Z",
+  "requestedMode": "auto",
+  "resolvedMode": "sequential",
+  "capabilityProbe": true,
+  "supports": { "subagent": false, "agentTeam": false },
+  "probeEvidence": "collaboration.list_agents succeeded; actual first security spawn_agent attempt returned agent thread limit reached; no child launched and no distinct agent-team launcher is exposed",
+  "fallbackReason": "Actual runtime capacity refusal; Step 4 auto mode resolves sequential with all four domain contracts preserved",
+  "evidenceContext": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/nfr-assessment-epic-14.md",
+  "newProductExecutions": 0,
+  "actualExecution": { "primaryEffort": "high", "childLaunches": 0, "independentChildCredit": false, "speedupClaim": false, "reason": "Single primary performs all four domain steps sequentially after actual spawn refusal; sensitive security/transactional integrity scope retains High" },
+  "routesBeforeDispatch": [
+    { "domain": "security", "model": "gpt-6.1-sol", "effort": "high", "fork": "none", "reason": "Tenant isolation, RLS, authorization, secrets and transactional acceptance evidence" },
+    { "domain": "performance", "model": "gpt-6.1-sol", "effort": "low", "fork": "none", "reason": "Ordinary performance evidence audit, thresholds UNKNOWN" },
+    { "domain": "reliability", "model": "gpt-6.1-sol", "effort": "high", "fork": "none", "reason": "Transactional integrity, replay, fault rollback, current-row authority and durable state evidence" },
+    { "domain": "maintainability", "model": "gpt-6.1-sol", "effort": "low", "fork": "none", "reason": "Ordinary coverage, duplication, dependency and operational evidence audit" }
+  ],
+  "outputRoot": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/nfr/epic-14",
+  "temporaryPathConvention": "Windows TEMP replaces unavailable POSIX /tmp; workers mirror JSON there under tea-nfr-{domain}-2026-10-07T15-40-26-879Z.json",
+  "constraints": ["NFR artifacts only", "no product tests or fixtures", "no resource lifecycle operations", "no hosted operations", "no source/test/spec/state/report/Git writes", "preserve other agents' edits", "no new code review round"]
+}

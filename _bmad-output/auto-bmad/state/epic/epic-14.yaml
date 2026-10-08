@@ -1,0 +1,402 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: epic-14
+epic_num: 14
+story_num: null
+story_suffix: ""
+story_source: sprint
+spec_folder: null
+story_id: null
+branch: codex/epic14-resume
+status: done
+updated_at: "2026-10-08T14:03:22Z"
+started_at: "2026-09-29T08:23:21Z"
+completed_at: "2026-10-07T16:15:18Z"
+active_seconds: 77845
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+git_mode: remote
+base_branch: main
+selected_phase: followup_review
+selected_role: primary-reviewer
+selected_profile: standard
+selected_model: gpt-6.1-sol
+selected_effort: high
+selected_host: codex
+selected_tier: subagents
+selected_route: subagent
+escalation_reason: "Independent final metadata review validates actual authorization/RLS clearance, five-job eligibility, canonical story completion and preserved historical release obligations."
+routing_ledger:
+  - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: authorization, rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"low\",\"escalation_reason\":\"Ordinary task uses Low effort\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: authorization, rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"low\",\"escalation_reason\":\"Ordinary metadata-only test-risk classification; no code or security implementation\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Epic14 gate audits actual authorization/RLS, signed preview authority and atomic booking conflict acceptance\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_epic\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Mechanical Epic14 trace remediation iter1 actual resource authorization/RLS and schema-integrity negatives\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_epic\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Fresh deterministic Epic14 re-gate after iter1 actual resource authorization/RLS/schema assertions passed\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_epic\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Epic14 advisory audits cover actual tenant/RLS, signed review authority and atomic audited command test quality\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_epic_audit\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Ledger includes actual auth/RLS, money/tax and transactional obligations; conservative read-only reconciliation requires High.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"deferred_reconcile\",\"profile\":\"standard\",\"role\":\"deferred-reconciler\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"low\",\"escalation_reason\":\"Headless documentary synthesis from established evidence; no new sensitive implementation or security review.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"retrospective\",\"profile\":\"default\",\"role\":\"retrospective-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Bounded direct-closeout metadata must reconcile established tenant/RLS and transactional review clearance without changing historical review rounds or failed evidence.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"final_convergence\",\"profile\":\"standard\",\"role\":\"final-convergence\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Independent bounded check of authorization/RLS review clearance, exact CI eligibility and metadata preservation; no new broad code review.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Current review-clearance metadata is sensitive; preserve original rounds and timestamps and apply only after five actual exact-source CI passes.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"final_convergence\",\"profile\":\"standard\",\"role\":\"final-convergence\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Apply bounded current tenant/RLS and transactional review clearance after confirmed five-job source gate 37786814317; preserve historical counters, timestamps and failures.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"final_convergence\",\"profile\":\"standard\",\"role\":\"final-convergence\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Acceptance metadata follows actual current authorization/RLS and transactional review clearance; keep bounded High assessment and preserve all separate release obligations.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"retrospective\",\"profile\":\"default\",\"role\":\"retrospective-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Independent final metadata review validates actual authorization/RLS clearance, five-job eligibility, canonical story completion and preserved historical release obligations.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+tea_risk: null
+tea_selected: []
+tea_rationale: null
+epic_story_count: 4
+stories_after_in_epic: null
+completed_phases: [0, 1, 2, 5, 9, 81, 82]
+spec_path: null
+spec_approved: false
+build:
+  status: draft
+  blocking_condition: null
+  followup_review_recommended: false
+  review_loop_iteration: 0
+  deferred_count: 0
+  warnings: []
+followup_passes: 0
+hitl_halt: null
+review_unverified: false
+story_trace: null
+legacy_review_resume: false
+legacy_review_iteration: null
+legacy_review_loop_done: false
+legacy_external_review_iterations: null
+legacy_convergence_unverified: false
+legacy_artifact_path: null
+commits: [21ae8d7, "7548809", b821e42, 2fdca50, a98153f, 8a260ae, 741f4bf, ee9d17b, 084bfe1e, 63f22361, e88ce5db, d53cb1dc, 1a077bd2, ceefd6f3, 5b46bdec, d856d313, 4c127848, d6b545f6, af283dbd, abbe0170, a957911, 4c8d0b6, 0eaa367, de5cfbe4, 1fce0b49, 8db3b22, 7c434b04, cd0b677, 4d2f29a5, 4947dbb4, e1f2c7d6, 079e1053, afb4ef9d, dc2c0c89, 1f7bfcd8, c76f81d5, d0e9cc3e, ad4642a1, 0c4ab83f, 0d1ff3a3, e92e0ec1, d13dfa72, 7f26abd3]
+phase8_steps:
+  trace_gate: done
+  nfr: done
+  test_review: done
+  reconcile: done
+  archive: done
+  retro: done
+gate_decision: PASS
+gate_iterations: 1
+deferred_work_archived: 6
+retro:
+  doc: "_bmad-output/implementation-artifacts/epic-14-retro-2026-10-08.md"
+  verdict: accepted-with-open-items
+  open_action_items: 4
+bmad_status_flipped_at: 9
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/86"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/37786814317"
+ci_status: passed
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work: []
+blockers: []
+overrides:
+  epic_start_authorized_by_owner: true
+  unattended_run_confirmed_by_owner_request: true
+  isolated_managed_worktree: "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas"
+  previous_epic_retro_verdict: accepted
+  epic13_observation_continues: true
+  owner_requested_resume_on: 2026-10-02
+  resume_preflight_passed: true
+  root_guard_status_verified: true
+  owner_authorized_guard_repair_and_failure_diagnosis: true
+  local_guard_diagnostic_status: story_acceptance_completed
+  isolated_service_and_schema_readiness_verified: true
+  root_guard_stop_requested: true
+  owner_confirmed_guard_fix_deployed: true
+  root_guard_resource_id: 24c8e6c8-37f9-4e87-8add-3e9a7818053c
+  owner_confirmed_all_prs_merged: true
+  root_guard_compose_file: compose.ready.test.yaml
+  root_guard_request_id: e10639e1-f569-4fdf-91d7-3535160e76ee
+  owner_authorized_corrected_stack_and_fresh_volumes: true
+  root_guard_start_reproduced_failure: false
+  guard_upgrade_not_required: true
+  historical_registration_recovery_not_required: true
+  root_guard_service_readiness_verified: true
+  root_app_server_port: 3100
+  root_app_server_guard_active_verified: true
+  root_app_server_resource_id: 395a78d3-7e48-4edd-a4e1-76e156313251
+  root_app_server_physical_node_path_used: true
+  root_app_server_stop_requested: true
+  root_app_server_runtime_keys_mismatched: false
+  root_app_server_next_version: 16.3.6
+  browser_origin_mismatch_under_diagnosis: false
+  local_gateway_cors_reload_pending: false
+  root_app_server_e2e_failure_flag_private: true
+  root_browser_stop_requested: true
+  root_browser_stopped_verified: false
+  root_browser_diagnostic_code: installed_chrome_owned_cdp_verified
+  root_browser_admission_failed: false
+  root_browser_resource_id: 1bf19b1e-6447-4fae-8e5e-9f50aa0a68c0
+  final_guarded_browser_acceptance_executed: true
+  story_acceptance_complete: false
+  root_guard_shutdown_verified: false
+  schema_migration_seed_completed: true
+  root_app_server_shutdown_verified: false
+  schema_migration_seed_and_acceptance_pending: false
+  current_story_build_status: draft
+  required_full_integration_gate_passed: true
+  resource_guard_browser_repair_owned_externally: true
+  prerequisite_integration_repair_owner_approved_on: 2026-10-02
+  prerequisite_integration_repair_active: false
+  prerequisite_integration_repair_adr: docs/decisions/ADR-B012-integration-gate-privilege-baseline-and-local-reliability.md
+  prerequisite_integration_repair_spec: "_bmad-output/implementation-artifacts/spec-prereq-integration-gate-privilege-and-reliability.md"
+  prerequisite_quote_acl_migration_applied: 20261002121425_quote_follow_ups_privilege_baseline.sql
+  prerequisite_serial_full_gate_pending: false
+  prerequisite_quote_acl_focused_passed: 10
+  integration_existing_skip: "isolated physical-loader recovery proof requires ISOLATED_RECOVERY_STORAGE_PROOF=1"
+  integration_parallelism_change_justified: false
+  prerequisite_integration_scope_includes_confirmed_inherited_crm_audit_privileges: true
+  prerequisite_crm_audit_acl_focused_passed: 14
+  prerequisite_crm_audit_acl_migration_applied: 20261002122535_crm_and_audit_privilege_baseline.sql
+  prerequisite_typecheck_passed: true
+  prerequisite_last_full_gate_files: 125
+  prerequisite_last_full_gate_skipped: 1
+  prerequisite_storage_service_bucket_http_status: 200
+  prerequisite_last_full_gate_serialization_verified: false
+  prerequisite_last_full_gate_passed: 1242
+  prerequisite_storage_health_http_status: 200
+  prerequisite_last_full_gate_failed: 0
+  prerequisite_last_full_gate_tests: 1243
+  prerequisite_broad_acl_owner_approval_pending: false
+  prerequisite_broad_acl_proposal: docs/decisions/ADR-B012-public-inheritance-repair-approval-plan.md
+  prerequisite_broad_acl_proposal_applied: true
+  prerequisite_final_acl_focused_passed: 24
+  prerequisite_direct_helper_grant_bindings_verified: 4
+  prerequisite_direct_table_grant_bindings_verified: 44
+  prerequisite_final_review_findings: 0
+  prerequisite_test_support_focused_passed: 13
+  resource_guard_external_browser_path_verified: true
+  resource_guard_external_browser_evidence: "C:\\Users\\Rasmus\\Documents\\Codex\\2026-08-31\\investigate-and-design-a-machine-level\\work\\chromium-launch-2026-10-02\\ELPRO-AGENT-HANDOFF.md"
+  prerequisite_broad_acl_owner_approved_on: 2026-10-02
+  prerequisite_broad_acl_owner_approved_scope: 22 observed tables and two helpers exactly as ADR-B012 approval plan
+  owner_confirmed_chrome_guard_path_fixed: true
+  prerequisite_normal_full_gate_pending: false
+  root_browser_cdp_endpoint: "http://127.0.0.1:59601"
+  root_browser_owned_cdp_verified: true
+  prerequisite_remaining_test_contract_diagnosis_authorized: true
+  prerequisite_broad_acl_migration_applied: 20261002141141_approved_inherited_public_acl_repair.sql
+  prerequisite_normal_full_gate_aggregate_capture_complete: true
+  prerequisite_remaining_contract_failures: 15
+  prerequisite_cross_tenant_focused_passed: 180
+  prerequisite_normal_full_gate_executed: true
+  prerequisite_last_full_gate_file_passed: 124
+  prerequisite_last_full_gate_file_failed: 0
+  prerequisite_last_full_gate_file_skipped: 1
+  prerequisite_reconciliation_files: 7
+  prerequisite_reconciliation_passed: 68
+  prerequisite_reconciliation_failed: 1
+  prerequisite_reconciliation_skipped: 0
+  prerequisite_reconciliation_persisted: true
+  prerequisite_review_contrary_result_superseded: true
+  prerequisite_successor_owner_approval_pending: false
+  prerequisite_successor_proposal_applied: true
+  prerequisite_successor_proposal: docs/decisions/ADR-B012-public-inheritance-repair-approval-plan.md
+  review_order_verified_refs: 27
+  prerequisite_successor_owner_approved_on: 2026-10-02
+  prerequisite_successor_owner_approved_scope: "Membership UPDATE limited to onboarding_checklist_dismissed_at; exact service_role EXECUTE revokes on two checked quote wrappers; shared ID query batch size100to50 with existing boundary regressions."
+  prerequisite_readiness_timeout_retry_verified: true
+  prerequisite_successor_migration_applied: 20261002150000_approved_successor_acl_and_rls_batch_repair.sql
+  prerequisite_integration_repair_completed: true
+  prerequisite_bound_test_api: "http://127.0.0.1:55421"
+  prerequisite_bound_test_db_port: 55422
+  final_guarded_browser_acceptance_passed: 4
+  final_guarded_browser_acceptance_failed: 0
+  final_guarded_browser_acceptance_skipped: 0
+  final_scoped_resource_command_rls_passed: 196
+  final_scoped_resource_command_rls_failed: 0
+  final_scoped_resource_command_rls_skipped: 0
+  final_scoped_resource_command_rls_files: 4
+  default_stack_fixture_data_uncertain: true
+  post_dev_coverage_complete: true
+  post_dev_coverage_focused_passed: 4
+  post_dev_coverage_focused_skipped: 0
+  post_dev_coverage_summary: "_bmad-output/test-artifacts/automation-summary-14-1-scheduling-activation-person-profiles-and-work-hours.md"
+  followup_renderer_permission_failure_observed: true
+  followup_renderer_failed_attempt_review_ran: false
+  followup_renderer_read_with_required_permissions_verified: true
+  followup_renderer_escalated_retry_passed: true
+  followup_resource_units_passed: 18
+  followup_resource_integration_passed: 6
+  followup_resource_integration_skipped: 0
+  followup_role_timeout_isolated_passed: 5
+  followup_role_timeout_isolated_seconds: "26.73"
+  followup_latest_broad_run_passed: 1243
+  followup_latest_broad_run_failed: 1
+  followup_latest_broad_run_skipped: 1
+  followup_latest_broad_run_exit_code: 1
+  followup_time_precision_migration_applied: 20261002190000_resource_time_precision_preservation.sql
+  followup_external_cli_failed_attempts: 2
+  followup_external_cli_completed_exit_code: 0
+  followup_external_cli_skip_host_skill_discovery_used: true
+  followup_external_cli_model: gpt-5.6-luna
+  followup_external_cli_effort: xhigh
+  followup_review_completed: true
+  followup_confirmed_findings_patched: 4
+  last_accepted_story_key: 14-4-booking-editor-with-live-conflict-warnings-and-audited-override
+  last_accepted_story_browser_passed: 4
+  guard_stop_acknowledgements_all_native_zero: true
+  acceptance_contract_c_approved_on: 2026-10-06
+  acceptance_contract_c_owner_approved: true
+  acceptance_contract_c: "14.2 retains schema/RLS/auth/idempotency/rollback/booking-assignee-audit atomicity. Conflict portion of INT-001, INT-002, INT-007, INT-008 moves to 14.3; mandatory equivalent P0 before 14.4 and epic PR; no user-facing booking entry before detector integration."
+  acceptance_contract_c_document: docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md
+  current_compose_resource_id: 48fc14f8-3810-46f8-ab4f-8c416abc7d57
+  current_compose_outcome_verified: true
+  current_compose_stop_requested: true
+  current_loopback_rest_auth_storage_http_200: true
+  current_compose_healthy_services: 5
+  owned_guard_resources_stop_requested: true
+  historical_quote_send_time_failure_cause: unconfirmed
+  acceptance_contract_c_all_four_equivalents_mandatory_before_14_4: true
+  latest_full_integration_skipped: 1
+  empty_chain_ci_required: true
+  latest_full_integration_passed: 1465
+  empty_chain_ci_executed: false
+  latest_full_integration_failed: 0
+  resume_checkpoint: 60339ed8
+  resume_workspace: "C:/DEV/ElproSaas"
+  restore_after_fresh_author_capacity: true
+  root_guard_stop_native_exit: 0
+  clock_provider_owner_read_required: false
+  administrator_probe_executed: true
+  administrator_probe_guest_completion_verified: false
+  automatic_debug_shell_retry_supported: false
+  clock_service_config_changed: false
+  clock_provider_owner_read_complete: true
+  clock_provider_owner_read_status: 0
+  clock_provider_vm_chronyd_phc_confirmed: true
+  clock_provider_ubuntu_timesyncd_confirmed: true
+  clock_intervention_owner_execution_required: false
+  owner_clock_experiment_approved: true
+  owner_clock_experiment_executed: true
+  owner_clock_experiment_runtime_rollback_complete: true
+  owner_authorized_similar_wsl_operations: true
+  current_clock_stable: true
+  after_rollback_clock_samples: 2811
+  after_rollback_clock_backward_steps: 3
+  after_rollback_clock_min_delta_ms: "-1985.812987"
+  after_rollback_adjusted_raw_ratio: "1.071687471289135"
+  after_rollback_sampler_native_exit: 0
+  clock_service_config_changed_by_agent: false
+  owner_persistent_timesyncd_disable_confirmed: true
+  clock_stability_observation_seconds: 55
+  disabled_clock_samples: 2734
+  disabled_clock_backward_steps: 0
+  disabled_clock_adjusted_raw_ratio: "1.0001272306764746"
+  disabled_clock_sampler_native_exit: 0
+  fresh_author_capacity_confirmed: true
+  current_migration_ledger_count: 99
+  prior_94_migration_ledger_hash_unchanged: true
+  current_db_clock_backward_steps: 0
+  review_fixes_verification_complete: true
+  current_full_integration_passed: 1460
+  current_full_integration_failed: 0
+  current_full_integration_skipped: 1
+  current_full_integration_native_exit: 0
+  focused_review_fix_passed: 143
+  focused_review_fix_failed: 0
+  focused_review_fix_skipped: 0
+  sharp_security_patch_applied: true
+  current_audit_high_count: 0
+  canonical_lint_passed: true
+  generated_review_workflow_recovery_pending: true
+  story14_3_current_verification_passed: true
+  story14_3_completed_independent_review_rounds: 2
+  all_four_transferred_checks_verified_before_14_4: true
+  story14_4_plan_blocking_condition: null
+  acceptance_contract_d_owner_approved: true
+  acceptance_contract_d_document: docs/decisions/epic-14-story-ownership-contract-d-2026-10-07.md
+  story14_4_completed_independent_review_rounds: 2
+  story14_4_followup_still_recommended: false
+  epic_trace_formal_total: 36
+  epic_trace_formal_full: 36
+  epic_trace_uncovered: []
+  epic_trace_gate_path: "_bmad-output/test-artifacts/traceability/epic-14/gate-decision.json"
+  epic_trace_formal_partial: 0
+  epic_gate_iter1_focused_passed: 5
+  github_connector_auth_valid: true
+  epic_gate_iter1_affected_passed: 47
+  epic_gate_iter1_native_exit: 0
+  epic_gate_iter1_tests: 5
+  epic_gate_iter1_artifact_scan_files: 25
+  github_cli_auth_invalid: true
+  epic_gate_iter1_artifact_scan_findings: 0
+  github_finalization_provider: connected GitHub app with normal Git remote transport
+  epic_trace_mapped_files: 38
+  epic_trace_supplementary_uncovered: [14.NFR-PERF-001, 14.NFR-A11Y-001, 14.EXP-001]
+  epic_trace_mapped_identities: 297
+  epic_trace_formal_p0_full: 13
+  epic_trace_supplementary_total: 77
+  epic_trace_supplementary_full: 74
+  epic_trace_formal_p1_full: 23
+  epic_nfr_children: 0
+  epic_nfr_fail_count: 0
+  epic_nfr_criteria_met: 11
+  epic_nfr_risk: MEDIUM
+  epic_nfr_verdict: CONCERNS
+  epic_nfr_criteria_total: 29
+  epic_nfr_fallback: documented sequential single-High-primary fallback after actual thread-cap refusal
+  epic_test_review_report: "_bmad-output/test-artifacts/epic-14-test-review-2026-10-07/test-review.md"
+  epic_test_review_findings: 48
+  epic_test_review_files: 85
+  epic_test_review_advisory: true
+  epic_test_review_score: 0
+  epic_test_review_medium: 41
+  epic_test_review_high: 7
+  epic_test_review_validation: PASS
+  epic_test_review_execution: "three independent High children; sequential performance fallback"
+  epic_test_review_recommendation: Request Changes
+  deferred_reconcile_newly_resolved: 6
+  deferred_reconcile_examined: 155
+  deferred_reconcile_retained: 176
+  deferred_reconcile_new_ids: [51, 96, 99, 117, 144, 169]
+  deferred_remaining: 176
+  deferred_archive_judgment: "Only six new explicit fully-resolved bullets moved; all 27 heuristic-only hints retained after self-vouch review."
+  deferred_archive_heuristic_false_positives_retained: 27
+  epic_ci_wait_skipped_reason: "Draft completion from retained review recommendations; pipeline links CI without waiting. Empty-chain/seed/required full CI still mandatory before merge."
+  draft_pr_number: 86
+  ci_registration_observed: true
+  ci_wait_skipped: false
+  merge_prompt_skipped_reason: "Caveated draft; no automatic merge."
+  direct_closeout_source_head: 179e86c2f96d684310b8c51af59d58ea3e23be78
+  direct_closeout_ci_required_jobs: 5
+  direct_closeout_ci_passed_jobs: 5
+  direct_closeout_concurrent_create_gate_pending: false
+  direct_closeout_admin_pilot_gate_pending: false
+  direct_closeout_completed_on: 2026-10-08
+  direct_closeout_review_rounds_preserved: "14.1:3,14.2:2,14.3:2,14.4:2"
+  direct_closeout_timing_scope: "Original pipeline timestamps/active seconds retained; closeout duration not reconstructed."
+  direct_closeout_empty_chain_ci_executed: true
+  direct_closeout_final_metadata_publication_pending: true
+  direct_closeout_historical_override_scope: "Older empty_chain_ci_executed=false and draft/wait reasons describe the original October 7 pipeline; current exact source-head execution is recorded by the dated direct_closeout fields and successor report."
+constraints:
+  - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
+  - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."
+  - "Preserve populated user-owned local data and existing processes; new persistent test resources require the actor's resource guard context."
+epic_slug: wave-b1b-resource-and-scheduling-foundation
+active_story: null
+stories_landed:
+  - 14-1-scheduling-activation-person-profiles-and-work-hours
+  - 14-2-bookings-and-assignees-schema-and-transactional-commands
+  - 14-3-deterministic-conflict-engine-detection-core
+  - 14-4-booking-editor-with-live-conflict-warnings-and-audited-override
+stories_skipped: []
+batch_flip_done: true

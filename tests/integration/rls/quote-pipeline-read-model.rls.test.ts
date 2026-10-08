@@ -33,7 +33,7 @@
  *  "The security floor is §3.6"; src/server/db/supabase-server-client.ts (anon-key RLS client);
  *  test-design-epic-10.md#10.4-INT-01, R-1041]
  */
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import {
@@ -77,14 +77,19 @@ const WINDOW: PipelinePeriod = resolvePipelinePeriod(SEED_INSTANT);
 
 let stackUp = false;
 let fixture: TwoTenantFixture;
+let ownedFixture: TwoTenantFixture | undefined;
 let a: TestServerClient;
 let seller: TestServerClient;
 let installer: TestServerClient;
 
 beforeAll(async () => {
   stackUp = await isLocalStackReachable();
+});
+
+beforeEach(async () => {
   if (!stackUp) return;
   fixture = await createTwoTenantFixture();
+  ownedFixture = fixture;
   a = await makeAuthedServerClient(fixture.adminA);
   await adminInsertMembership({
     tenant_id: fixture.tenantA.id,
@@ -105,9 +110,24 @@ beforeAll(async () => {
   installer = await makeAuthedServerClient(fixture.adminB);
 });
 
-afterAll(async () => {
-  if (fixture) await cleanupFixture(fixture);
+afterEach(async () => {
+  const owned = ownedFixture;
+  ownedFixture = undefined;
+  if (owned) await cleanupFixture(owned);
 });
+
+/** Every isolation/entitlement case seeds its own positive lifecycle control. */
+async function seedAcceptedLifecycle(tenantId: string, label: string, acceptedPriceOre: number) {
+  const customer = await adminInsertCustomer({ tenant_id: tenantId, customer_type: "company", display_name: label });
+  const calculation = await adminInsertCalculation({ tenant_id: tenantId, customer_id: customer });
+  const quote = await adminInsertQuote({ tenant_id: tenantId, customer_id: customer });
+  const version = await adminInsertQuoteVersion({ tenant_id: tenantId, quote_id: quote,
+    calculation_id: calculation, status: "accepted", accepted_price_ore: acceptedPriceOre + 10_000 });
+  await adminInsertQuoteEvent({ tenant_id: tenantId, quote_id: quote, quote_version_id: version, event_type: "sent", occurred_at: SEED_INSTANT });
+  await adminInsertQuoteEvent({ tenant_id: tenantId, quote_id: quote, quote_version_id: version, event_type: "accepted", occurred_at: SEED_INSTANT });
+  await adminInsertQuoteAcceptance({ tenant_id: tenantId, quote_id: quote, quote_version_id: version,
+    accepted_price_ore: acceptedPriceOre, source_sent_total_ore: acceptedPriceOre + 10_000, accepted_at: SEED_INSTANT });
+}
 
 describe("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cross-tenant)", () => {
   it("STRUCTURAL: the read-model imports the RLS client and imports NO service-role / unscoped client", () => {
@@ -125,17 +145,7 @@ describe("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cro
   it("cross-tenant: with a B-only fixture, tenant A's read-model returns all-zero counts (never B's data)", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
     // Seed a sent+accepted lifecycle for tenant B ONLY; tenant A has nothing this period.
-    const tid = fixture.tenantB.id;
-    const bCustomer = await adminInsertCustomer({ tenant_id: tid, customer_type: "company", display_name: "Kund B" });
-    const bCalc = await adminInsertCalculation({ tenant_id: tid, customer_id: bCustomer });
-    const bQuote = await adminInsertQuote({ tenant_id: tid, customer_id: bCustomer });
-    const bVersion = await adminInsertQuoteVersion({
-      tenant_id: tid, quote_id: bQuote, calculation_id: bCalc, status: "sent", accepted_price_ore: 500_000,
-    });
-    // Seed B's lifecycle events with an EXPLICIT in-window occurred_at (not the default run-time now())
-    // so the window/event relationship is deterministic across any run date.
-    await adminInsertQuoteEvent({ tenant_id: tid, quote_id: bQuote, quote_version_id: bVersion, event_type: "sent", occurred_at: SEED_INSTANT });
-    await adminInsertQuoteEvent({ tenant_id: tid, quote_id: bQuote, quote_version_id: bVersion, event_type: "accepted", occurred_at: SEED_INSTANT });
+    await seedAcceptedLifecycle(fixture.tenantB.id, "Kund B", 500_000);
     // A's RLS-scoped read-model must see NONE of tenant B's pipeline. The `deps.client` seam binds
     // tenant A's authed harness client; production resolves the request client. Pass an EXPLICIT
     // money-entitled input (the B1a all-tenant_admin reality) — the entitlement resolver is FAIL-CLOSED
@@ -150,11 +160,8 @@ describe("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cro
 
   it("cross-tenant: tenant A's read-model reflects EXACTLY A's own in-period lifecycle events (never B's)", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
-    // This test runs on a FRESH fixture where tenant A has been seeded NOTHING yet (the prior test
-    // seeded tenant B only). So after seeding exactly ONE in-window sent version for A, A's read-model
-    // must report sentCount === 1 — B's parallel sent+accepted lifecycle (seeded on the same fixture)
-    // does NOT bleed in. A tautological `>= 0` would pass even on a total isolation failure; the exact
-    // `=== 1` genuinely proves A sees its OWN seed and only its own.
+    // Independent positive B controls must exist even when this case runs alone.
+    await seedAcceptedLifecycle(fixture.tenantB.id, "Kund B isolated control", 500_000);
     const tid = fixture.tenantA.id;
     const aCustomer = await adminInsertCustomer({ tenant_id: tid, customer_type: "company", display_name: "Kund A" });
     const aCalc = await adminInsertCalculation({ tenant_id: tid, customer_id: aCustomer });
@@ -165,7 +172,7 @@ describe("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cro
     await adminInsertQuoteEvent({ tenant_id: tid, quote_id: aQuote, quote_version_id: aVersion, event_type: "sent", occurred_at: SEED_INSTANT });
     const result = await readQuotePipeline(WINDOW, { roles: ["tenant_admin"] }, { client: a });
     // A's counts are driven by A's events ONLY (RLS scopes every underlying query to A). Exactly one
-    // sent version was seeded for A; B's sent version (from the sibling test) must NOT be counted.
+    // sent version was seeded for A; this case's B control must NOT be counted.
     expect(result.data.sentCount).toBe(1);
     // B seeded an ACCEPTED event; if it leaked, A's acceptedCount would be > 0. It must stay 0.
     expect(result.data.acceptedCount).toBe(0);
@@ -205,8 +212,8 @@ describe("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cro
     // A decided deal must not keep escalating a stale open follow-up in the pipeline open/overdue counts.
     // rejected/expired are equally-terminal latest statuses (Story 6.5 lifecycle command) — the same
     // exclusion as accepted/lost. Seed one SENT quote (its open follow-up counts) and one REJECTED + one
-    // EXPIRED quote (each with a stranded open follow-up that must NOT count). Tenant A has no
-    // follow-ups seeded by the prior tests, so the count is unambiguous.
+    // EXPIRED quote (each with a stranded open follow-up that must NOT count).
+    // This case's fresh tenant contains only these three follow-ups.
     const tid = fixture.tenantA.id;
     const customer = await adminInsertCustomer({ tenant_id: tid, customer_type: "company", display_name: "Kund FU A" });
     const calc = await adminInsertCalculation({ tenant_id: tid, customer_id: customer });
@@ -228,6 +235,9 @@ describe("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cro
 
   it("fail-closed: the read-model with an OMITTED entitlement input withholds the money leaf (defense-in-depth)", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
+    await seedAcceptedLifecycle(fixture.tenantA.id, "Omitted entitlement control", 750_000);
+    const entitled = await readQuotePipeline(WINDOW, { roles: ["tenant_admin"] }, { client: a });
+    expect(entitled.data.acceptedValueOre).toBe(750_000);
     // The least-known caller (no entitlement input) is the MOST guarded — the read-model must NOT
     // expose the money aggregate on an omitted input (10.4 review hardening, R-1040). An entitled
     // caller states an explicit role set (the sibling tests above); this proves the default is closed.
@@ -238,16 +248,19 @@ describe("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cro
 
   it("Story 11.2: seller retains pipeline counts but never receives the accepted-value aggregate; installer receives neither quote rows nor money", async (ctx) => {
     if (skipUnlessStack(ctx, stackUp)) return;
+    await seedAcceptedLifecycle(fixture.tenantA.id, "Seller own lifecycle", 750_000);
+    await seedAcceptedLifecycle(fixture.tenantB.id, "Installer other-tenant admin control", 500_000);
 
     const sellerResult = await readQuotePipeline(
       WINDOW,
       { roles: ["saljare"] },
       { client: seller },
     );
-    // Quotes are a granted module for Säljare, so the already-seeded lifecycle
+    // Quotes are a granted module for Säljare, so this case's own lifecycle
     // rows remain visible. The aggregate derived from accepted prices is a
     // protected Economy field and must be structurally absent, never zero/null.
-    expect(sellerResult.data.sentCount).toBeGreaterThan(0);
+    expect(sellerResult.data.sentCount).toBe(1);
+    expect(sellerResult.data.acceptedCount).toBe(1);
     expect(Object.prototype.hasOwnProperty.call(sellerResult.data, "acceptedValueOre")).toBe(false);
     expect(sellerResult.entitlements.withheld).toContain("acceptedValueOre");
 
@@ -256,6 +269,8 @@ describe("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cro
       { roles: ["montor"] },
       { client: installer },
     );
+    expect(installerBefore.data.sentCount).toBe(1);
+    expect(installerBefore.data.acceptedCount).toBe(1);
     // This user is still Admin of tenant B, so its pre-existing B-only rows can
     // legitimately remain visible. Add a fresh tenant-A quote and prove that the
     // tenant-A Montör role does not make that new row visible.
@@ -326,7 +341,7 @@ describe("10.4-INT-01: pipeline read-model isolation floor (RLS-client-only, cro
     const calculationId = await adminInsertCalculation({ tenant_id: tenantId, customer_id: customerId });
     const before = await readQuotePipeline(WINDOW, { roles: ["tenant_admin"] }, { client: a });
     const acceptedPriceOre = 10_000;
-    const batchCount = 101; // deliberately one more than RLS_ID_BATCH_SIZE
+    const batchCount = 101; // exceeds the observed gateway failure boundary and spans three 50-ID batches
 
     for (let index = 0; index < batchCount; index += 1) {
       const quoteId = await adminInsertQuote({ tenant_id: tenantId, customer_id: customerId });

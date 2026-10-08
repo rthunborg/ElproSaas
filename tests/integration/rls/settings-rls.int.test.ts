@@ -45,6 +45,7 @@ import {
 } from "../../factories/tenants";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import { expectEffectiveTableDml } from "../../support/effective-table-privileges";
 import {
   TENANT_TABLES,
   findUnenrolledTenantTables,
@@ -185,19 +186,11 @@ describe("Story 3.3 — migration-reset exact-policy enumeration extension (AC3)
     }
   });
 
-  it("[P0] authenticated retains SELECT only; audited RPCs own every settings mutation", async (testCtx) => {
+  it("[P0] effective DML: authenticated has SELECT only; audited wrappers own settings mutation and anon has no DML", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const rows = await adminQuery<{ table_name: string; privilege_type: string }>(
-      `select table_name, privilege_type from information_schema.role_table_grants
-         where table_schema = 'public' and table_name in ('company_settings', 'quote_terms')
-           and grantee = 'authenticated'
-           and privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE')
-         order by table_name, privilege_type`,
-    );
-    expect(rows).toEqual([
-      { table_name: "company_settings", privilege_type: "SELECT" },
-      { table_name: "quote_terms", privilege_type: "SELECT" },
-    ]);
+    // 20260907171252 closes direct settings DML; 20261002141141 removes PUBLIC
+    // inheritance. No migration grants authenticated DELETE.
+    await expectEffectiveTableDml({ company_settings: ["SELECT"], quote_terms: ["SELECT"] });
   });
 
   it("[P0] vat_rate_bp is an INTEGER column with a [0,10000] CHECK (basis points, never float)", async (testCtx) => {
@@ -320,7 +313,7 @@ describe("Story 3.3 — tenant read isolation and audited mutation boundary (AC3
     ]);
   });
 
-  it("[P0] DELETE: there is NO app-path DELETE grant — Tenant A's DELETE is denied at the privilege layer (42501)", async (testCtx) => {
+  it("[P0] DELETE: authenticated lacks DELETE and the foreign settings row remains unchanged", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const bTermsId = await adminInsertQuoteTerms(fixture.tenantB.id);
     const { data: deleted, error } = await a
@@ -328,8 +321,10 @@ describe("Story 3.3 — tenant read isolation and audited mutation boundary (AC3
       .delete()
       .eq("id", bTermsId)
       .select();
-    expect(error?.code).toBe("42501"); // no DELETE grant anywhere on the app path
+    expect(error?.code).toBe("42501");
     expect(deleted).toBeNull();
+    const rows = await adminQuery<{ id: string }>("select id from public.quote_terms where id = $1", [bTermsId]);
+    expect(rows).toEqual([{ id: bTermsId }]);
   });
 });
 

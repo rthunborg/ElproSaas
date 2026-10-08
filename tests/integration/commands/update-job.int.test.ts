@@ -54,6 +54,7 @@ import { adminQuery } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
 import { expectDatabaseOwnedTimestamp, readDatabaseNow } from "../../support/database-time";
+import { observeQuoteSendRpcs } from "../../support/quote-send-diagnostics";
 import { establishCurrentQuotePdf } from "../../support/quote-pdf";
 import { runCommand } from "@/server/commands/envelope";
 import {
@@ -123,8 +124,9 @@ describe("7.3-INT-02 + AC3: updateJob — allowed edits audited, immutable refs 
       actorUserId: tenant.id === fx.tenantA.id ? fx.adminA.id : fx.adminB.id,
       occurredAt: fixedClock.now().toISOString(),
     });
+    const observed = observeQuoteSendRpcs(client);
     const sent = await runCommand(markQuoteVersionSent, {
-      client: client as never,
+      client: observed.client as never,
       clock: fixedClock,
       correlationId: crypto.randomUUID(),
       input: {
@@ -133,7 +135,7 @@ describe("7.3-INT-02 + AC3: updateJob — allowed edits audited, immutable refs 
         recipient_source_id: customerId,
       },
     });
-    expect(sent.ok).toBe(true);
+    expect(sent.ok, sent.ok ? undefined : JSON.stringify({ code: sent.code, message: sent.message, rpc: observed.diagnostics })).toBe(true);
     const accepted = await runCommand(acceptQuoteAndCreateJob, {
       client: client as never,
       clock: fixedClock,

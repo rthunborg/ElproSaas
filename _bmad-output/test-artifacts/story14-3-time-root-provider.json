@@ -1,0 +1,43 @@
+{
+  "readOnly": true,
+  "nativeExit": 1,
+  "transportErrorCode": null,
+  "safeWslErrorCode": null,
+  "administratorRequired": true,
+  "disabledByPolicy": false,
+  "stdoutBytes": 136,
+  "stderrBytes": 0,
+  "existingVmProvenActive": true,
+  "scope": "documented existing root namespace; exact time caller identity/config/tracking only; addresses redacted; explicit exit and10s timeout",
+  "explicitExitSent": true,
+  "safeLines": [],
+  "readCompleted": false,
+  "priorReadAttempts": [
+    {
+      "readOnly": true,
+      "nativeExit": 1,
+      "transportErrorCode": null,
+      "safeWslErrorCode": null,
+      "stdoutBytes": 136,
+      "stderrBytes": 0,
+      "existingVmProvenActive": true,
+      "scope": "documented existing root namespace; exact time caller identity/config/tracking only; addresses redacted; explicit exit and10s timeout",
+      "explicitExitSent": true,
+      "safeLines": [],
+      "readCompleted": false,
+      "priorReadAttempts": [
+        {
+          "readOnly": true,
+          "nativeExit": 1,
+          "transportErrorCode": null,
+          "stderrBytes": 0,
+          "existingVmProvenActive": true,
+          "scope": "documented existing root namespace; exact time caller identity/config/tracking only; addresses redacted; explicit exit and10s timeout",
+          "explicitExitSent": true,
+          "safeLines": [],
+          "readCompleted": false
+        }
+      ]
+    }
+  ]
+}

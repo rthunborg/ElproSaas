@@ -1,0 +1,13 @@
+{
+  "nativeExit": 0,
+  "nextVersion": "16.3.6",
+  "nextDeclaredSharpRange": "^0.35.4",
+  "installedSharp": "0.35.5",
+  "runtimePlatform": "win32",
+  "runtimeArch": "x64",
+  "libvipsVersion": "8.18.7",
+  "librsvgVersion": "2.63.2",
+  "createResizeEncodeDecode": true,
+  "resolvedRuntimeEntry": "C:\\DEV\\ElproSaas\\node_modules\\.pnpm\\sharp@0.35.5_@types+node@20.19.43\\node_modules\\sharp\\dist\\index.cjs",
+  "priorProbeFailure": "ERR_PACKAGE_PATH_NOT_EXPORTED for metadata subpath; no decode attempted in that failed probe"
+}

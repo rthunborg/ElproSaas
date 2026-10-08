@@ -1,3 +1,4 @@
+import { observeQuoteSendRpcs, type QuoteSendDiagnostic } from "../../support/quote-send-diagnostics";
 import { createHash } from "node:crypto";
 
 import { createClient } from "@supabase/supabase-js";
@@ -261,8 +262,9 @@ async function generatedDraft(label: string): Promise<Draft & { fileId: string }
   return { ...draft, fileId: expectedFileId };
 }
 
-async function sendDraft(input: Draft): Promise<{ error: { code?: string } | null }> {
+async function sendDraft(input: Draft): Promise<{ error: { code?: string; message?: string; stage?: "prepare" | "send"; diagnostics?: readonly QuoteSendDiagnostic[] } | null }> {
   const correlationId = crypto.randomUUID();
+  const observed = observeQuoteSendRpcs(adminA);
   const authorization = await adminQuery<{ id: string }>(
     `insert into public.quote_review_authorizations (
        tenant_id, actor_user_id, purpose, quote_id, target_quote_version_id,
@@ -276,14 +278,14 @@ async function sendDraft(input: Draft): Promise<{ error: { code?: string } | nul
   );
   const authorizationId = authorization[0]?.id;
   if (!authorizationId) throw new Error("send authorization seed returned no id");
-  const prepared = await adminA.rpc("prepare_quote_pdf_send_attestation", {
+  const prepared = await observed.client.rpc("prepare_quote_pdf_send_attestation", {
     p_tenant_id: fixture.tenantA.id,
     p_quote_version_id: input.versionId,
     p_actor_user_id: fixture.adminA.id,
     p_correlation_id: correlationId,
     p_attestation_key_id: TEST_KEY_ID,
   });
-  if (prepared.error) return { error: prepared.error };
+  if (prepared.error) return { error: { code: prepared.error.code, message: observed.diagnostics.at(-1)?.message ?? "command RPC failed", stage: "prepare", diagnostics: observed.diagnostics } };
   const attestation = await quotePdfSendAttestation({
     client: adminA,
     tenantId: fixture.tenantA.id,
@@ -292,7 +294,7 @@ async function sendDraft(input: Draft): Promise<{ error: { code?: string } | nul
     correlationId,
     challengeData: prepared.data,
   });
-  const result = await adminA.rpc("mark_quote_version_sent", {
+  const result = await observed.client.rpc("mark_quote_version_sent", {
     p_tenant_id: fixture.tenantA.id,
     p_quote_version_id: input.versionId,
     p_authorization_id: authorizationId,
@@ -303,7 +305,7 @@ async function sendDraft(input: Draft): Promise<{ error: { code?: string } | nul
     p_correlation_id: correlationId,
     ...attestation,
   });
-  return { error: result.error };
+  return { error: result.error ? { code: result.error.code, message: observed.diagnostics.at(-1)?.message ?? "command RPC failed", stage: "send", diagnostics: observed.diagnostics } : null };
 }
 
 async function expectInvalidated(versionId: string) {
@@ -1042,7 +1044,9 @@ describe("Story 10.9 quote PDF validity RPCs", () => {
     });
     expect(initial.ok).toBe(true);
     if (!initial.ok) return;
-    expect((await sendDraft(draft)).error).toBeNull();
+    const sent = await sendDraft(draft);
+    // Test diagnostics retain only stage and generic SQL error, never signing data.
+    expect(sent.error, sent.error ? JSON.stringify(sent.error) : undefined).toBeNull();
 
     const before = await adminQuery<{
       status: string;

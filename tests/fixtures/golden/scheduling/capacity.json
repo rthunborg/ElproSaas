@@ -1,0 +1,203 @@
+{
+  "provenance": "new-expected",
+  "terms": [
+    {
+      "name": "baseline",
+      "change": null,
+      "expected": {
+        "scheduledMinutes": 480,
+        "holidayClosedMinutes": 0,
+        "absenceMinutes": 0,
+        "existingBookingMinutes": 0,
+        "blockedMinutes": 0,
+        "bufferMinutes": 0,
+        "availableMinutes": 480
+      }
+    },
+    {
+      "name": "schedule-420",
+      "change": "scheduledMinutes",
+      "expected": {
+        "scheduledMinutes": 420,
+        "holidayClosedMinutes": 0,
+        "absenceMinutes": 0,
+        "existingBookingMinutes": 0,
+        "blockedMinutes": 0,
+        "bufferMinutes": 0,
+        "availableMinutes": 420
+      }
+    },
+    {
+      "name": "calendar-240",
+      "change": "holidayClosedMinutes",
+      "expected": {
+        "scheduledMinutes": 480,
+        "holidayClosedMinutes": 240,
+        "absenceMinutes": 0,
+        "existingBookingMinutes": 0,
+        "blockedMinutes": 0,
+        "bufferMinutes": 0,
+        "availableMinutes": 240
+      }
+    },
+    {
+      "name": "absence-60",
+      "change": "absenceMinutes",
+      "expected": {
+        "scheduledMinutes": 480,
+        "holidayClosedMinutes": 0,
+        "absenceMinutes": 60,
+        "existingBookingMinutes": 0,
+        "blockedMinutes": 0,
+        "bufferMinutes": 0,
+        "availableMinutes": 420
+      }
+    },
+    {
+      "name": "existing-demand-60",
+      "change": "existingBookingMinutes",
+      "expected": {
+        "scheduledMinutes": 480,
+        "holidayClosedMinutes": 0,
+        "absenceMinutes": 0,
+        "existingBookingMinutes": 60,
+        "blockedMinutes": 0,
+        "bufferMinutes": 0,
+        "availableMinutes": 420
+      }
+    },
+    {
+      "name": "blocked-60",
+      "change": "blockedMinutes",
+      "expected": {
+        "scheduledMinutes": 480,
+        "holidayClosedMinutes": 0,
+        "absenceMinutes": 0,
+        "existingBookingMinutes": 0,
+        "blockedMinutes": 60,
+        "bufferMinutes": 0,
+        "availableMinutes": 420
+      }
+    },
+    {
+      "name": "buffer-60",
+      "change": "bufferMinutes",
+      "expected": {
+        "scheduledMinutes": 480,
+        "holidayClosedMinutes": 0,
+        "absenceMinutes": 0,
+        "existingBookingMinutes": 0,
+        "blockedMinutes": 0,
+        "bufferMinutes": 60,
+        "availableMinutes": 420
+      }
+    }
+  ],
+  "layeredCase": {
+    "description": "One 60min overlap of absence and blocked time, one public holiday also tenant-closed, no double subtraction",
+    "date": "2026-01-06",
+    "expectedAvailableMinutes": 0
+  },
+  "swedishHolidays": [
+    {
+      "date": "2026-01-06",
+      "holiday": true
+    },
+    {
+      "date": "2026-04-03",
+      "holiday": true
+    },
+    {
+      "date": "2026-04-06",
+      "holiday": true
+    },
+    {
+      "date": "2026-05-14",
+      "holiday": true
+    },
+    {
+      "date": "2026-06-06",
+      "holiday": true
+    },
+    {
+      "date": "2026-06-20",
+      "holiday": true
+    },
+    {
+      "date": "2026-10-12",
+      "holiday": false
+    },
+    {
+      "date": "2026-01-01",
+      "holiday": true
+    },
+    {
+      "date": "2026-04-05",
+      "holiday": true
+    },
+    {
+      "date": "2026-05-01",
+      "holiday": true
+    },
+    {
+      "date": "2026-05-24",
+      "holiday": true
+    },
+    {
+      "date": "2026-10-31",
+      "holiday": true
+    },
+    {
+      "date": "2026-12-25",
+      "holiday": true
+    },
+    {
+      "date": "2026-12-26",
+      "holiday": true
+    },
+    {
+      "date": "2026-10-18",
+      "holiday": true
+    },
+    {
+      "date": "2026-06-19",
+      "holiday": false
+    },
+    {
+      "date": "2026-12-24",
+      "holiday": false
+    },
+    {
+      "date": "2026-12-31",
+      "holiday": false
+    },
+    {
+      "date": "2027-03-26",
+      "holiday": true
+    },
+    {
+      "date": "2027-03-29",
+      "holiday": true
+    },
+    {
+      "date": "2027-05-06",
+      "holiday": true
+    },
+    {
+      "date": "2027-06-26",
+      "holiday": true
+    },
+    {
+      "date": "2027-11-06",
+      "holiday": true
+    },
+    {
+      "date": "2027-06-25",
+      "holiday": false
+    },
+    {
+      "date": "2027-10-30",
+      "holiday": false
+    }
+  ]
+}

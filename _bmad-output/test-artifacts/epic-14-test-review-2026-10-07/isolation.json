@@ -1,0 +1,4134 @@
+{
+  "dimension": "isolation",
+  "score": 10,
+  "max_score": 100,
+  "grade": "F",
+  "score_type": "informational dimension score; authoritative overall score belongs to aggregation deduction ledger",
+  "severity_weights": {
+    "CRITICAL": 20,
+    "HIGH": 10,
+    "MEDIUM": 5,
+    "LOW": 2
+  },
+  "total_penalty": 90,
+  "violations": [
+    {
+      "file": "C:/DEV/ElproSaas/tests/e2e/resources-person-profile.e2e.spec.ts",
+      "line": 32,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 4 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          32,
+          89,
+          100,
+          119
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"[P0] admin persists a same-tenant role and schedule inputs in the existing user-detail route, then reloads server state\", async ({ resourcePage: page }) => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/admin-users/read-pagination.test.ts",
+      "line": 54,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 4 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          54,
+          74,
+          99,
+          117
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"[P0][11.4] Admin role counts scope roots and child roles to the resolved current tenant\", async () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/booking-attempt-transport.test.ts",
+      "line": 7,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 3 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          7,
+          15,
+          20
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"Round2 authorization denial retains only a previously unresolved booking attempt\",()=>{",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/booking-editor-input.test.ts",
+      "line": 13,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 13 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          13,
+          22,
+          30,
+          38,
+          44,
+          52,
+          58,
+          65,
+          75,
+          83,
+          90,
+          97,
+          104
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"Round1 each untouched endpoint retains fractional precision and the later Stockholm fold instant\", () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/capacity-inputs.test.ts",
+      "line": 7,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 5 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          7,
+          23,
+          38,
+          46,
+          53
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"[P0] retains data-driven absences, blocked-time exceptions, and Stockholm calendar reductions for later capacity calculation\", async () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/resource-form-inputs.test.ts",
+      "line": 6,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 3 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          6,
+          12,
+          18
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"[P0] accepts read-model serialized full-day exception history for a subsequent form save\", () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/schedule-form-merge.test.ts",
+      "line": 5,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 5 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          5,
+          20,
+          24,
+          40,
+          46
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"[P0] preserves non-rendered same-day shifts and breaks when editing the compact schedule form\", () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/work-hours.test.ts",
+      "line": 7,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 4 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          7,
+          38,
+          57,
+          73
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"[P0] preserves different daily availability for four-full-day and five-short-day 80-percent templates\", async () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/scheduling/capacity.golden.test.ts",
+      "line": 7,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 3 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          7,
+          35,
+          76
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"[P0] 14.3-UNIT-004 every positive overrun warns regardless of injected threshold\", async () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/scheduling/conflicts.test.ts",
+      "line": 9,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 9 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          9,
+          17,
+          22,
+          36,
+          48,
+          59,
+          70,
+          82,
+          105
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"[P0] 14.3-UNIT-001 shared assignee emits exact stable pair/person/window\", async () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/scope/manifest-derivations.test.ts",
+      "line": 107,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 6 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          107,
+          118,
+          131,
+          140,
+          154,
+          171
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"10.1-UNIT-DERIVE-01 (AC3): FORBIDDEN_DEFERRED_CATEGORIES derives from `pending` modules == the pinned 7 tokens\", async () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/scope/manifest-shape.test.ts",
+      "line": 126,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 8 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          126,
+          143,
+          154,
+          162,
+          176,
+          184,
+          197,
+          206
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"10.1-UNIT-SHAPE-01 (AC2): SCOPE_MANIFEST exists and every module carries the §5.2 field shape\", async () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/server/authz/permission-matrix.test.ts",
+      "line": 9,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 6 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          9,
+          16,
+          23,
+          32,
+          52,
+          57
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"[P0] 11.1-UNIT-001 legacy tenant_admin remains a role when membership_roles has no rows\", () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/server/bookings/conflict-attestation.test.ts",
+      "line": 12,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 3 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          12,
+          23,
+          27
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"booking proof length prefixes UTF-8 and exact output bytes with domain separation\", () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/server/commands/bookings-validation.test.ts",
+      "line": 9,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 8 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          9,
+          14,
+          31,
+          37,
+          41,
+          45,
+          50,
+          63
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"booking validates standalone defaults and update target\",()=>{",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/support/test-env.test.ts",
+      "line": 24,
+      "row": "M4",
+      "severity": "MEDIUM",
+      "gate": "Absolute",
+      "category": "ungrouped-suite",
+      "description": "The file registers at least 5 test declarations without describe/context subject grouping.",
+      "evidence": {
+        "declaration_lines": [
+          24,
+          50,
+          77,
+          92,
+          106
+        ],
+        "grouping_count": 0,
+        "predicate": "three or more tests and no subject grouping",
+        "basis": "full-file structural inspection, not convention adoption"
+      },
+      "suggestion": "Import describe from the existing runner and wrap the tests in a named suite for their subject.",
+      "code_snippet": "test(\"records only allowlisted details for an Auth HTTP failure\", async () => {",
+      "code_fix": "import { describe, test } from '<existing runner>';\ndescribe('<behavior subject>', () => {\n  // Move the existing test registrations here without changing their bodies.\n});"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/quote-pipeline-read-model.rls.test.ts",
+      "line": 165,
+      "row": "H4",
+      "severity": "HIGH",
+      "gate": "Absolute",
+      "category": "unreset-shared-state",
+      "description": "The pipeline suite shares one tenant fixture and accumulates lifecycle events across test bodies without per-test reset; order changes the zero-count result, and the seller test relies on an earlier body to seed its sent event.",
+      "evidence": {
+        "setup": "fixture created once in beforeAll84-106",
+        "cleanup": "afterAll108-110 only, no beforeEach/afterEach",
+        "writer": "test151 seeds tenant A sent quote/event at159-165",
+        "reader": "test125 reads tenant A143 and asserts sentCount0 at144",
+        "counterexample": "Run test151 before test125: the fresh fixture now contains one tenant A sent event, so the expected zero becomes one.",
+        "standalone": "test239 calls seller pipeline242-246 and asserts sentCount>0 at250 before seeding any sent event in that body262-286.",
+        "basis": "Static successful-path data-flow proof; no shuffle/standalone execution claimed"
+      },
+      "suggestion": "Move tenant/client fixture creation and cleanup to beforeEach/afterEach; seed the seller-visible sent event before its first pipeline read. Keep every aggregate expectation local to its body.",
+      "code_snippet": "await adminInsertQuoteEvent({ tenant_id: tid, quote_id: aQuote, quote_version_id: aVersion, event_type: 'sent', occurred_at: SEED_INSTANT });",
+      "code_fix": "beforeEach(async () => {\n  // Create fixture, clients, and role memberships currently allocated in beforeAll.\n});\nafterEach(async () => {\n  if (fixture) await cleanupFixture(fixture);\n});\n// In the seller test, create its own sent quote/event before reading sellerResult."
+    }
+  ],
+  "passed_checks": 220,
+  "passed_applicable_checks": 186,
+  "failed_checks": 17,
+  "total_checks": 237,
+  "applicable_checks": 203,
+  "inapplicable_checks": 34,
+  "excluded_row_slots": 18,
+  "check_counts_by_row": {
+    "C5": {
+      "applicable": 62,
+      "passed": 62,
+      "failed": 0,
+      "inapplicable": 17,
+      "unscorable": 6
+    },
+    "H4": {
+      "applicable": 79,
+      "passed": 78,
+      "failed": 1,
+      "inapplicable": 0,
+      "unscorable": 6
+    },
+    "M4": {
+      "applicable": 62,
+      "passed": 46,
+      "failed": 16,
+      "inapplicable": 17,
+      "unscorable": 6
+    }
+  },
+  "violation_summary": {
+    "CRITICAL": 0,
+    "HIGH": 1,
+    "MEDIUM": 16,
+    "LOW": 0
+  },
+  "input_manifest_sha256": "b5f76773161c558c4eff92ee934d23655f4ed79509fdaffbe23119f7b79042a5",
+  "head": "e92e0ec126ea541e109e8abe0ac02ba57085e68e",
+  "review_file_count": 85,
+  "scorable_file_count": 79,
+  "unscorable_file_count": 6,
+  "classification_counts": {
+    "typescript_test_body": 60,
+    "python_mechanical_tests": 2,
+    "helper_fixture": 17,
+    "json_golden_fixture": 4,
+    "configuration": 2
+  },
+  "reviewed_file_count": 85,
+  "read_only_context_count": 4,
+  "full_file_bytes_loaded": 1237822,
+  "sampling": false,
+  "registry": "C:/DEV/ElproSaas/.agents/skills/bmad-testarch-test-review/steps-c/criteria-registry.md",
+  "evaluated_rows": [
+    "C5",
+    "H4",
+    "M4"
+  ],
+  "knowledge_fragments_loaded": [
+    "test-quality"
+  ],
+  "criteria_registry_loaded_before_evaluation": true,
+  "convention_baseline": {
+    "corpusSize": 369,
+    "sampled": 40,
+    "sample_files": [
+      "C:/DEV/ElproSaas/.agents/skills/auto-bmad/scripts/tests/test_cli_delegate_windows_pid.py",
+      "C:/DEV/ElproSaas/.claude/skills/auto-bmad/scripts/tests/test_cli_delegate_windows_pid.py",
+      "C:/DEV/ElproSaas/tests/integration/commands/accept-quote-and-create-job.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/acceptance-evidence-link.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/accepted-record-lock.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/admin-invitation-retry-flow.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/admin-user-management.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/audit-actor-on-delete-set-null.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/audit-append-only.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/audit-metadata-hygiene-e2e.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/calculation-commands.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/calculation-parent-ownership.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/calculation-row-source.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/capture-quote-acceptance.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/create-job.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/create-new-quote-version.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/crm-command-coverage.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/crm-customer-commands.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/crm-parent-ownership.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/disabled-membership-no-access.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/envelope-audit-write.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/envelope-failure-modes.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/file-audit-events.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/file-link-lock.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/file-link-ownership.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/file-signed-access-refresh.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/file-signed-access.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/file-upload.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/generate-quote-pdf-determinism.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/generate-quote-pdf-retry-consistency.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/generate-quote-pdf-source-of-truth.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/generate-quote-pdf-storage-privacy.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/job-source-of-truth.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/mark-quote-version-lost.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/mark-quote-version-sent.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/non-admin-audit-authority.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/pricing-commands.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/provision-tenant.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/quote-attachment-carry-forward.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/quote-audit-rollback.int.test.ts"
+    ],
+    "conventions": {
+      "priorityMarkers": {
+        "adopted": 37,
+        "sampled": 40,
+        "status": "established",
+        "form": "\\bP[0-3]\\b|@p[0-3]\\b",
+        "measurement": "mechanical token signal; bddNaming/assertionStyle require reader confirmation"
+      },
+      "testIds": {
+        "adopted": 0,
+        "sampled": 40,
+        "status": "absent",
+        "form": "getByTestId|data-testid",
+        "measurement": "mechanical token signal; bddNaming/assertionStyle require reader confirmation"
+      },
+      "networkFirst": {
+        "adopted": 0,
+        "sampled": 40,
+        "status": "absent",
+        "form": "page\\.route\\(|waitForResponse\\(|interceptNetworkCall",
+        "measurement": "mechanical token signal; bddNaming/assertionStyle require reader confirmation"
+      },
+      "playwrightUtils": {
+        "adopted": 0,
+        "sampled": 40,
+        "status": "absent",
+        "form": "@seontechnologies/playwright-utils",
+        "measurement": "mechanical token signal; bddNaming/assertionStyle require reader confirmation"
+      },
+      "dataFactories": {
+        "adopted": 37,
+        "sampled": 40,
+        "status": "established",
+        "form": "createTenantFixture|createAuthzFixture|createRoleHarnessFixture|build\\w+\\(|factory|factories",
+        "measurement": "mechanical token signal; bddNaming/assertionStyle require reader confirmation"
+      },
+      "fixtures": {
+        "adopted": 35,
+        "sampled": 40,
+        "status": "established",
+        "form": "createTenantFixture|createAuthzFixture|createRoleHarnessFixture|test\\.extend|beforeEach\\(|beforeAll\\(",
+        "measurement": "mechanical token signal; bddNaming/assertionStyle require reader confirmation"
+      },
+      "bddNaming": {
+        "adopted": 40,
+        "sampled": 40,
+        "status": "established",
+        "form": "behavior/outcome names, often [P#] + scenario ID then behavior",
+        "measurement": "reader confirmed test names in all40 sampled files including Python names"
+      },
+      "assertionStyle": {
+        "adopted": 40,
+        "sampled": 40,
+        "status": "established",
+        "form": "Vitest expect matchers in TS; unittest assert methods in Python",
+        "measurement": "runner-specific consistent assertion dialect; TS expect signal38/40, remaining2 Python unittest"
+      }
+    }
+  },
+  "convention_application": "All three evaluated rows are Absolute; baseline retained verbatim and never waives them.",
+  "review_method": "All85 full texts loaded and hash-verified; complete structural scans of module state, declarations, hooks, mock/spy uses, mutation and cleanup markers, followed by concrete predicate and downstream lifecycle tracing. Four supplied specs read as context only. No files sampled; no test/source/spec changes or test execution.",
+  "file_applicability_manifest": [
+    {
+      "file": "C:/DEV/ElproSaas/.agents/skills/auto-bmad/scripts/tests/test_routing_migration.py",
+      "relative": ".agents/skills/auto-bmad/scripts/tests/test_routing_migration.py",
+      "classification": "mechanical-routing-tests",
+      "scorable": true,
+      "sha256": "afbc8ae36d6bef5cc07adb70e45c84d0fd882066dd4a73f82eac08536c806f99",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "unittest.TestCase supplies runner subject grouping; patch context managers restore dependencies; TemporaryDirectory owns mutable test files; assertions follow calls into routing/adoption implementations.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "unittest.TestCase supplies runner subject grouping; patch context managers restore dependencies; TemporaryDirectory owns mutable test files; assertions follow calls into routing/adoption implementations."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "unittest.TestCase supplies native runner subject grouping"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/.claude/skills/auto-bmad/scripts/tests/test_routing_migration.py",
+      "relative": ".claude/skills/auto-bmad/scripts/tests/test_routing_migration.py",
+      "classification": "mechanical-routing-tests",
+      "scorable": true,
+      "sha256": "afbc8ae36d6bef5cc07adb70e45c84d0fd882066dd4a73f82eac08536c806f99",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Independent mirrored-file inspection: unittest.TestCase grouping, scoped mock.patch and temporary filesystem ownership; real routing/adoption calls precede assertions.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Independent mirrored-file inspection: unittest.TestCase grouping, scoped mock.patch and temporary filesystem ownership; real routing/adoption calls precede assertions."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "unittest.TestCase supplies native runner subject grouping"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/.env.test.example",
+      "relative": ".env.test.example",
+      "classification": "configuration",
+      "scorable": false,
+      "sha256": "f17fd0b049424d0371df1be7f6d58c09a73497c1c7d22b40b65e84538bff1fd9",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Whole file inspected as read-only fixture/config context; excluded from scoring.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "UNSCORABLE",
+          "severity": "CRITICAL",
+          "reason": "format not scorable by the ledger"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "UNSCORABLE",
+          "severity": "HIGH",
+          "reason": "format not scorable by the ledger"
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "UNSCORABLE",
+          "severity": "MEDIUM",
+          "reason": "format not scorable by the ledger"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/compose.test.yaml",
+      "relative": "compose.test.yaml",
+      "classification": "configuration",
+      "scorable": false,
+      "sha256": "b8d4840b80c228a87d40637f740197c5490c36f65858940cf985ba36e8ff41a0",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Whole file inspected as read-only fixture/config context; excluded from scoring.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "UNSCORABLE",
+          "severity": "CRITICAL",
+          "reason": "format not scorable by the ledger"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "UNSCORABLE",
+          "severity": "HIGH",
+          "reason": "format not scorable by the ledger"
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "UNSCORABLE",
+          "severity": "MEDIUM",
+          "reason": "format not scorable by the ledger"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/e2e/booking-editor.e2e.spec.ts",
+      "relative": "tests/e2e/booking-editor.e2e.spec.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "a2036d1034634071f8376995061e60b3add06dd52a2f0165cf54321f47089128",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        84,
+        104,
+        120,
+        135,
+        151,
+        169,
+        203,
+        231,
+        283,
+        310,
+        328,
+        355,
+        391,
+        420,
+        473,
+        511
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Every body seeds through bookingEditor fixture with unique token/person IDs; disposal drains routes and deletes owned rows; direct temporary membership revocation restores active status in finally at133.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Every body seeds through bookingEditor fixture with unique token/person IDs; disposal drains routes and deletes owned rows; direct temporary membership revocation restores active status in finally at133."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/e2e/global-setup.ts",
+      "relative": "tests/e2e/global-setup.ts",
+      "classification": "helper/fixture",
+      "scorable": true,
+      "sha256": "7b98ea7c85296ba3396e7d47eabd1e835817c611efca0fe708584aec748304f0",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Run-level setup creates a unique fixture graph; no per-test reset is supplied here. Per-test ownership is inspected in consuming fixtures; global setup is not credited as a reset.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "CRITICAL",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Run-level setup creates a unique fixture graph; no per-test reset is supplied here. Per-test ownership is inspected in consuming fixtures; global setup is not credited as a reset."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "MEDIUM",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/e2e/resources-person-profile.e2e.spec.ts",
+      "relative": "tests/e2e/resources-person-profile.e2e.spec.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "a0a08fa49b15aaead06cdd5275a6982240c8fc02c3d17da8f9a6d47d1f8b4a69",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        32,
+        89,
+        100,
+        119
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Shared resource profile is mutated, but each exercised successful final state is overwritten or explicitly seeded by the next writer. No concrete order-changing assertion was established; retained rows alone do not fire H4. Child browser context cleanup is not a DB reset.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Shared resource profile is mutated, but each exercised successful final state is overwritten or explicitly seeded by the next writer. No concrete order-changing assertion was established; retained rows alone do not fire H4. Child browser context cleanup is not a DB reset."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "WARN",
+          "severity": "MEDIUM",
+          "reason": "At least three tests, no describe/context grouping"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/e2e/support/booking-editor-atdd.ts",
+      "relative": "tests/e2e/support/booking-editor-atdd.ts",
+      "classification": "helper/fixture",
+      "scorable": true,
+      "sha256": "56b688acb0e4f752ba2ca2181183420e32fdaa006b3d1b90a80240f0215e308c",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "bindBookingEditorHarness allocates closure state per fixture113-129; dispose271-295 releases holds, drains pending routes, unroutes and deletes exact owned rows; fixture finally303-304 invokes it.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "CRITICAL",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "bindBookingEditorHarness allocates closure state per fixture113-129; dispose271-295 releases holds, drains pending routes, unroutes and deletes exact owned rows; fixture finally303-304 invokes it."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "MEDIUM",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/e2e/support/resource-cdp-attachment.ts",
+      "relative": "tests/e2e/support/resource-cdp-attachment.ts",
+      "classification": "helper/fixture",
+      "scorable": true,
+      "sha256": "3073711d4488f93123044446790a508758e5235609f35f0b3f10e638326187d9",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Fresh browser context/page allocated per test; finally closes child page/context, preserving externally owned root browser. This helper performs no DB reset.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "CRITICAL",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Fresh browser context/page allocated per test; finally closes child page/context, preserving externally owned root browser. This helper performs no DB reset."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "MEDIUM",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/factories/tenants/core.ts",
+      "relative": "tests/factories/tenants/core.ts",
+      "classification": "helper/fixture",
+      "scorable": true,
+      "sha256": "e877c463e15173bc6b5a8ed0018de919289217c5e9b4379a6eb5aa8fc9457265",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Factory sequence and cached local admin client support uniqueness/reuse, not expected test data. New UUID fixture graph per call; cleanupFixture scopes deletes to owned tenant/user IDs, including retained restrictive rows.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "CRITICAL",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Factory sequence and cached local admin client support uniqueness/reuse, not expected test data. New UUID fixture graph per call; cleanupFixture scopes deletes to owned tenant/user IDs, including retained restrictive rows."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "MEDIUM",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/capacity.json",
+      "relative": "tests/fixtures/golden/scheduling/capacity.json",
+      "classification": "golden-fixture",
+      "scorable": false,
+      "sha256": "e74ff7204079701b88d95cc6352b6af8019f1c6bb6cbf9760c39b9fd316f6e6a",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Whole file inspected as read-only fixture/config context; excluded from scoring.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "UNSCORABLE",
+          "severity": "CRITICAL",
+          "reason": "format not scorable by the ledger"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "UNSCORABLE",
+          "severity": "HIGH",
+          "reason": "format not scorable by the ledger"
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "UNSCORABLE",
+          "severity": "MEDIUM",
+          "reason": "format not scorable by the ledger"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/conflicts.json",
+      "relative": "tests/fixtures/golden/scheduling/conflicts.json",
+      "classification": "golden-fixture",
+      "scorable": false,
+      "sha256": "9c31764bcf199246b2785b456bd795a3d5dcc513c1aaa52e1368f592c4b39b44",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Whole file inspected as read-only fixture/config context; excluded from scoring.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "UNSCORABLE",
+          "severity": "CRITICAL",
+          "reason": "format not scorable by the ledger"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "UNSCORABLE",
+          "severity": "HIGH",
+          "reason": "format not scorable by the ledger"
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "UNSCORABLE",
+          "severity": "MEDIUM",
+          "reason": "format not scorable by the ledger"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/dst.json",
+      "relative": "tests/fixtures/golden/scheduling/dst.json",
+      "classification": "golden-fixture",
+      "scorable": false,
+      "sha256": "c1d2388cab20e6da742d62bf7c67b159121b338fe23687bf6f48f88b98fa4e8d",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Whole file inspected as read-only fixture/config context; excluded from scoring.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "UNSCORABLE",
+          "severity": "CRITICAL",
+          "reason": "format not scorable by the ledger"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "UNSCORABLE",
+          "severity": "HIGH",
+          "reason": "format not scorable by the ledger"
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "UNSCORABLE",
+          "severity": "MEDIUM",
+          "reason": "format not scorable by the ledger"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/regressions.json",
+      "relative": "tests/fixtures/golden/scheduling/regressions.json",
+      "classification": "golden-fixture",
+      "scorable": false,
+      "sha256": "d23bd448b32858d8798135a498006b86ecc93fd55976d9ecd20fea7b2cee85a2",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Whole file inspected as read-only fixture/config context; excluded from scoring.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "UNSCORABLE",
+          "severity": "CRITICAL",
+          "reason": "format not scorable by the ledger"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "UNSCORABLE",
+          "severity": "HIGH",
+          "reason": "format not scorable by the ledger"
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "UNSCORABLE",
+          "severity": "MEDIUM",
+          "reason": "format not scorable by the ledger"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/audit-anon-isolation.int.test.ts",
+      "relative": "tests/integration/commands/audit-anon-isolation.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "f04a6be815fe251a2f8e7be489b33f57fa03f928af586ccac2baa99e0a62578f",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        42,
+        62,
+        73,
+        95
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "beforeAll owns fresh tenants; test mutations are rejected anonymous DML with explicit denial assertions; afterAll36-39 removes fixture and closes pool.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "beforeAll owns fresh tenants; test mutations are rejected anonymous DML with explicit denial assertions; afterAll36-39 removes fixture and closes pool."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "relative": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "f998e6a977600cbfe60bdfde24fcfdf3bc0dc802af88ffd95f34324408a6b3e2",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        46,
+        71,
+        87,
+        116,
+        159,
+        179,
+        209,
+        232,
+        540,
+        559,
+        591,
+        622,
+        685,
+        729,
+        756,
+        771,
+        785
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Per-body withConflictFixture delegates withBookingFixture ownership; lock probes rollback in finally; authority writers restore changes within isolated fixtures; registration array populated during test registration, not test execution.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Per-body withConflictFixture delegates withBookingFixture ownership; lock probes rollback in finally; authority writers restore changes within isolated fixtures; registration array populated during test registration, not test execution."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-editor-review-fixes.int.test.ts",
+      "relative": "tests/integration/commands/booking-editor-review-fixes.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "e6ab178f5c79c4f684e8d5fccce069db669d62733f7d5438c722a3c079c30beb",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        12,
+        47
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "withBookingFixture owns unique graph; second test calls actual read model under a scoped client-factory spy restored in finally54.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "withBookingFixture owns unique graph; second test calls actual read model under a scoped client-factory spy restored in finally54."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-editor-round2.int.test.ts",
+      "relative": "tests/integration/commands/booking-editor-round2.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "800cd980ba04db0b2acb9bca862bb38dd6b05c58691215139a7f20516dde038f",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        8,
+        25
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Two test bodies use isolated withBookingFixture and actual editor bindings; no mutable suite test state.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Two test bodies use isolated withBookingFixture and actual editor bindings; no mutable suite test state."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-editor.int.test.ts",
+      "relative": "tests/integration/commands/booking-editor.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "6f5997d0e830a3c1bf89afa70265efe259bc97b039e4dc4c9aa8e6684f2b84d5",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        65,
+        92,
+        115,
+        132,
+        146,
+        160,
+        201,
+        219,
+        241,
+        254,
+        270,
+        284,
+        307,
+        319,
+        342,
+        363,
+        387,
+        417,
+        439,
+        465,
+        483,
+        503,
+        531,
+        552,
+        574,
+        585,
+        613
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Actual preview/command scenarios acquire fresh withBookingFixture instances; fixture-owned rows and scoped faults/client spies are cleaned by helper finally blocks.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Actual preview/command scenarios acquire fresh withBookingFixture instances; fixture-owned rows and scoped faults/client spies are cleaned by helper finally blocks."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "relative": "tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "332a32a25674e1e3e9a4bdbaef580ee90209fd7ee5aedda84c1cfb4d4019377a",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        24,
+        59,
+        129,
+        199
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "stackUp is setup-only; each body obtains withBookingFixture; lock-holding transactions rollback and awaited contenders settle in finally.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "stackUp is setup-only; each body obtains withBookingFixture; lock-holding transactions rollback and awaited contenders settle in finally."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/bookings.int.test.ts",
+      "relative": "tests/integration/commands/bookings.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "cd9d40701a176b71948cd7a4db0cec3bb3974c878b079d8d728eee15e9f8a785",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        19,
+        53,
+        122,
+        155,
+        188,
+        214,
+        238,
+        256,
+        273,
+        288,
+        307,
+        345,
+        366,
+        397,
+        418,
+        449
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "stackUp is setup-only; fresh withBookingFixture per body; correlation-scoped faults clean in finally and held transactions rollback.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "stackUp is setup-only; fresh withBookingFixture per body; correlation-scoped faults clean in finally and held transactions rollback."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/quote-pdf-validity.int.test.ts",
+      "relative": "tests/integration/commands/quote-pdf-validity.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "237d1bc5b42e0861002bb38ef278075601f04ac25ac9cd5d3459a2a12f7c2c08",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        429,
+        532,
+        569,
+        622,
+        672,
+        745,
+        781,
+        810,
+        845,
+        877,
+        945,
+        994,
+        1036,
+        1102,
+        1136,
+        1186,
+        1199,
+        1242,
+        1297,
+        1318,
+        1352,
+        1376,
+        1403,
+        1450,
+        1471,
+        1487,
+        1551
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Environment replacements386-392 restore original presence/values412-418; provenance map indexed by newly allocated file IDs; body assertions target each fresh draft/file/correlation, not map/global tenant counts; suite fixture and Storage cleanup inspected.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Environment replacements386-392 restore original presence/values412-418; provenance map indexed by newly allocated file IDs; body assertions target each fresh draft/file/correlation, not map/global tenant counts; suite fixture and Storage cleanup inspected."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/resources-boundaries.int.test.ts",
+      "relative": "tests/integration/commands/resources-boundaries.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "2f653b1dd3c63a5776556307cd7d8764b6ed70df10000e13b9b69a8810e340b9",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        121,
+        146,
+        225,
+        268,
+        291
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "makeOwned creates per-body tenants/users; cleanupOwned and underlying cleanupFixture run in finally; shared literal schedules/exceptions are input-only.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "makeOwned creates per-body tenants/users; cleanupOwned and underlying cleanupFixture run in finally; shared literal schedules/exceptions are input-only."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/resources.int.test.ts",
+      "relative": "tests/integration/commands/resources.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "09139989c787832029aa739a8b9d5786bc8708c1a1736ddad03c2fffbc2b0bdf",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        6,
+        23,
+        33,
+        56,
+        81,
+        100
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Each mutating command body creates fresh two-tenant fixture and uses finally cleanup; immutable registration metadata is not test shared state.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Each mutating command body creates fresh two-tenant fixture and uses finally cleanup; immutable registration metadata is not test shared state."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/commands/update-job.int.test.ts",
+      "relative": "tests/integration/commands/update-job.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "5ece36ccff52073c9d8cdbecd39c280d1edbe186bb87703c95c10e196b1f4328",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        159,
+        173,
+        189,
+        202,
+        219,
+        235,
+        267,
+        282,
+        308,
+        324
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Suite shares tenants but each body seeds its own job chain and asserts by new job/correlation IDs or before/after deltas; afterAll removes owned graph; no absolute tenant aggregate assumes an earlier body.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Suite shares tenants but each body seeds its own job chain and asserts by new job/correlation IDs or before/after deltas; afterAll removes owned graph; no absolute tenant aggregate assumes an earlier body."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/components/booking-editor.test.ts",
+      "relative": "tests/integration/components/booking-editor.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "9320f5ace1446ba2c5da02621b5022c2995c09115cacc32596612b2a3bc4a062",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        26,
+        32,
+        38,
+        45,
+        51,
+        59,
+        71,
+        86,
+        96,
+        107,
+        119,
+        130,
+        143,
+        153
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "SSR bodies call actual components/advanceBookingPreview; mocked action/navigation dependencies are not asserted as the system. Fresh editor/preview objects per body; no action mock configured by body.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "SSR bodies call actual components/advanceBookingPreview; mocked action/navigation dependencies are not asserted as the system. Fresh editor/preview objects per body; no action mock configured by body."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts",
+      "relative": "tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "b241d49eae5bda0fd6120668265aaf2f1a294d6ea761fdeb2559acdc01b37218",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        32,
+        95,
+        248
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Each body creates and cleans an isolated fixture in finally; snapshots and faults are scoped to its version/outbox IDs; setup-only clock and reachability shared.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Each body creates and cleans an isolated fixture in finally; snapshots and faults are scoped to its version/outbox IDs; setup-only clock and reachability shared."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/features/booking-read-actions.test.ts",
+      "relative": "tests/integration/features/booking-read-actions.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "635a842dd310eeb98be024e52e1088be02908d24fe0cbdc931805a7a75d6772e",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        61,
+        65,
+        71,
+        81,
+        94,
+        101,
+        107,
+        117,
+        123,
+        127,
+        133,
+        138,
+        144
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "beforeEach56-58 clears call history, resets reads, resolve context and fake client/RPC. Every preview/save path that consumes a configurable result configures that result in its body; real read/action transforms run before spy assertions.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "beforeEach56-58 clears call history, resets reads, resolve context and fake client/RPC. Every preview/save path that consumes a configurable result configures that result in its body; real read/action transforms run before spy assertions."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/jobs/job-runs.int.test.ts",
+      "relative": "tests/integration/jobs/job-runs.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "5d387ead588913269702e3f48e8c9618067bd1e9bec8a1224ee737c351a23ac3",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        12,
+        48
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Data-mutating body scopes tenant/job_run IDs and cleanup in finally; reachability gate is setup-only; schema probe is read-only.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Data-mutating body scopes tenant/job_run IDs and cleanup in finally; reachability gate is setup-only; schema probe is read-only."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/admin-user-management.rls.test.ts",
+      "relative": "tests/integration/rls/admin-user-management.rls.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "9fd6b91e737ce5a0fe4a946752578ef94980210a5af452ac8f9ae0280eb61cc5",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        4,
+        32
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Role-aware tenant fixtures are created inside each body and cleaned in finally; denied DML targets owned fixture IDs.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Role-aware tenant fixtures are created inside each body and cleaned in finally; denied DML targets owned fixture IDs."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/approved-public-acl-repair.int.test.ts",
+      "relative": "tests/integration/rls/approved-public-acl-repair.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "1e2d539b377ac8894ddfa3451d0a4cf9abb5717dce7a35c5385cb7170d057204",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        61,
+        91,
+        121
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Effective ACL/catalog introspection only; stackUp is initialized in beforeAll and not mutated by tests.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Effective ACL/catalog introspection only; stackUp is initialized in beforeAll and not mutated by tests."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/bookings.rls.test.ts",
+      "relative": "tests/integration/rls/bookings.rls.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "ce48a522751eafa6c1f880ebaed16ae60ebd54f53a40b1c8220d38a57b5c77a4",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        17,
+        38,
+        69,
+        115,
+        143,
+        163
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Every data body uses withBookingFixture; session transactions rollback in finally. ACL/schema probes read catalog; no cross-test record prerequisite.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Every data body uses withBookingFixture; session transactions rollback in finally. ACL/schema probes read catalog; no cross-test record prerequisite."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/calc-tables-migration-reset.int.test.ts",
+      "relative": "tests/integration/rls/calc-tables-migration-reset.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "6bde96f98eb3ef614eaccc6251873edf4655a23fa70b0dbec2d085871c61bb34",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        73,
+        83,
+        93,
+        119,
+        131,
+        144,
+        197,
+        209,
+        225,
+        238,
+        273,
+        293,
+        312,
+        342
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Catalog/schema/introspection assertions are read-only; setup-only stackUp and closeAdminPool lifecycle do not change expected data.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Catalog/schema/introspection assertions are read-only; setup-only stackUp and closeAdminPool lifecycle do not change expected data."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/crm-tables-migration-reset.int.test.ts",
+      "relative": "tests/integration/rls/crm-tables-migration-reset.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "d46217d09b5b7accfb40ac3bfd1b4f5788d6591276f1c3895a3e2abd24cd6a0a",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        51,
+        62,
+        88,
+        129,
+        143,
+        169,
+        189,
+        209,
+        247,
+        259
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Catalog/schema/introspection assertions are read-only; beforeAll gate and afterAll pool cleanup; immutable table lists.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Catalog/schema/introspection assertions are read-only; beforeAll gate and afterAll pool cleanup; immutable table lists."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/cross-tenant-isolation.rls.test.ts",
+      "relative": "tests/integration/rls/cross-tenant-isolation.rls.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "a11ec3e21c5f02869a651ed4a7a638b8f154431ce4fdb96d6efe1c164c14ba55",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        518,
+        532,
+        544,
+        692,
+        716
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Suite seeds fresh immutable foreign target inventory; attempted foreign INSERT/UPDATE/DELETE are explicitly denied/no-op and compared to snapshots; afterAll cleans tenant graph. Successful tests do not mutate targets.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Suite seeds fresh immutable foreign target inventory; attempted foreign INSERT/UPDATE/DELETE are explicitly denied/no-op and compared to snapshots; afterAll cleans tenant graph. Successful tests do not mutate targets."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/file-tables-migration-reset.int.test.ts",
+      "relative": "tests/integration/rls/file-tables-migration-reset.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "5ccac43218fe6570c1b7e1c3d8e77e64586ea748758ebff3f45e1835cbe77093",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        69,
+        79,
+        104,
+        130,
+        139,
+        150,
+        183,
+        195,
+        218,
+        237,
+        254,
+        277,
+        297,
+        315,
+        342,
+        353
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Read-only schema/ACL probes; mutable locals belong to a body; beforeAll reachability and afterAll pool cleanup.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Read-only schema/ACL probes; mutable locals belong to a body; beforeAll reachability and afterAll pool cleanup."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/membership-self-grant.rls.test.ts",
+      "relative": "tests/integration/rls/membership-self-grant.rls.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "fc90521be58abf4ec83097704c5a176dae2e27bd5239d381315719ba29d54e80",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        49,
+        69,
+        89,
+        106,
+        128,
+        148
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Suite-owned membership fixture receives only explicitly denied self mutations/invalid CHECK inserts; bodies assert no successful writes; afterAll cleanup, no prior-body prerequisite.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Suite-owned membership fixture receives only explicitly denied self mutations/invalid CHECK inserts; bodies assert no successful writes; afterAll cleanup, no prior-body prerequisite."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/migration-reset.int.test.ts",
+      "relative": "tests/integration/rls/migration-reset.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "94a8b50078b5b55e976f9a3ccd46bfc1d98faae79bbd93b0e007be73bb9fbd44",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        22,
+        47,
+        61,
+        164,
+        176,
+        198,
+        209,
+        231,
+        241,
+        519,
+        574,
+        597,
+        637
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Read-only exact schema/function/policy catalog checks; body maps/sets allocated locally; setup-only stackUp and afterAll pool close.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Read-only exact schema/function/policy catalog checks; body maps/sets allocated locally; setup-only stackUp and afterAll pool close."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/onboarding-checklist.rls.test.ts",
+      "relative": "tests/integration/rls/onboarding-checklist.rls.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "3e2f1e3d5a21c43d5663e73cffe00d9bd0f9a71fccdc88871355efd677bd3505",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        4,
+        45,
+        59,
+        92,
+        106,
+        122
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Every body creates fresh tenants and cleans in finally; own-presentation mutations and restoration are fixture-local.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Every body creates fresh tenants and cleans in finally; own-presentation mutations and restoration are fixture-local."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/pricing-tables-migration-reset.int.test.ts",
+      "relative": "tests/integration/rls/pricing-tables-migration-reset.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "655aae873f6aa3cbd4b9fe8966918b3ea79b36824c28fa2d86fc1801702900db",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        54,
+        64,
+        87,
+        105,
+        121,
+        146,
+        169,
+        188,
+        204,
+        229
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Read-only pricing schema/ACL checks; tables/column lists immutable in tests; setup-only reachability and pool cleanup.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Read-only pricing schema/ACL checks; tables/column lists immutable in tests; setup-only reachability and pool cleanup."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/quote-follow-ups-migration-reset.int.test.ts",
+      "relative": "tests/integration/rls/quote-follow-ups-migration-reset.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "b4bd272cb64fd5b8e9384f8c271fecb0c075287978dfce158e2ea69212c09c80",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        59,
+        69,
+        89,
+        111,
+        125,
+        140,
+        151,
+        160,
+        181,
+        198
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Read-only follow-up schema/ACL checks; body-local sets/arrays; no test mutation of suite inputs.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Read-only follow-up schema/ACL checks; body-local sets/arrays; no test mutation of suite inputs."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/quote-pipeline-read-model.rls.test.ts",
+      "relative": "tests/integration/rls/quote-pipeline-read-model.rls.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "adc7b49b9cca0c5c147a96eb2f0a5fc111d4d448fe8d12940cce644bb171857f",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        113,
+        125,
+        151,
+        176,
+        203,
+        229,
+        239,
+        298,
+        322
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "H4: shared tenant A lifecycle events are inserted in bodies without per-test reset. Reversing tests151 and125 changes expected sentCount0 to1; seller test239 reads prerequisite sent events before its own setup.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "FAIL",
+          "severity": "HIGH",
+          "reason": "H4: shared tenant A lifecycle events are inserted in bodies without per-test reset. Reversing tests151 and125 changes expected sentCount0 to1; seller test239 reads prerequisite sent events before its own setup."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/quote-review-authorization-migration-reset.int.test.ts",
+      "relative": "tests/integration/rls/quote-review-authorization-migration-reset.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "9f06dd4b86659b4ca521535c5a99607ba3b3ee70d9f2f3d442316ff29ba90dce",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        20,
+        62,
+        129,
+        170
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Read-only exact RPC/table ACL catalog checks; setup-only gate and afterAll pool close.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Read-only exact RPC/table ACL catalog checks; setup-only gate and afterAll pool close."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/resources.rls.test.ts",
+      "relative": "tests/integration/rls/resources.rls.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "5bb2c1e40bd8e9a2d8a802f432ab6afb69a061f6b67247270acb61f2f22390a6",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        7,
+        10
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Mutation test acquires fresh fixture and cleans in finally34; first inventory check reads immutable manifest-derived table list.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Mutation test acquires fresh fixture and cleans in finally34; first inventory check reads immutable manifest-derived table list."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/role-harness.atdd.int.test.ts",
+      "relative": "tests/integration/rls/role-harness.atdd.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "77b845a0ac9ac8748e90c539d0a6e7fc0786ff6ef67afcff1360e7de9dfce024",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        169,
+        178,
+        207,
+        221,
+        233
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Role-aware graph seeded once then used for safe projections and dry-run command enrollment probes; probes execute production envelope with nonauditable no-op execution; no successful body DML modifies seeded read targets; afterAll cleans owned graph.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Role-aware graph seeded once then used for safe projections and dry-run command enrollment probes; probes execute production envelope with nonauditable no-op execution; no successful body DML modifies seeded read targets; afterAll cleans owned graph."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/settings-rls.int.test.ts",
+      "relative": "tests/integration/rls/settings-rls.int.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "f3ee2ce17ebbeb46e66b79884451135f0635a8a50379c34f62d58b892de33a66",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        117,
+        123,
+        133,
+        151,
+        168,
+        188,
+        205,
+        223,
+        253,
+        267,
+        295,
+        325,
+        347,
+        355,
+        371
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Shared settings fixture uses idempotent per-body privileged upserts before target reads; app/anon DML is explicitly denied/no-op; expected labels derive from same-body setup; afterAll removes graph.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Shared settings fixture uses idempotent per-body privileged upserts before target reads; app/anon DML is explicitly denied/no-op; expected labels derive from same-body setup; afterAll removes graph."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/integration/rls/tenant-table-inventory.ts",
+      "relative": "tests/integration/rls/tenant-table-inventory.ts",
+      "classification": "helper/fixture",
+      "scorable": true,
+      "sha256": "23fb6f90b93a97776de0447acfa43fff8544648a16bb44b3457eb391c28737c1",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Inventory functions construct local rows/maps/sets or return static immutable enrollment/projection data; no test mutates module inventory. Registry H4 is distinct from the similarly named tenant-table enrollment gate.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "CRITICAL",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Inventory functions construct local rows/maps/sets or return static immutable enrollment/projection data; no test mutates module inventory. Registry H4 is distinct from the similarly named tenant-table enrollment gate."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "MEDIUM",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/authz/role-harness.ts",
+      "relative": "tests/support/authz/role-harness.ts",
+      "classification": "helper/fixture",
+      "scorable": true,
+      "sha256": "853aec7b2e5f01211c46726b6f1bd776357de718f092e9f8bc8b1ffb84e9a96b",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Enrollment maps are input-only; generated cases allocated per call; command probe executes real envelope with a dry-run no-op definition. Caller body owns mutable fixture.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "CRITICAL",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Enrollment maps are input-only; generated cases allocated per call; command probe executes real envelope with a dry-run no-op definition. Caller body owns mutable fixture."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "MEDIUM",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/booking-conflict-attestation.ts",
+      "relative": "tests/support/booking-conflict-attestation.ts",
+      "classification": "helper/fixture",
+      "scorable": true,
+      "sha256": "614aa5b29780e004d627dab902ed55d6c2d76715de1b1317420dcab77f6a4060",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Actual snapshot/detect/proof/finalize adapter; function-local facts/claims; no expected-result-only mocked implementation or shared mutable test fixture.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "CRITICAL",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Actual snapshot/detect/proof/finalize adapter; function-local facts/claims; no expected-result-only mocked implementation or shared mutable test fixture."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "MEDIUM",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/booking-conflicts-atdd.ts",
+      "relative": "tests/support/booking-conflicts-atdd.ts",
+      "classification": "helper/fixture",
+      "scorable": true,
+      "sha256": "490feed1bdc90c6c21de7eb0954c0a373117aa30123aecb5c45e248dab380b4f",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "withConflictFixture delegates fresh booking graph; forced failures are correlation-scoped and deleted in finally178. Cached installer is idempotent setup, not expected test outcome state.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "CRITICAL",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "withConflictFixture delegates fresh booking graph; forced failures are correlation-scoped and deleted in finally178. Cached installer is idempotent setup, not expected test outcome state."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "MEDIUM",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/booking-editor-atdd.ts",
+      "relative": "tests/support/booking-editor-atdd.ts",
+      "classification": "helper/fixture",
+      "scorable": true,
+      "sha256": "f956002d233af096bbcbb297b75c99025b063d22e667c9e91fa553523e39ff2c",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Type/contract declarations and dynamic actual production binding; no test body or cross-test fixture state.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "CRITICAL",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Type/contract declarations and dynamic actual production binding; no test body or cross-test fixture state."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "MEDIUM",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/booking-editor-contract.ts",
+      "relative": "tests/support/booking-editor-contract.ts",
+      "classification": "helper/fixture",
+      "scorable": true,
+      "sha256": "4f7c7615b3f2cb255fd2425f6c8427be2f1821b5bc7bfcca517ca88ec018349b",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "booking/warning/editor/decision allocate new objects; static IDs/logical IDs are immutable inputs; unbound production map is not written by reviewed tests.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "CRITICAL",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "booking/warning/editor/decision allocate new objects; static IDs/logical IDs are immutable inputs; unbound production map is not written by reviewed tests."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "MEDIUM",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/booking-editor-production.ts",
+      "relative": "tests/support/booking-editor-production.ts",
+      "classification": "helper/fixture",
+      "scorable": true,
+      "sha256": "bfd51d321114f0d22c3de3c3ef6a7a244889dc385e1f6e3990c033d7a95fd1db",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "WeakMaps keyed by freshly allocated client/fixture and receipt map keyed by unique issuance; no cross-test key reuse established. Actual action/envelope calls precede result assertions; scoped client spy restored144; correlated faults cleaned443-445.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "CRITICAL",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "WeakMaps keyed by freshly allocated client/fixture and receipt map keyed by unique issuance; no cross-test key reuse established. Actual action/envelope calls precede result assertions; scoped client spy restored144; correlated faults cleaned443-445."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "MEDIUM",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/bookings-atdd.ts",
+      "relative": "tests/support/bookings-atdd.ts",
+      "classification": "helper/fixture",
+      "scorable": true,
+      "sha256": "20de5c5f3cca6e42c93c20e4908b6b554eb3235e408d8c4c4ea35da20092286a",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "withBookingFixture creates new role-aware tenants and finally178 removes them; fault rows scoped to correlation and cleaned253/257; cached trigger installation is setup-only.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "CRITICAL",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "withBookingFixture creates new role-aware tenants and finally178 removes them; fault rows scoped to correlation and cleaned253/257; cached trigger installation is setup-only."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "MEDIUM",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/global-setup.ts",
+      "relative": "tests/support/global-setup.ts",
+      "classification": "helper/fixture",
+      "scorable": true,
+      "sha256": "24332a20bedc11a3c4aff0e06afe1e74e2cc4c5a182675f90e3bc396f1bc3e71",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Run-level signing/gate setup is process initialization, not a test-body mutation. REQUIRED stack failure is explicit; no per-test reset credit given to global setup.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "CRITICAL",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Run-level signing/gate setup is process initialization, not a test-body mutation. REQUIRED stack failure is explicit; no per-test reset credit given to global setup."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "MEDIUM",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/quote-send-diagnostics.ts",
+      "relative": "tests/support/quote-send-diagnostics.ts",
+      "classification": "helper/fixture",
+      "scorable": true,
+      "sha256": "b1905dcca863e2c40ce1e9bb11f21cfea3d2e003231048dce94a21b8ba0dd3a5",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Observers cached by unique client objects; per-observer maps track same-attempt receipts/correlations; final-send removes entries; unit consumers allocate fresh stub client per body.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "CRITICAL",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Observers cached by unique client objects; per-observer maps track same-attempt receipts/correlations; final-send removes entries; unit consumers allocate fresh stub client per body."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "MEDIUM",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/scheduling-atdd.ts",
+      "relative": "tests/support/scheduling-atdd.ts",
+      "classification": "helper/fixture",
+      "scorable": true,
+      "sha256": "128ed74ad466c55f0c4439cd6696b7fbbfc128e4ee04f5d342c5f8bcf15d8f91",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "candidate/facts allocate nested mutable fixtures per call; golden reads parse fresh JSON; imported detector/capacity/timezone functions are production bindings.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "CRITICAL",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "candidate/facts allocate nested mutable fixtures per call; golden reads parse fresh JSON; imported detector/capacity/timezone functions are production bindings."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "MEDIUM",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/stack-gate.ts",
+      "relative": "tests/support/stack-gate.ts",
+      "classification": "helper/fixture",
+      "scorable": true,
+      "sha256": "6b65bcb73816e4528a9be7549c4e2c2411d90a20ea62b0ee736920f76ce06603",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Stack/storage gates report explicit skip or fail under REQUIRED; no mutable record state or test body; no skip-related deduction in this isolation-only dimension.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "CRITICAL",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Stack/storage gates report explicit skip or fail under REQUIRED; no mutable record state or test body; no skip-related deduction in this isolation-only dimension."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "MEDIUM",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/support/test-env.ts",
+      "relative": "tests/support/test-env.ts",
+      "classification": "helper/fixture",
+      "scorable": true,
+      "sha256": "e4441549b684ab5c6c13198091dff0eb3b91604a682111ae12ba8d6335adac60",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Reachability caches have explicit resetReachabilityCachesForTest219; unit consumer afterEach19-22 restores fetch and resets both diagnostics/caches. Process env is read, not mutated in test bodies here.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "CRITICAL",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Reachability caches have explicit resetReachabilityCachesForTest219; unit consumer afterEach19-22 restores fetch and resets both diagnostics/caches. Process env is read, not mutated in test bodies here."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": false,
+          "status": "PASS (n/a)",
+          "severity": "MEDIUM",
+          "reason": "helper/fixture has no executable test bodies; body-only predicate cannot attach"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/admin-users/read-pagination.test.ts",
+      "relative": "tests/unit/admin-users/read-pagination.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "1baa2394c82b3626234c7eba2a30c22a48169c48b7408feef35daaf1304fbcff",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        54,
+        74,
+        99,
+        117
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Stub/query state allocated in createReadClient per body; real readAdminUsersForTenant called before assertions; no module state mutation.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Stub/query state allocated in createReadClient per body; real readAdminUsersForTenant called before assertions; no module state mutation."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "WARN",
+          "severity": "MEDIUM",
+          "reason": "At least three tests, no describe/context grouping"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/e2e/resource-cdp-attachment.test.ts",
+      "relative": "tests/unit/e2e/resource-cdp-attachment.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "baa6b335ddb5b3edf14200e016b83cc66ea9fe4d569264f3c7725cb90086d570",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        8,
+        15
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Two real endpoint/seam validation tests use value inputs only; no process env mutation.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Two real endpoint/seam validation tests use value inputs only; no process env mutation."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/booking-attempt-transport.test.ts",
+      "relative": "tests/unit/features/resources/booking-attempt-transport.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "c8fc55495e5e1451c4a00a44469103bdc80e906b82dd285fcf4f6808bb563448",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        7,
+        15,
+        20
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Input/envelope/cycle objects allocated per body; calls into actual retention/transport/receipt implementation; no shared mutable fixture.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Input/envelope/cycle objects allocated per body; calls into actual retention/transport/receipt implementation; no shared mutable fixture."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "WARN",
+          "severity": "MEDIUM",
+          "reason": "At least three tests, no describe/context grouping"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/booking-editor-input.test.ts",
+      "relative": "tests/unit/features/resources/booking-editor-input.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "9bbb9d7ad515ff6dea2d4db384cbf50932221af9dd50e294ef47b05c4fee364d",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        13,
+        22,
+        30,
+        38,
+        44,
+        52,
+        58,
+        65,
+        75,
+        83,
+        90,
+        97,
+        104
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Factories allocate new booking/decision arrays per call; each body calls production normalizers/time preparation; module IDs are immutable.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Factories allocate new booking/decision arrays per call; each body calls production normalizers/time preparation; module IDs are immutable."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "WARN",
+          "severity": "MEDIUM",
+          "reason": "At least three tests, no describe/context grouping"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/capacity-inputs.test.ts",
+      "relative": "tests/unit/features/resources/capacity-inputs.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "235005930e50e71749b0fbc20cccb4d48a96bf2a05988052d839bc5ffcb24652",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        7,
+        23,
+        38,
+        46,
+        53
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Per-body input objects and real dynamic production import; no mutable test suite state.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Per-body input objects and real dynamic production import; no mutable test suite state."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "WARN",
+          "severity": "MEDIUM",
+          "reason": "At least three tests, no describe/context grouping"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/resource-form-inputs.test.ts",
+      "relative": "tests/unit/features/resources/resource-form-inputs.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "75b90f69f3a6516680c2ff6a27a62c092bb0bd68101aa0ab6ff504d982f4d064",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        6,
+        12,
+        18
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Fresh input history arrays per body; actual merge/normalizer and validator called before assertions.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Fresh input history arrays per body; actual merge/normalizer and validator called before assertions."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "WARN",
+          "severity": "MEDIUM",
+          "reason": "At least three tests, no describe/context grouping"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/schedule-form-merge.test.ts",
+      "relative": "tests/unit/features/resources/schedule-form-merge.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "d7edbb09918657d4a09e9f44366266aed9dd7e904132fb475d02b37bf65892d5",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        5,
+        20,
+        24,
+        40,
+        46
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Fresh submitted/stored schedule arrays per body; real merge call; no shared mutable fixture.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Fresh submitted/stored schedule arrays per body; real merge call; no shared mutable fixture."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "WARN",
+          "severity": "MEDIUM",
+          "reason": "At least three tests, no describe/context grouping"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/schedule-read.test.ts",
+      "relative": "tests/unit/features/resources/schedule-read.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "8e6dd0099a127c4fbdac3472bc233a78570b62a57477013be5289ae9869c17f4",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        5
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Single real schedule-read transform test on locally allocated rows; no shared mutation.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Single real schedule-read transform test on locally allocated rows; no shared mutation."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/resources/work-hours.test.ts",
+      "relative": "tests/unit/features/resources/work-hours.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "e7089b74afddc1e40d79631bee94e8ccc46af88f84ccb8018440b81e5e815442",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        7,
+        38,
+        57,
+        73
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Fresh shifts/percentage input per body and actual dynamic work-hours implementation; no shared mutable fixture.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Fresh shifts/percentage input per body and actual dynamic work-hours implementation; no shared mutable fixture."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "WARN",
+          "severity": "MEDIUM",
+          "reason": "At least three tests, no describe/context grouping"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/scheduling/capacity.golden.test.ts",
+      "relative": "tests/unit/features/scheduling/capacity.golden.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "23daeed0ba3341ec1c63409ae04c69de63dd708347bdd553357d339a0ec978e2",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        7,
+        35,
+        76
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "facts produces fresh nested scheduling objects; all mutations apply to per-body input/clone; golden parses fresh pack; default production rules inspected frozen, never modified.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "facts produces fresh nested scheduling objects; all mutations apply to per-body input/clone; golden parses fresh pack; default production rules inspected frozen, never modified."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "WARN",
+          "severity": "MEDIUM",
+          "reason": "At least three tests, no describe/context grouping"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/scheduling/conflicts.test.ts",
+      "relative": "tests/unit/features/scheduling/conflicts.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "af5dc41ec8b900c690334a7575f5c70ccc8898bc5bb4c406006e766eacb9243a",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        9,
+        17,
+        22,
+        36,
+        48,
+        59,
+        70,
+        82,
+        105
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "facts/golden produce fresh objects; inputs frozen or cloned. Node test-context mock methods are automatically restored; explicit Date proxy restored by t.after96.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "facts/golden produce fresh objects; inputs frozen or cloned. Node test-context mock methods are automatically restored; explicit Date proxy restored by t.after96."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "WARN",
+          "severity": "MEDIUM",
+          "reason": "At least three tests, no describe/context grouping"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/features/scheduling/dst.golden.test.ts",
+      "relative": "tests/unit/features/scheduling/dst.golden.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "040ebd89c45d87ab58b071a69e2bc8c55db8fd602c330f8369e63108d58f4e97",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        11,
+        30
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Two real DST test bodies use fresh golden/facts objects and clones; shared fixed IDs immutable.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Two real DST test bodies use fresh golden/facts objects and clones; shared fixed IDs immutable."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/quote-send-diagnostics.test.ts",
+      "relative": "tests/unit/quote-send-diagnostics.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "ff9675b8cbff64e0c4e3d588d07065400afb1646fbd218b946d091f9aedd7357",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        21,
+        36
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Each body creates fresh fluent query/client stub; actual observer wrapper transforms before assertions; no direct mock-self-only assertion.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Each body creates fresh fluent query/client stub; actual observer wrapper transforms before assertions; no direct mock-self-only assertion."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/scope/booking-editor-scope.test.ts",
+      "relative": "tests/unit/scope/booking-editor-scope.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "b54041b7dd9d6abac8828843bf1b0971e2f272e5ef272a419ea813ebd5b139a3",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        13
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "One read-only manifest/source scope test; no shared mutable state.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "One read-only manifest/source scope test; no shared mutable state."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/scope/manifest-derivations.test.ts",
+      "relative": "tests/unit/scope/manifest-derivations.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "782184a1f448a0e4472805961daefcf4dce5e818a39a2597147a0b15ba2ef09a",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        107,
+        118,
+        131,
+        140,
+        154,
+        171
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Manifest inputs read only; sorting clones/Set outputs; static pinned arrays not modified by tests.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Manifest inputs read only; sorting clones/Set outputs; static pinned arrays not modified by tests."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "WARN",
+          "severity": "MEDIUM",
+          "reason": "At least three tests, no describe/context grouping"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/scope/manifest-shape.test.ts",
+      "relative": "tests/unit/scope/manifest-shape.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "48b432f27a38c17fff4061eff42d6978453185ad60d149cba7db969ef81a1cf9",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        126,
+        143,
+        154,
+        162,
+        176,
+        184,
+        197,
+        206
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Read-only manifest shape tests; arrays/sets initialized once but only membership/read assertions; no source manifest mutation.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Read-only manifest shape tests; arrays/sets initialized once but only membership/read assertions; no source manifest mutation."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "WARN",
+          "severity": "MEDIUM",
+          "reason": "At least three tests, no describe/context grouping"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/scope/resources-activation.atdd.test.ts",
+      "relative": "tests/unit/scope/resources-activation.atdd.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "95a134a7424010ae8efd521168afc6f8b4013def8d9c1cdce0eb01a4daa3bdd1",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        7
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "One read-only activation test; active resources and pending scheduling inspected without mutation.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "One read-only activation test; active resources and pending scheduling inspected without mutation."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/security-headers.test.ts",
+      "relative": "tests/unit/security-headers.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "63f23f136f9bac35333737aae99e697f13b544ac387bf793a315de2b18827ba6",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        5
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "One real Next config header call; resulting map allocated locally, config never modified.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "One real Next config header call; resulting map allocated locally, config never modified."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/server/authz/permission-matrix.test.ts",
+      "relative": "tests/unit/server/authz/permission-matrix.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "3a885ffe05d748efa032aed16150100211fb7430781572538e54a3402ed4433c",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        9,
+        16,
+        23,
+        32,
+        52,
+        57
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Every matrix resolution uses fresh roles/input/optional injected malformed matrix; no mutation of shared production matrix.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Every matrix resolution uses fresh roles/input/optional injected malformed matrix; no mutation of shared production matrix."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "WARN",
+          "severity": "MEDIUM",
+          "reason": "At least three tests, no describe/context grouping"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/server/authz/role-catalogue.test.ts",
+      "relative": "tests/unit/server/authz/role-catalogue.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "7994ffd4eaee7edc1e5c0266d8beeeb0d9cd1becd52ba08c55177801c4955dd0",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        9,
+        21,
+        40
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "describe grouping supplies subject; catalogue/grants generated afresh; production matrix and manifest read only.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "describe grouping supplies subject; catalogue/grants generated afresh; production matrix and manifest read only."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/server/authz/role-harness.test.ts",
+      "relative": "tests/unit/server/authz/role-harness.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "c5176b9d40a182aa36aaf29dfadd1bd871d0a86daff5bb2c03586518c16dd7e1",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        8,
+        16,
+        27,
+        39,
+        48
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "describe grouping exists; missing metadata maps copied before delete; command validation invokes real definitions; no shared production metadata mutation.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "describe grouping exists; missing metadata maps copied before delete; command validation invokes real definitions; no shared production metadata mutation."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/server/bookings/conflict-attestation.test.ts",
+      "relative": "tests/unit/server/bookings/conflict-attestation.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "e3faab7e857d5f620031cbc3fab02c384b43ff1d329d71a786eb15347fb8e982",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        12,
+        23,
+        27
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "Claims fixed/read-only in tests; changed claims copied. Environment mutation in test27 is restored in finally37-40, preserving absent values.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "Claims fixed/read-only in tests; changed claims copied. Environment mutation in test27 is restored in finally37-40, preserving absent values."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "WARN",
+          "severity": "MEDIUM",
+          "reason": "At least three tests, no describe/context grouping"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/server/commands/bookings-validation.test.ts",
+      "relative": "tests/unit/server/commands/bookings-validation.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "5a2fe7f57af470129f9f41f532484148ce0381e0e3e04ebfe1172e7cff213318",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        9,
+        14,
+        31,
+        37,
+        41,
+        45,
+        50,
+        63
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "input() returns new objects/assignee arrays; actual validation/canonicalization/identity functions called; fixed UUID constants immutable.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "input() returns new objects/assignee arrays; actual validation/canonicalization/identity functions called; fixed UUID constants immutable."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "WARN",
+          "severity": "MEDIUM",
+          "reason": "At least three tests, no describe/context grouping"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/server/resources/e2e-save-failure.test.ts",
+      "relative": "tests/unit/server/resources/e2e-save-failure.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "a1b4955c5e39173596fc613cf911c43b34e2f840d2bbba5f9f56636d3f5ec456",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        8
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "One real failure-seam predicate test with explicit arguments; no runtime env mutation.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "One real failure-seam predicate test with explicit arguments; no runtime env mutation."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/support/global-setup.test.ts",
+      "relative": "tests/unit/support/global-setup.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "c7f8c49d16af79d8cb633b14b3add88e80ef8dc71af4e6111a63185696d0a38a",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        6
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "One actual sanitized diagnostic formatter call; input/output local only.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "One actual sanitized diagnostic formatter call; input/output local only."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "MEDIUM",
+          "reason": "Subject grouping exists, or the file has fewer than three registered test declarations"
+        }
+      }
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/unit/support/test-env.test.ts",
+      "relative": "tests/unit/support/test-env.test.ts",
+      "classification": "test-body",
+      "scorable": true,
+      "sha256": "baf2c182dcca0a2dd27289985c4996c86d81f83ed4713e912ef19d88a5142b8b",
+      "hash_matches_context": true,
+      "full_file_loaded": true,
+      "test_declaration_lines": [
+        24,
+        50,
+        77,
+        92,
+        106
+      ],
+      "helpers_are_test_bodies": false,
+      "inspection_note": "afterEach19-22 restores originalFetch and resets cache/diagnostics; each stub set locally before actual reachability calls; no C5 because SUT produces diagnostics/retry/cache behavior.",
+      "rows": {
+        "C5": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "CRITICAL",
+          "reason": "No same-test-configured mock is the sole assertion target without an intervening SUT call."
+        },
+        "H4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "PASS",
+          "severity": "HIGH",
+          "reason": "afterEach19-22 restores originalFetch and resets cache/diagnostics; each stub set locally before actual reachability calls; no C5 because SUT produces diagnostics/retry/cache behavior."
+        },
+        "M4": {
+          "gate": "Absolute",
+          "applicable": true,
+          "status": "WARN",
+          "severity": "MEDIUM",
+          "reason": "At least three tests, no describe/context grouping"
+        }
+      }
+    }
+  ],
+  "excluded_manifest": [
+    {
+      "file": "C:/DEV/ElproSaas/.env.test.example",
+      "format": "dotenv configuration",
+      "reason": "format not scorable by the ledger"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/compose.test.yaml",
+      "format": "YAML Compose configuration",
+      "reason": "format not scorable by the ledger"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/capacity.json",
+      "format": "JSON golden fixture",
+      "reason": "format not scorable by the ledger"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/conflicts.json",
+      "format": "JSON golden fixture",
+      "reason": "format not scorable by the ledger"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/dst.json",
+      "format": "JSON golden fixture",
+      "reason": "format not scorable by the ledger"
+    },
+    {
+      "file": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/regressions.json",
+      "format": "JSON golden fixture",
+      "reason": "format not scorable by the ledger"
+    }
+  ],
+  "context_manifest": [
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-1-scheduling-activation-person-profiles-and-work-hours.md",
+      "sha256": "da4e6d23f523da9bd2105cf8890495ea2b80d21e82828df50760e9c32855e4d6",
+      "bytes": 29181,
+      "read_only": true
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-2-bookings-and-assignees-schema-and-transactional-commands.md",
+      "sha256": "2681df586fe5c2f8e25c2961340e933c52a0321637bc7e349ed6ef1d7fd6738f",
+      "bytes": 80129,
+      "read_only": true
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-3-deterministic-conflict-engine-detection-core.md",
+      "sha256": "5a2ace81faa68df0b9ca93a3bd2a730f9eb4af12c70a927a6dc44e86850fba38",
+      "bytes": 76408,
+      "read_only": true
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md",
+      "sha256": "445b728cf245831683df5db51955bc8eaa541cbbf492beb6b7690df53f165ee0",
+      "bytes": 72566,
+      "read_only": true
+    }
+  ],
+  "positive_evidence": [
+    "Fresh withBookingFixture/withConflictFixture cleanup owns transactional test graphs.",
+    "Booking browser fixture allocates and disposes per-test SQL rows/routes/holds.",
+    "Reachability tests restore fetch and clear diagnostics/cache afterEach; conflict detector test-context mocks and Date proxy restore.",
+    "Mocked read/action tests call real SUT transforms; no C5 self-mock-only assertion found.",
+    "Python unittest class supplies native subject grouping and scoped patch/temporary directory cleanup."
+  ],
+  "recommendations": [
+    "Fix the shared pipeline fixture and seed the seller test independently.",
+    "Add named subject grouping to the sixteen listed files. Do not change bodies as part of grouping.",
+    "For browser resources, retained shared rows are a potential maintenance concern, but no established order-dependent result was found and no H4 deduction was assigned."
+  ],
+  "unsupported_claims": [
+    "No shuffle, isolated-body or parallel stress execution was performed in this read-only dimension.",
+    "Recorded five stack passes, affected47 passes and full REQUIRED1466 registered/1465 passed/0 failed/1 existing Storage recovery skip are parent-supplied run facts, not executions by this worker.",
+    "Browser18/19 plus target1/1 were separate runs on the same build; they are not a single19-pass run. 40.545s is runner duration, not HTTP request duration.",
+    "Empty-DB Epic CI remains required; skipped tests receive no acceptance credit. Stack gates are not committed unconditional skips.",
+    "Resource scope remains active while scheduling remains pending. Only calendar empty-slot click/drag transfers to15.1; no Epic14 credit is claimed for those pending checks.",
+    "This report evaluates test isolation only; assertion absence is not a basis for asserting a production defect or broad production review.",
+    "No managed resource was started, reused, restarted or stopped by this worker; root resources were already stopped."
+  ],
+  "routing": {
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "reason": "Actual authorization/RLS and transactional test isolation quality",
+    "recorded_by_parent_before_dispatch": true
+  },
+  "summary": "All85 reviewed files accounted for:79 scorable (60 TypeScript test bodies,2 Python mechanical tests,17 helpers) and6 excluded formats. Isolation rows find0 C5,1 HIGH H4 shared pipeline fixture,16 MEDIUM M4 ungrouped suites. Helpers are not counted as body tests."
+}

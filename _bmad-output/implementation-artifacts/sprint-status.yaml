@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 10-08-2026 13:45  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
+last_updated: 10-08-2026 15:59  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
 project: ElproSaas
 project_key: NOKEY
 tracking_system: file-system
@@ -244,12 +244,12 @@ development_status:
   # finalized at the checkpoint / gate close).
   # E14: N-3 is resolved by ADR-B009 (connected 360x640 field UX; no Story 10.7
   # technical prerequisite). N-9 is answered; conflict/capacity fixtures can harden.
-  epic-14: backlog
-  14-1-scheduling-activation-person-profiles-and-work-hours: backlog
-  14-2-bookings-and-assignees-schema-and-transactional-commands: backlog
-  14-3-deterministic-conflict-engine-detection-core: backlog
-  14-4-booking-editor-with-live-conflict-warnings-and-audited-override: backlog
-  epic-14-retrospective: optional
+  epic-14: done
+  14-1-scheduling-activation-person-profiles-and-work-hours: done
+  14-2-bookings-and-assignees-schema-and-transactional-commands: done
+  14-3-deterministic-conflict-engine-detection-core: done
+  14-4-booking-editor-with-live-conflict-warnings-and-audited-override: done
+  epic-14-retrospective: done
 
   # E15: 15-5 is public token surface #1 — ships only with the ADR-B004 abuse
   # suite green (AC-B1b-7). Phone-shape work follows ADR-B009 and requires
@@ -528,3 +528,49 @@ action_items:
     owner: "Epic 13 delivery owner"
     status: done
     ref: "C:\\DEV\\ElproSaas\\_bmad-output\\implementation-artifacts\\epic-13-retro-2026-09-27.md"
+  - id: "epic-14-retro-ci"
+    epic: 14
+    action: "Obtain empty-database migration-chain/seed and REQUIRED full Epic CI
+      evidence before merge, preserving executed/skipped counts and isolated recovery
+      proof."
+    owner: "Epic delivery owner"
+    status: done
+    ref: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/epic-14-retro-2026-10-07.md"
+  - id: "epic-14-retro-review"
+    epic: 14
+    action: "Resolve retained 14.1/14.2/14.4 follow-up recommendations and root review-unverified
+      through bounded permitted review, then official completion transitions and retrospective
+      refresh."
+    owner: "Epic delivery/review owner"
+    status: done
+    ref: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/epic-14-retro-2026-10-07.md"
+  - id: "epic-14-retro-quality"
+    epic: 14
+    action: "Triage 48 deduplicated quality advisories and propose focused outcome-oracle,
+      expiry-clock, fixture-order and oversized-test remediation with actual resolution
+      evidence."
+    owner: "QA/test owner"
+    status: in-progress
+    ref: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/epic-14-retro-2026-10-07.md"
+  - id: "epic-14-retro-performance"
+    epic: 14
+    action: "Approve representative performance volumes and measurable latency/resource/throughput
+      targets; collect evidence before performance or hosted-readiness claims."
+    owner: "Product/Architect and operations owner"
+    status: open
+    ref: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/epic-14-retro-2026-10-07.md"
+  - id: "epic-14-retro-manual"
+    epic: 14
+    action: "Execute outstanding manual accessibility/daylight and exploratory obligations;
+      record observed results and retain NONE until execution."
+    owner: "QA/UX owner"
+    status: open
+    ref: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/epic-14-retro-2026-10-07.md"
+  - id: "epic-14-retro-calendar"
+    epic: 14
+    action: "Execute transferred 14.4-E2E-006 real Schema/Resurser calendar click/drag,
+      interval/person and keyboard/dialog parity before calendar exposure and 15.1
+      completion."
+    owner: "Story 15.1 delivery owner"
+    status: open
+    ref: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/epic-14-retro-2026-10-07.md"

@@ -1,0 +1,56 @@
+{
+  "targetApi": "http://127.0.0.1:55421",
+  "targetDb": "127.0.0.1:55422/postgres",
+  "lifecycle": "48fc14f8-3810-46f8-ab4f-8c416abc7d57",
+  "resourceState": "ACTIVE/outcomeVerified=true supplied by root",
+  "readOnly": true,
+  "testsRun": false,
+  "health": [
+    {
+      "endpoint": "/auth/v1/health",
+      "httpStatus": 200,
+      "elapsedMs": 4009
+    },
+    {
+      "endpoint": "/rest/v1/",
+      "httpStatus": 200,
+      "elapsedMs": 4028
+    },
+    {
+      "endpoint": "/storage/v1/status",
+      "httpStatus": 200,
+      "elapsedMs": 3990
+    }
+  ],
+  "db": {
+    "db": "postgres",
+    "db_user": "postgres",
+    "version_num": "170006",
+    "timezone": "UTC",
+    "recovery": false,
+    "is_bookings": "bookings",
+    "is_auth": "auth.users",
+    "is_storage": "storage.objects",
+    "is_ledger": "supabase_migrations.schema_migrations"
+  },
+  "ledger": {
+    "count": 95,
+    "lastVersion": "20261006144057",
+    "allRepoVersionsPresent": true,
+    "noUnexpectedVersions": true,
+    "repoVersionCount": 95,
+    "prior94Sha256": "4ee8170645ea6bf45d11d79dfcda08fa83fe1b32e920905650bbd0e1c47e3d00",
+    "prior94KnownHashMatches": true
+  },
+  "clock": {
+    "sameConnection": true,
+    "samples": 21,
+    "backwardSteps": 0,
+    "minimumDeltaMs": 50.947998046875,
+    "positiveDeltas": 20,
+    "dbElapsedMs": 1029.931884765625,
+    "hostMonotonicElapsedMs": 1031.3372,
+    "absoluteTimesLogged": false
+  },
+  "ready": true
+}

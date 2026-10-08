@@ -1,0 +1,9 @@
+
+ RUN  v4.1.9 C:/DEV/ElproSaas
+
+
+ Test Files  2 skipped (2)
+      Tests  67 skipped (67)
+   Start at  13:55:33
+   Duration  364ms (transform 43ms, setup 0ms, import 139ms, tests 0ms, environment 0ms)
+

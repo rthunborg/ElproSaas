@@ -1,0 +1,13 @@
+(node:51988) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/DEV/ElproSaas/tests/support/booking-editor-contract.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to C:\DEV\ElproSaas\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+file:///C:/DEV/ElproSaas/tests/support/booking-editor-contract.ts:64
+  if (!actual) throw new Error(`14.4 RED: missing actual production binding: ${name}`);
+                     ^
+
+Error: 14.4 RED: missing actual production binding: Editor
+    at Module.binding (file:///C:/DEV/ElproSaas/tests/support/booking-editor-contract.ts:64:22)
+    at file:///C:/DEV/ElproSaas/[eval1]:1:70
+
+Node.js v22.23.2

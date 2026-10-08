@@ -157,28 +157,25 @@ describe("quote_follow_ups migration reset — updatable one-open-per-quote tabl
     expect(rows.map((r) => r.cmd).sort()).toEqual(["INSERT", "SELECT", "UPDATE"]);
   });
 
-  it("[P0] authenticated has SELECT only; lifecycle INSERT/UPDATE are checked audited RPC-only", async (testCtx) => {
+  it("[P0] effective ACL is authenticated SELECT-only; every other table privilege is denied", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    // Raw writes would bypass the command-specific audit transaction, so only the
-    // read privilege remains on the table. DELETE is also absent (archive-over-delete).
-    const rows = await adminQuery<{ privilege_type: string }>(
-      `select privilege_type from information_schema.role_table_grants
-         where table_schema = 'public' and table_name = $1 and grantee = 'authenticated'
-           and privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE')`,
-      [TABLE],
+    // has_table_privilege includes inherited PUBLIC grants, which
+    // information_schema.role_table_grants cannot prove absent.
+    const rows = await adminQuery<{ role: string; select: boolean; insert: boolean; update: boolean; delete: boolean; truncate: boolean; references: boolean; trigger: boolean }>(
+      `select role_name as role,
+              has_table_privilege(role_name, 'public.quote_follow_ups', 'select') as select,
+              has_table_privilege(role_name, 'public.quote_follow_ups', 'insert') as insert,
+              has_table_privilege(role_name, 'public.quote_follow_ups', 'update') as update,
+              has_table_privilege(role_name, 'public.quote_follow_ups', 'delete') as delete,
+              has_table_privilege(role_name, 'public.quote_follow_ups', 'truncate') as truncate,
+              has_table_privilege(role_name, 'public.quote_follow_ups', 'references') as references,
+              has_table_privilege(role_name, 'public.quote_follow_ups', 'trigger') as trigger
+         from unnest(array['authenticated', 'anon']) as roles(role_name)`,
     );
-    expect(rows.map((r) => r.privilege_type).sort()).toEqual(["SELECT"]);
-  });
-
-  it("[P0] anon has NO privileges on quote_follow_ups", async (testCtx) => {
-    if (skipUnlessStack(testCtx, stackUp)) return;
-    const rows = await adminQuery<{ privilege_type: string }>(
-      `select privilege_type from information_schema.role_table_grants
-         where table_schema = 'public' and table_name = $1 and grantee = 'anon'
-           and privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE')`,
-      [TABLE],
-    );
-    expect(rows).toEqual([]);
+    expect(rows).toEqual([
+      { role: "authenticated", select: true, insert: false, update: false, delete: false, truncate: false, references: false, trigger: false },
+      { role: "anon", select: false, insert: false, update: false, delete: false, truncate: false, references: false, trigger: false },
+    ]);
   });
 
   it("[P0/scope] NO forbidden column (supplier/Fortnox/sync/portal/notification/reminder/email/updated_at) AND NO float money", async (testCtx) => {

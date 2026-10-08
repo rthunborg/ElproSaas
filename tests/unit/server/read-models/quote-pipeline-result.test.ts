@@ -36,7 +36,8 @@ const OCCURRED = "2026-07-10T12:00:00.000Z";
 const RAW_FAILURE = "SQL secret-money 987654321 tenant-private stack-fixture";
 const ADMIN = { roles: ["tenant_admin"] };
 const PAGE_SIZE = 500;
-const ID_BATCH_SIZE = 100;
+const ID_BATCH_SIZE = 50; // ADR-B012 approved gateway-safe request limit, independent of fixture size.
+const MULTI_BATCH_FIXTURE_IDS = 101;
 let headersResolved = false;
 
 async function loadReaders(): Promise<{ readQuotePipelineResult: Reader; readQuotePipeline: LegacyReader }> {
@@ -174,18 +175,18 @@ const lateCases: { label: string; table: Table; batch?: number; from?: number; r
     })),
   }) },
   { label: "acceptance second ID batch", table: "quote_acceptances", batch: 2, rows: () => dataFactory({
-    quote_events: Array.from({ length: ID_BATCH_SIZE + 1 }, (_, n) => eventFactory({
+    quote_events: Array.from({ length: MULTI_BATCH_FIXTURE_IDS }, (_, n) => eventFactory({
       id: "event-" + n, quote_version_id: "accepted-version-" + n,
     })),
-    quote_acceptances: Array.from({ length: ID_BATCH_SIZE + 1 }, (_, n) => ({
+    quote_acceptances: Array.from({ length: MULTI_BATCH_FIXTURE_IDS }, (_, n) => ({
       id: "acceptance-" + n, quote_version_id: "accepted-version-" + n, accepted_price_ore: 10000,
     })),
   }) },
   { label: "latest-version second ID batch", table: "quote_versions", batch: 2, rows: () => dataFactory({
-    quote_follow_ups: Array.from({ length: ID_BATCH_SIZE + 1 }, (_, n) => ({
+    quote_follow_ups: Array.from({ length: MULTI_BATCH_FIXTURE_IDS }, (_, n) => ({
       id: "follow-up-" + n, quote_id: "quote-" + n, status: "open", due_date: "2026-07-15",
     })),
-    quote_versions: Array.from({ length: ID_BATCH_SIZE + 1 }, (_, n) => ({
+    quote_versions: Array.from({ length: MULTI_BATCH_FIXTURE_IDS }, (_, n) => ({
       id: "version-" + n, quote_id: "quote-" + n, version_number: 1, status: "sent",
     })),
   }) },
@@ -374,9 +375,12 @@ test("[P1] 19.1-UNIT-012 AC6 old wrapper signature/fallback stays compatible whi
   assertFailure(await readQuotePipelineResult(WINDOW, ADMIN, { client: resultFailed.client, now: NOW }));
 });
 
-test("[P1] 19.1-UNIT-015 AC3/6 real result consumes all bounded pages/chunks with no health query", async () => {
+for (const { distinctAccepted, eventPageStarts, batchSizes } of [
+  { distinctAccepted: MULTI_BATCH_FIXTURE_IDS, eventPageStarts: [0, 500], batchSizes: [50, 50, 1] },
+  { distinctAccepted: 501, eventPageStarts: [0, 500, 1000], batchSizes: [...Array<number>(10).fill(50), 1] },
+  { distinctAccepted: 1001, eventPageStarts: [0, 500, 1000, 1500], batchSizes: [...Array<number>(20).fill(50), 1] },
+]) test("[P1] 19.1-UNIT-015 AC3/6 real result consumes all bounded pages/chunks with no health query: " + distinctAccepted + " IDs", async () => {
   const { readQuotePipelineResult } = await loadReaders();
-  const distinctAccepted = ID_BATCH_SIZE + 1;
   const rows = dataFactory({
     quote_events: [
       ...Array.from({ length: PAGE_SIZE }, (_, n) => eventFactory({ id: "duplicate-" + n, event_type: "sent" })),
@@ -392,13 +396,18 @@ test("[P1] 19.1-UNIT-015 AC3/6 real result consumes all bounded pages/chunks wit
   assert.equal(descriptor.data.acceptedCount, distinctAccepted);
   assert.equal(descriptor.data.lostCount, 1);
   assert.equal(descriptor.data.acceptedValueOre, distinctAccepted * 10000);
-  assert.ok(transport.calls.some((call) => call.table === "quote_events" && call.from === PAGE_SIZE));
-  assert.equal(transport.calls.filter((call) => call.table === "quote_acceptances").length, 2);
+  assert.deepEqual(transport.calls.filter((call) => call.table === "quote_events").map((call) => call.from), eventPageStarts);
+  const acceptanceCalls = transport.calls.filter((call) => call.table === "quote_acceptances");
+  assert.deepEqual(acceptanceCalls.map((call) => call.ids.length), batchSizes);
+  assert.deepEqual(acceptanceCalls.map((call) => call.batch), batchSizes.map((_, index) => index + 1));
+  const allRequestedIds = acceptanceCalls.flatMap((call) => call.ids);
+  assert.equal(allRequestedIds.length, distinctAccepted);
+  assert.deepEqual([...allRequestedIds].sort(), rows.quote_acceptances.map((row) => String(row.quote_version_id)).sort(), "every accepted ID appears exactly once");
   assert.deepEqual(transport.calls.map((call) => call.table), [
-    "quote_events", "quote_events", "quote_acceptances", "quote_acceptances", "quote_follow_ups",
+    ...eventPageStarts.map(() => "quote_events"), ...batchSizes.map(() => "quote_acceptances"), "quote_follow_ups",
   ], "only existing query core; no health preflight or repeated eager/poll reads");
   assert.ok(transport.calls.every((call) => call.to - call.from + 1 === PAGE_SIZE));
-  assert.ok(transport.calls.filter((call) => call.table === "quote_acceptances").every((call) => call.ids.length <= ID_BATCH_SIZE));
+  assert.ok(acceptanceCalls.every((call) => call.from === 0 && call.ids.length <= ID_BATCH_SIZE));
 });
 
 test("[P1] 19.1-UNIT-013 AC9 completion instant is stamped after the final successful read", async (t) => {

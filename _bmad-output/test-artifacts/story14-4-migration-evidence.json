@@ -1,0 +1,15 @@
+{
+  "before": {
+    "count": 95,
+    "latest": "20261006144057"
+  },
+  "after": {
+    "count": 96,
+    "latest": "20261007120235"
+  },
+  "priorHashBefore": "2ab1f5adfc741644eff65f9871b127b4990a44d7bf59bbeaa4896049568918ce",
+  "priorHashAfter": "2ab1f5adfc741644eff65f9871b127b4990a44d7bf59bbeaa4896049568918ce",
+  "priorLedgerUnchanged": true,
+  "file": "supabase/migrations/20261007120235_booking_editor_audited_override.sql",
+  "sha256": "9d1f90d225b8e48155188e400ec8219571b4688cd750ca805957c92213ec8d65"
+}

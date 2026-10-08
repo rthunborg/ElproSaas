@@ -18,6 +18,31 @@ beforeAll(async () => {
   stackUp = await isLocalStackReachable();
 });
 
+describe("Story 14.3 exact checked/private conflict authority inventory", () => {
+  it("[P0] snapshot/finalize are authenticated-only; every helper has empty search path and owner-only execution", async (testCtx) => {
+    if (skipUnlessStack(testCtx, stackUp)) return;
+    const { actualConflictBindings } = await import("../../support/booking-conflict-attestation");
+    const inventory = (await actualConflictBindings()).sqlInventory;
+    expect(inventory.checked.map((fn) => fn.name).sort()).toEqual([
+      "booking_editor_people", "finalize_booking_conflicts", "finalize_booking_editor",
+      "snapshot_booking_conflicts", "snapshot_booking_editor",
+    ]);
+    expect(inventory.private).toHaveLength(14);
+    for (const [kind, functions] of [["checked", inventory.checked], ["private", inventory.private]] as const) {
+      for (const fn of functions) {
+        const [row] = await adminQuery<{ anon: boolean; authenticated: boolean; service: boolean; public_execute: boolean; search_path: string[] }>(
+          `select has_function_privilege('anon',p.oid,'EXECUTE') as anon,
+            has_function_privilege('authenticated',p.oid,'EXECUTE') as authenticated,
+            has_function_privilege('service_role',p.oid,'EXECUTE') as service,
+            exists(select 1 from aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a where a.grantee=0 and a.privilege_type='EXECUTE') as public_execute,
+            p.proconfig as search_path from pg_proc p where p.oid=$1::regprocedure`, [fn.signature]);
+        expect(row).toMatchObject({ anon: false, authenticated: kind === "checked", service: false, public_execute: false });
+        assertSearchPathExactlyEmpty(fn.name, row.search_path);
+      }
+    }
+  });
+});
+
 describe("Migration reset green — tenant_foundation objects present (AC1 / R-007)", () => {
   it("[P0] tables `tenants` and `tenant_memberships` exist after reset", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
@@ -104,13 +129,43 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       function_schema: "test_support",
       function_name: "fail_requested_audit_event",
     }]);
+
+    // `has_*_privilege` evaluates inherited PUBLIC grants too. Checking every
+    // runtime API role therefore proves that no application/API role can
+    // discover the seed-only control schema, write its correlation table, or
+    // call its SECURITY DEFINER trigger function.
+    const effectivePrivileges = await adminQuery<{
+      role_name: string;
+      schema_usage: boolean;
+      table_select: boolean;
+      table_insert: boolean;
+      table_update: boolean;
+      table_delete: boolean;
+      function_execute: boolean;
+    }>(
+      `select
+         role_name,
+         has_schema_privilege(role_name, 'test_support', 'USAGE') as schema_usage,
+         has_table_privilege(role_name, 'test_support.forced_audit_failures', 'SELECT') as table_select,
+         has_table_privilege(role_name, 'test_support.forced_audit_failures', 'INSERT') as table_insert,
+         has_table_privilege(role_name, 'test_support.forced_audit_failures', 'UPDATE') as table_update,
+         has_table_privilege(role_name, 'test_support.forced_audit_failures', 'DELETE') as table_delete,
+         has_function_privilege(role_name, 'test_support.fail_requested_audit_event()', 'EXECUTE') as function_execute
+       from unnest(array['anon', 'authenticated', 'service_role']::text[]) as roles(role_name)
+       order by role_name`,
+    );
+    expect(effectivePrivileges).toEqual([
+      { role_name: "anon", schema_usage: false, table_select: false, table_insert: false, table_update: false, table_delete: false, function_execute: false },
+      { role_name: "authenticated", schema_usage: false, table_select: false, table_insert: false, table_update: false, table_delete: false, function_execute: false },
+      { role_name: "service_role", schema_usage: false, table_select: false, table_insert: false, table_update: false, table_delete: false, function_execute: false },
+    ]);
   });
 
   it("[P0] helper functions `is_active_tenant_member(uuid)` and `is_tenant_admin(uuid)` exist", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
     const rows = await adminQuery<{ proname: string }>(
       `select proname from pg_proc
-         where proname in ('is_active_tenant_member', 'is_tenant_admin')`,
+         where oid in ('public.is_active_tenant_member(uuid)'::regprocedure, 'public.is_tenant_admin(uuid)'::regprocedure)`,
     );
     expect(rows.map((r) => r.proname).sort()).toEqual([
       "is_active_tenant_member",
@@ -126,7 +181,7 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       proconfig: string[] | null;
     }>(
       `select proname, prosecdef, proconfig from pg_proc
-         where proname in ('is_active_tenant_member', 'is_tenant_admin')`,
+         where oid in ('public.is_active_tenant_member(uuid)'::regprocedure, 'public.is_tenant_admin(uuid)'::regprocedure)`,
     );
     expect(rows).toHaveLength(2);
     for (const fn of rows) {
@@ -261,6 +316,9 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "articles.UPDATE",
       "audit_events.ALL",
       "audit_events.SELECT",
+      "booking_assignees.SELECT",
+      "booking_conflicts.SELECT",
+      "bookings.SELECT",
       "calculation_rows.INSERT",
       "calculation_rows.SELECT",
       "calculation_rows.UPDATE",
@@ -310,6 +368,8 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "notification_preferences.UPDATE",
       "notifications.SELECT",
       "notifications.UPDATE",
+      "person_profiles.SELECT",
+      "person_work_hours.SELECT",
       "platform_operators.SELECT",
       "quote_acceptances.INSERT",
       "quote_acceptances.SELECT",
@@ -338,6 +398,7 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
       "quotes.INSERT",
       "quotes.SELECT",
       "quotes.UPDATE",
+      "tenant_calendar_days.SELECT",
       "tenant_counters.INSERT",
       "tenant_counters.SELECT",
       "tenant_counters.UPDATE",
@@ -435,6 +496,11 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
         "UPDATE",
       ]);
     }
+    // Resource rows are read through RLS; audited commands are their only mutation surface.
+    for (const t of ["person_profiles", "person_work_hours", "tenant_calendar_days", "bookings", "booking_assignees", "booking_conflicts"]) {
+      expect((cmdsByTable.get(t) ?? []).sort()).toEqual(["SELECT"]);
+    }
+
     // Story 10.2 quote_lost_reasons is INSERT-ONLY — SELECT + INSERT policies, NO UPDATE, NO DELETE
     // (the insert-only + archive-over-delete discipline; the absent UPDATE grant/policy is the
     // load-bearing own-tenant-UPDATE-rejected enforcement).
@@ -566,6 +632,37 @@ describe("Migration reset green — tenant_foundation objects present (AC1 / R-0
     expect(functions[0]?.authenticated_can_execute).toBe(true);
     expect(functions[0]?.service_role_can_execute).toBe(true);
   });
+});
+
+it("[P0] 14.4 migration inventory has exact authenticated editor entries and private helpers", async (testCtx) => {
+  if (skipUnlessStack(testCtx, stackUp)) return;
+  const checked = [
+    "snapshot_booking_editor(uuid,uuid,uuid,uuid,uuid,uuid,jsonb,text,jsonb)",
+    "finalize_booking_editor(uuid,uuid,uuid,uuid,uuid,uuid,jsonb,jsonb,text,text,jsonb,text,text,jsonb)",
+    "booking_editor_people(uuid,uuid)",
+  ];
+  const privateFunctions = [
+    "booking_editor_decision_internal(jsonb)", "booking_editor_digest_internal(uuid,uuid,jsonb,jsonb)",
+    "booking_editor_replay_internal(uuid,uuid,uuid,uuid,uuid,jsonb,jsonb)",
+    "booking_editor_proof_bytes_internal(jsonb,text)", "booking_editor_groups_internal(jsonb,jsonb,uuid)",
+    "booking_commit_editor_internal(uuid,uuid,uuid,uuid,uuid,jsonb,uuid,jsonb,jsonb,jsonb)",
+  ];
+  const functions = await adminQuery<{ signature: string; definer: boolean; proconfig: string[] | null;
+    public_execute: boolean; anon_execute: boolean; authenticated_execute: boolean; service_execute: boolean }>(
+    `select p.oid::regprocedure::text as signature,p.prosecdef as definer,p.proconfig,
+      exists(select 1 from aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a where a.grantee=0 and a.privilege_type='EXECUTE') as public_execute,
+      has_function_privilege('anon',p.oid,'execute') as anon_execute,
+      has_function_privilege('authenticated',p.oid,'execute') as authenticated_execute,
+      has_function_privilege('service_role',p.oid,'execute') as service_execute
+      from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public'
+      and (p.proname like 'booking%editor%internal' or p.proname in ('snapshot_booking_editor','finalize_booking_editor','booking_editor_people'))`);
+  expect(functions.map((row) => row.signature).sort()).toEqual([...checked,...privateFunctions].sort());
+  for (const fn of functions) {
+    assertSearchPathExactlyEmpty(fn.signature,fn.proconfig);
+    expect(fn.public_execute).toBe(false); expect(fn.anon_execute).toBe(false); expect(fn.service_execute).toBe(false);
+    expect(fn.authenticated_execute).toBe(checked.includes(fn.signature));
+    expect(fn.definer).toBe(checked.includes(fn.signature));
+  }
 });
 
 // Close this file's admin pool once all migration-reset assertions are done.

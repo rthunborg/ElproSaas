@@ -1,0 +1,66 @@
+
+Running 19 tests using 1 worker
+
+  ok  1 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:84:7 › Story 14.4 booking editor retained browser acceptance › Round2 archived role clears explicitly and failed options retry retains the mounted draft (4.7s)
+  ok  2 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:104:7 › Story 14.4 booking editor retained browser acceptance › Round2 facility-only contact choice and same-customer facility change retain compatible links (5.4s)
+  ok  3 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:120:7 › Story 14.4 booking editor retained browser acceptance › Round2 authorization-denied retry preserves a lost committed attempt until authority returns (3.4s)
+  x   4 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:135:7 › Story 14.4 booking editor retained browser acceptance › Round2 genuine 1000-group issued review exceeds 1 MiB and saves through actual bounded HTTP action (31.0s)
+  ok  5 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:151:7 › Story 14.4 booking editor retained browser acceptance › Round1 endpoint-only mounted edits preserve the other PostgreSQL instant exactly (14.5s)
+  ok  6 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:169:7 › Story 14.4 booking editor retained browser acceptance › Round1 compatible customer contact retains facility; archived current links remain visible and deliberately clearable (5.4s)
+  ok  7 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:203:7 › Story 14.4 booking editor retained browser acceptance › [P0] E2E-006 toolbar creates a standalone booking through the desktop sheet (2.8s)
+  ok  8 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:231:9 › Story 14.4 booking editor retained browser acceptance › [P0] E2E-006 job entry persists preconnection then reopens and edits (6.5s)
+  ok  9 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:231:9 › Story 14.4 booking editor retained browser acceptance › [P0] E2E-006 customer entry persists preconnection then reopens and edits (6.2s)
+  ok 10 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:283:7 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-001/007 360x640 fullscreen editor scrolls without overflow and keeps actions reachable (2.5s)
+  ok 11 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:310:7 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-002 reload chip counts persisted OPEN logical conflicts only (2.1s)
+  ok 12 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:328:9 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-003/007 dirty Escape cancel retains draft and discard restores entry focus (1.7s)
+  ok 13 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:328:9 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-003/007 dirty close cancel retains draft and discard restores entry focus (1.8s)
+  ok 14 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:328:9 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-003/007 dirty back cancel retains draft and discard restores entry focus (1.8s)
+  ok 15 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:355:7 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-003 in-flight save blocks Escape close and back until confirmed (2.9s)
+  ok 16 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:391:7 › Story 14.4 booking editor retained browser acceptance › [P0] E2E-004/005 phone failure keeps unsent draft and explicit retry confirms one durable save (2.7s)
+  ok 17 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:420:7 › Story 14.4 booking editor retained browser acceptance › [P0] E2E-005 phone lost committed response replays one booking assignments conflicts and attributable audit (3.7s)
+  ok 18 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:473:7 › Story 14.4 booking editor retained browser acceptance › [P1] AC2/ E2E-007 latest warning wins and preview failure remains visibly unknown (3.0s)
+  ok 19 [chromium] › tests\e2e\booking-editor.e2e.spec.ts:511:7 › Story 14.4 booking editor retained browser acceptance › [P1] E2E-007 keyboard focus remains in sheet and warnings announce explanatory timeline (2.6s)
+
+
+  1) [chromium] › tests\e2e\booking-editor.e2e.spec.ts:135:7 › Story 14.4 booking editor retained browser acceptance › Round2 genuine 1000-group issued review exceeds 1 MiB and saves through actual bounded HTTP action
+
+    TimeoutError: route.fetch: Timeout 15000ms exceeded.
+    Call log:
+      - → POST http://127.0.0.1:3100/jobs
+        - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.7827.55 Safari/537.36
+        - accept: text/x-component
+        - accept-encoding: gzip,deflate,br
+        - accept-language: en-US
+        - content-type: text/plain;charset=UTF-8
+        - cookie: [redacted]
+        - origin: http://127.0.0.1:3100
+        - next-action: 407beeec233e8e25da8d2468e987bb15485f89989a
+        - next-router-state-tree: %5B%22%22%2C%7B%22children%22%3A%5B%22(app)%22%2C%7B%22children%22%3A%5B%22jobs%22%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2Cnull%2Cnull%2C4096%5D%7D%2Cnull%2Cnull%2C4096%5D%7D%2Cnull%2Cnull%2C4096%5D%7D%2Cnull%2Cnull%2C4112%5D
+        - sec-ch-ua: "Chromium";v="154", "Google Chrome";v="154", "Not A(Brand";v="99"
+        - sec-ch-ua-mobile: ?0
+        - sec-ch-ua-platform: "Windows"
+        - content-length: 1120245
+
+
+       at support\booking-editor-atdd.ts:157
+
+      155 |     if (save && saveHold) { const gate = saveHold; saveHold = undefined; gate.started(); await gate.wait; }
+      156 |     // The response is obtained from the actual Next action; no facts/results are fabricated.
+    > 157 |     const response = await route.fetch();
+          |                                  ^
+      158 |     if (save) {
+      159 |       for (const observe of transports.splice(0)) observe({bodyBytes:Buffer.byteLength(request.postData() ?? ""),status:response.status()});
+      160 |       // A denied replay/413 is an actual error response, not confirmation of an existing row.
+        at routeWork (C:\DEV\ElproSaas\tests\e2e\support\booking-editor-atdd.ts:157:34)
+        at routeHandler (C:\DEV\ElproSaas\tests\e2e\support\booking-editor-atdd.ts:175:21)
+
+    Error Context: test-results\booking-editor.e2e-Story-1-9a8c2--actual-bounded-HTTP-action-chromium\error-context.md
+
+  1 failed
+    [chromium] › tests\e2e\booking-editor.e2e.spec.ts:135:7 › Story 14.4 booking editor retained browser acceptance › Round2 genuine 1000-group issued review exceeds 1 MiB and saves through actual bounded HTTP action
+  18 passed (1.8m)
+
+(node:26772) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:57032) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)

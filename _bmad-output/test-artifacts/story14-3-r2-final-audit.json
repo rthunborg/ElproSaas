@@ -1,0 +1,49 @@
+{
+  "changedFiles": [
+    "_bmad-output/implementation-artifacts/spec-14-3-deterministic-conflict-engine-detection-core.md",
+    "_bmad-output/test-artifacts/story14-3-r2-check-summary.json",
+    "_bmad-output/test-artifacts/story14-3-r2-final-audit.json",
+    "_bmad-output/test-artifacts/story14-3-r2-focused.json",
+    "_bmad-output/test-artifacts/story14-3-r2-full.json",
+    "_bmad-output/test-artifacts/story14-3-r2-identity-focus.json",
+    "_bmad-output/test-artifacts/story14-3-r2-named-audit.json",
+    "_bmad-output/test-artifacts/story14-3-r2-review-provenance.json",
+    "_bmad-output/test-artifacts/story14-3-verification.md",
+    "_bmad-output/test-artifacts/test-design-progress-epic-14.md",
+    "tests/integration/commands/booking-conflicts.int.test.ts"
+  ],
+  "scannedEvidenceFilesBeforeAudit": 9,
+  "jsonParseErrors": 0,
+  "sensitivePatternHits": 0,
+  "scope": "targeted private-key/JWT/publishable-secret-key/email scan of changed JSON/MD; not proof against every sensitive-content form",
+  "frozenIntentPlanAcceptanceVerificationUnchanged": true,
+  "historicalJsonUnmodified": true,
+  "soleSuggestedReviewOrder": true,
+  "reviewOrderChecker": {
+    "nativeExit": 0,
+    "verifiedStops": 24,
+    "errors": 0
+  },
+  "yamlParser": "js-yaml native0",
+  "status": "done",
+  "baselinePreserved": "719ffb2dc74807b9d8c1242e4d383f3e34f665f9",
+  "reviewLoopIteration": 0,
+  "followupReviewRecommended": false,
+  "ownedExecSessionsCompleted": [
+    13452,
+    98854,
+    24109,
+    63176,
+    10934,
+    15495
+  ],
+  "noActiveOwnedTestsBuildsSamplersTracers": true,
+  "noResourceServiceOrHostActions": true,
+  "scannedEvidenceFiles": 10,
+  "jsonFiles": 7,
+  "executionTask9MarkedCompletedOnly": true,
+  "finalTrailIndependentReview": "PASS reported by delegate",
+  "noOtherActorFilesPresent": true,
+  "precommitHead": "3e8e337a8e7933b2c6af1930476690801a469477",
+  "postCommitGitVerification": "required and reported separately; not yet claimed"
+}

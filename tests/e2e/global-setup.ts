@@ -888,6 +888,34 @@ export default async function globalSetup() {
     }
   }
 
+  const [resourceProfileMembership] = await adminQuery<{ id: string }>(
+    "select id from public.tenant_memberships where tenant_id=$1 and user_id=$2 and status='active'",
+    [base.tenantA.id, base.adminA.id],
+  );
+  const deactivatedResourceProfileMembershipId = crypto.randomUUID();
+  await adminQuery(
+    "insert into public.tenant_memberships (id,tenant_id,user_id,role,status) values ($1,$2,$3,'montor','active')",
+    [deactivatedResourceProfileMembershipId, base.tenantA.id, base.orphanUser.id],
+  );
+  await adminQuery(
+    "insert into public.membership_roles (tenant_id,membership_id,role) values ($1,$2,'montor')",
+    [base.tenantA.id, deactivatedResourceProfileMembershipId],
+  );
+  const deactivatedResourceProfileId = crypto.randomUUID();
+  const deactivatedResourceProfileWeekdayStart = "07:00";
+  await adminQuery(
+    "insert into public.person_profiles (id,tenant_id,membership_id,employment_percentage) values ($1,$2,$3,80)",
+    [deactivatedResourceProfileId, base.tenantA.id, deactivatedResourceProfileMembershipId],
+  );
+  await adminQuery(
+    "insert into public.person_work_hours (tenant_id,person_profile_id,entry_kind,weekday,starts_at,ends_at) values ($1,$2,'weekly_shift',1,$3,'16:00')",
+    [base.tenantA.id, deactivatedResourceProfileId, deactivatedResourceProfileWeekdayStart],
+  );
+  await adminQuery(
+    "update public.tenant_memberships set status='disabled' where id=$1",
+    [deactivatedResourceProfileMembershipId],
+  );
+
   const fixture = {
     ...base,
     operator: base.adminB,
@@ -934,6 +962,9 @@ export default async function globalSetup() {
       nonAdmin: roleAware.users.montor,
       sharedAccount: roleAware.roleUnionUser,
       expiredMembershipId,
+      resourceProfileMembershipId: resourceProfileMembership.id,
+      deactivatedResourceProfileMembershipId,
+      deactivatedResourceProfileWeekdayStart,
       invitationAcceptance: { user: roleAware.invitedUser, membershipId: acceptanceMembership.id, attemptToken: acceptanceAttemptToken },
     },
     crm: {

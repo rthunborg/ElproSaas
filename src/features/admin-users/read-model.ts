@@ -1,4 +1,4 @@
-import { chunkValues, readAllPages } from "@/server/read-models/pagination";
+import { readAllPages } from "@/server/read-models/pagination";
 
 export type AdminUserRow = { id: string; email: string | null; status: string; role: string; roles: readonly string[]; createdAt: string };
 
@@ -29,8 +29,8 @@ function projectAdminUserRow(row: MembershipReadRow, rolesByMembership: Readonly
 
 /**
  * Reads the complete current-tenant membership projection. PostgREST caps unbounded
- * responses, so both roots and role children use stable paged reads; an error on any
- * page fails closed rather than publishing a partial permissions catalogue.
+ * responses, so roots and role children use stable tenant-scoped paged reads.
+ * An error on any page fails closed rather than publishing partial authority.
  */
 export async function readAdminUsersForTenant(client: AdminUsersReadClient, tenantId: string): Promise<{ rows: AdminUserRow[]; error: string | null }> {
   const memberships = await readAllPages((from, to) => client
@@ -44,22 +44,23 @@ export async function readAdminUsersForTenant(client: AdminUsersReadClient, tena
 
   const membershipRows = (memberships.data ?? []) as MembershipReadRow[];
   const membershipIds = membershipRows.map((row) => row.id).filter((id): id is string => typeof id === "string" && id !== "");
-  const roleRows: MembershipRoleReadRow[] = [];
-  for (const membershipIdBatch of chunkValues(membershipIds)) {
-    const pageResult = await readAllPages((from, to) => client
-      .from("membership_roles")
-      .select("membership_id, role")
-      .eq("tenant_id", tenantId)
-      .in("membership_id", membershipIdBatch)
-      .order("membership_id", { ascending: true })
-      .order("role", { ascending: true })
-      .range(from, to));
-    if (pageResult.error) return { rows: [], error: ERROR };
-    roleRows.push(...(pageResult.data as MembershipRoleReadRow[]));
-  }
+  const visibleMembershipIds = new Set(membershipIds);
   const byMembership = new Map<string, string[]>();
-  for (const row of roleRows) {
-    if (typeof row.membership_id !== "string" || typeof row.role !== "string") continue;
+  if (visibleMembershipIds.size === 0) {
+    return { rows: membershipRows.map((row) => projectAdminUserRow(row, byMembership)), error: null };
+  }
+  // This catalogue already collects every visible root in one resolved tenant.
+  // Page its RLS-visible role children directly rather than repeating an ID URL.
+  const pageResult = await readAllPages((from, to) => client
+    .from("membership_roles")
+    .select("membership_id, role")
+    .eq("tenant_id", tenantId)
+    .order("membership_id", { ascending: true })
+    .order("role", { ascending: true })
+    .range(from, to));
+  if (pageResult.error) return { rows: [], error: ERROR };
+  for (const row of pageResult.data as MembershipRoleReadRow[]) {
+    if (typeof row.membership_id !== "string" || typeof row.role !== "string" || !visibleMembershipIds.has(row.membership_id)) continue;
     byMembership.set(row.membership_id, [...(byMembership.get(row.membership_id) ?? []), row.role]);
   }
   return { rows: membershipRows.map((row) => projectAdminUserRow(row, byMembership)), error: null };

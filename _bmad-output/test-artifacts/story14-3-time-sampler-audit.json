@@ -1,0 +1,62 @@
+{
+  "source": "Original author tool invocation: single pg.Client, BEGIN READ ONLY, serial await query per loop, performance.now before query, Date.now around query, one row with clock/statement/transaction epoch milliseconds double precision, previous updated after that reply; max120s",
+  "sampleCount": 1210,
+  "indicesSequential": true,
+  "monotonicStrictlyIncreasing": true,
+  "units": "milliseconds throughout; extract(epoch)*1000::double precision, no integer cast, epoch millisecond magnitude below2^53",
+  "transactionTimelinePinned": true,
+  "maxPinnedTransactionReconstructionErrorMs": 0,
+  "allReversalCountsAgree": true,
+  "reversals": [
+    {
+      "index": 148,
+      "clockStepMs": -731.929931640625,
+      "pinnedTransactionReconstructionMs": -731.929931640625,
+      "monotonicStepMs": 60.60519999999997,
+      "recordedMonotonicStepMs": 60.60519999999997,
+      "roundTripMs": 2
+    },
+    {
+      "index": 150,
+      "clockStepMs": -827.780029296875,
+      "pinnedTransactionReconstructionMs": -827.780029296875,
+      "monotonicStepMs": 62.09010000000126,
+      "recordedMonotonicStepMs": 62.09010000000126,
+      "roundTripMs": 1
+    },
+    {
+      "index": 606,
+      "clockStepMs": -740.8701171875,
+      "pinnedTransactionReconstructionMs": -740.8701171875,
+      "monotonicStepMs": 61.98889999999665,
+      "recordedMonotonicStepMs": 61.98889999999665,
+      "roundTripMs": 2
+    },
+    {
+      "index": 607,
+      "clockStepMs": -826.079833984375,
+      "pinnedTransactionReconstructionMs": -826.079833984375,
+      "monotonicStepMs": 62.22920000000158,
+      "recordedMonotonicStepMs": 62.22920000000158,
+      "roundTripMs": 1
+    },
+    {
+      "index": 1061,
+      "clockStepMs": -736.050048828125,
+      "pinnedTransactionReconstructionMs": -736.050048828125,
+      "monotonicStepMs": 62.851900000008754,
+      "recordedMonotonicStepMs": 62.851900000008754,
+      "roundTripMs": 1
+    },
+    {
+      "index": 1063,
+      "clockStepMs": -824.460205078125,
+      "pinnedTransactionReconstructionMs": -824.460205078125,
+      "monotonicStepMs": 61.86680000000342,
+      "recordedMonotonicStepMs": 61.86680000000342,
+      "roundTripMs": 1
+    }
+  ],
+  "errors": [],
+  "limits": "Original artifact omits raw epochs by design; reconstruction independently uses the pinned transaction age. It validates internal ordering/arithmetic, while a new independent native sampler checks actual Linux wall-clock behavior."
+}

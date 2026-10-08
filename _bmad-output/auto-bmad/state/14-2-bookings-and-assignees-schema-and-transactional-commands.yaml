@@ -1,0 +1,159 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 14-2-bookings-and-assignees-schema-and-transactional-commands
+epic_num: 14
+story_num: 2
+story_suffix: ""
+story_source: sprint
+spec_folder: null
+story_id: null
+branch: codex/epic14-resume
+status: done
+updated_at: "2026-10-08T13:58:03Z"
+started_at: "2026-10-02T19:08:54Z"
+completed_at: "2026-10-07T16:15:19Z"
+active_seconds: 7607
+timing_anchor: null
+is_first_in_epic: false
+is_last_in_epic: false
+git_mode: remote
+base_branch: main
+selected_phase: followup_review
+selected_role: primary-reviewer
+selected_profile: standard
+selected_model: gpt-6.1-sol
+selected_effort: high
+selected_host: codex
+selected_tier: subagents
+selected_route: subagent
+escalation_reason: "Automatic sensitive-task escalation: authorization, rls, transactional-integrity"
+routing_ledger:
+  - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-terra\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: authorization, rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: authorization, rls, transactional-integrity\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: "Schema migrations, atomic transactional mutations, idempotency, RLS authorization and cross-tenant isolation."
+epic_story_count: 4
+stories_after_in_epic: 2
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7]
+spec_path: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-2-bookings-and-assignees-schema-and-transactional-commands.md"
+spec_approved: true
+build:
+  status: done
+  blocking_condition: null
+  followup_review_recommended: false
+  review_loop_iteration: 0
+  deferred_count: 0
+  warnings: [oversized]
+followup_passes: 1
+hitl_halt: "auto-continued (epic — no halt)"
+review_unverified: false
+story_trace: null
+legacy_review_resume: false
+legacy_review_iteration: null
+legacy_review_loop_done: false
+legacy_external_review_iterations: null
+legacy_convergence_unverified: false
+legacy_artifact_path: null
+commits: [8db3b22, 7c434b04, 4d2f29a, cd0b677, 4947dbb4, e1f2c7d6, 079e1053, afb4ef9d, dc2c0c89, 1f7bfcd8, c76f81d5]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+retro:
+  doc: null
+  verdict: null
+  open_action_items: 0
+bmad_status_flipped_at: 9
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/86"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/37786814317"
+ci_status: passed
+pr_merged: false
+merge_method: null
+merge_commit: null
+branch_deleted: false
+open_questions: []
+deferred_work: []
+blockers: []
+overrides:
+  epic_start_authorized_by_owner: true
+  unattended_run_confirmed_by_owner_request: true
+  owner_requested_resume_on: 2026-10-02
+  root_guard_resource_id: ebd5df87-f814-496f-94b9-c2371fc9e156
+  root_app_server_resource_id: b95629c8-276b-4f5f-828c-ba3ec93c4362
+  root_browser_resource_id: d0ae81e5-33cc-4eee-8299-b601bb93ef69
+  root_browser_cdp_endpoint: "http://127.0.0.1:59391"
+  explicit_test_api_port: 55421
+  explicit_test_db_port: 55422
+  no_hosted_changes: true
+  no_data_reset: true
+  root_guard_stop_requested: false
+  root_guard_shutdown_verified: false
+  root_app_server_stop_requested: true
+  root_app_server_shutdown_verified: false
+  root_browser_stop_requested: true
+  root_browser_stopped_verified: false
+  guard_stop_acknowledgements_all_native_zero: true
+  acceptance_contract_c_approved_on: 2026-10-06
+  acceptance_contract_c_owner_approved: true
+  acceptance_contract_c: "14.2 retains schema/RLS/auth/idempotency/rollback/booking-assignee-audit atomicity. Conflict portion of INT-001, INT-002, INT-007, INT-008 moves to 14.3; mandatory equivalent P0 before 14.4 and epic PR; no user-facing booking entry before detector integration."
+  acceptance_contract_c_document: docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md
+  current_story_build_status: done
+  atdd_skipped: 18
+  atdd_executed: 0
+  atdd_collected: 18
+  atdd_native_exit: 0
+  atdd_typecheck_native_exit: 0
+  atdd_e2e_applicability: N/A foundation has no UI
+  acceptance_skipped: 0
+  unit_skipped: 1
+  empty_chain_ci_required: true
+  high_critical_audit_count: 0
+  moderate_audit_count: 2
+  retained_acceptance_executed: 18
+  historical_quote_send_time_failure_cause: unconfirmed
+  regression_acceptance_executed: 3
+  unit_failed: 0
+  unit_passed: 1962
+  empty_chain_ci_executed: false
+  integration_passed: 1304
+  integration_failed: 0
+  integration_skipped: 1
+  automate_failed: 0
+  automate_skipped: 0
+  automate_added_tests: 3
+  automate_passed: 3
+  automate_lint_native_exit: 0
+  automate_typecheck_native_exit: 0
+  followup_low_patch_count: 1
+  followup_forward_migration: 20261006113212_booking_replay_current_authority.sql
+  followup_external_native_exit: 0
+  followup_sensitive_effort: high
+  prior_migration_ledger_records_unchanged: 91
+  followup_focused_booking_passed: 32
+  review_order_verified_refs: 27
+  integration_tests: 1305
+  followup_patch_count: 2
+  completed_review_rounds: 2
+  followup_independent_layers: 6
+  followup_high_patch_count: 1
+  followup_all_codex_model: gpt-6.1-sol
+  direct_closeout_source_head: 179e86c2f96d684310b8c51af59d58ea3e23be78
+  direct_closeout_ci_run_id: "37786814317"
+  direct_closeout_clearance_date: 2026-10-08
+  direct_closeout_evidence: docs/quality/epic14-direct-closeout-evidence-2026-10-08.md
+constraints:
+  - "Approved Story 14.2 and Phase B manifest governance only; broader scheduling activation remains Epic15, retain hard Phase C exclusions."
+  - "Use verified isolated 55421/55422 guarded local stack, SQL-only migrations, explicit test aliases, no reset or migration ledger edits."
+  - "Root owns persistent resource lifecycles; do not launch or stop app/browser/stack. No hosted or email changes."

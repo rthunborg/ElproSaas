@@ -1,0 +1,7 @@
+{
+  "filesScanned": 32,
+  "publicDefaultJwtOccurrences": 0,
+  "findingsCount": 0,
+  "findings": [],
+  "limits": "Exact known public-default JWT equality; opaque auth cookies, bearer values, password URLs and serialized proof fields. This is a bounded evidence scan, not a general secret classifier."
+}

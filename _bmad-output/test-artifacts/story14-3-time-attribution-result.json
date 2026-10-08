@@ -1,0 +1,27 @@
+{
+  "nativeExit": 1,
+  "stderrBytes": 0,
+  "lifecycle": "4c66cc2c-2c73-4332-b015-7e239dc94ca0",
+  "scope": "authorized once shared-kernel transient UUID-only observations; no clock/service/config writes",
+  "durationSeconds": 55,
+  "failure": "OSError",
+  "rootStateBefore": {
+    "tracing_on": "1",
+    "current_tracer": "nop"
+  },
+  "rootStateAfter": {
+    "tracing_on": "1",
+    "current_tracer": "nop"
+  },
+  "rootStateUnchanged": true,
+  "priorProbeRegistrationsPreserved": true,
+  "ownProbeRegistrationsReleased": true,
+  "ownBufferReleased": true,
+  "cleanupErrors": [],
+  "unparsedLines": 0,
+  "truncated": false,
+  "records": [],
+  "temporarySharedKernelProbes": true,
+  "clockServiceConfigChanges": false,
+  "clockWrites": false
+}

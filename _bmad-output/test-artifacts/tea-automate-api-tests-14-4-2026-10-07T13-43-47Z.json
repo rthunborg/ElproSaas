@@ -1,0 +1,1398 @@
+{
+  "success": true,
+  "subagent": "api-tests",
+  "tests": [],
+  "fixture_needs": [],
+  "knowledge_fragments_used": [
+    "library-integration-mandate",
+    "playwright-utils-mandate",
+    "overview",
+    "api-request",
+    "auth-session",
+    "recurse",
+    "log",
+    "data-factories",
+    "api-testing-patterns"
+  ],
+  "playwright_utils_deviations": [],
+  "pactjs_utils_deviations": [],
+  "provider_scrutiny": "completed",
+  "provider_files_read": [
+    "C:/DEV/ElproSaas/src/features/resources/booking-actions.ts",
+    "C:/DEV/ElproSaas/src/features/resources/booking-action-state.ts",
+    "C:/DEV/ElproSaas/src/features/resources/booking-types.ts",
+    "C:/DEV/ElproSaas/src/features/resources/booking-editor-input.ts",
+    "C:/DEV/ElproSaas/src/features/resources/bookings-read.ts",
+    "C:/DEV/ElproSaas/src/server/bookings/editor-preview.ts",
+    "C:/DEV/ElproSaas/src/server/bookings/conflict-facts.ts",
+    "C:/DEV/ElproSaas/src/server/bookings/save-with-conflicts.ts",
+    "C:/DEV/ElproSaas/src/server/commands/bookings/create-booking.ts",
+    "C:/DEV/ElproSaas/src/server/commands/bookings/update-booking.ts",
+    "C:/DEV/ElproSaas/src/server/commands/bookings/booking-db.ts",
+    "C:/DEV/ElproSaas/src/server/commands/bookings/validation.ts",
+    "C:/DEV/ElproSaas/supabase/migrations/20261007120235_booking_editor_audited_override.sql",
+    "C:/DEV/ElproSaas/supabase/migrations/20261007121034_booking_editor_whole_group_validation.sql",
+    "C:/DEV/ElproSaas/supabase/migrations/20261007121724_booking_editor_group_alias_fix.sql",
+    "C:/DEV/ElproSaas/supabase/migrations/20261007131222_booking_editor_review_round1_fixes.sql"
+  ],
+  "test_count": 0,
+  "summary": "No meaningful uncovered Story 14.4 API target found. Generate zero duplicate tests: the existing 60 editor/review-fix cases and 109 predecessor/RLS/schema cases provide the requested coverage, all 169 passed with zero failures/skips in independently counted historical raw records. This worker ran no tests and changed only this JSON report.",
+  "decision": "retain-existing-coverage",
+  "new_coverage_gaps": [],
+  "test_execution_by_worker": {
+    "executed": 0,
+    "passed": 0,
+    "failed": 0,
+    "skipped": 0,
+    "reason": "Official API worker step forbids test execution; historical execution evidence is separately recorded."
+  },
+  "route": {
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "reason": "Actual authorization, signed review authority, replay and transactional integrity coverage",
+    "policy": "docs/process/agent-model-routing.md"
+  },
+  "library_integration": {
+    "playwright_utils": {
+      "flag": true,
+      "package_installed_in_manifest": false,
+      "mandate_active": false,
+      "existing_runner": "Vitest",
+      "reason": "Both package and Playwright-runner gates are closed. Existing API coverage is native Vitest commands/authenticated RPCs; no nonexistent dependency imports or fixtures emitted.",
+      "future_setup": "Use the TEA framework workflow if owner later requests Playwright Utils installation and merged/auth fixture wiring; not needed for the present retained coverage."
+    },
+    "pactjs_utils": {
+      "flag": true,
+      "package_installed_in_manifest": false,
+      "independently_deployed_consumer_provider_contract_in_scope": false,
+      "mandate_active": false,
+      "contract_tests_generated": 0
+    },
+    "pact_mcp": {
+      "configured_mode": "mcp",
+      "reachable": false,
+      "probe_source": "Parent one-time tool-list capability probe",
+      "worker_broker_probes": 0,
+      "worker_broker_calls": 0,
+      "fallback_source": "provider-source",
+      "reason": "Provider source is available; no broker data guessed and no extra probe attempted."
+    }
+  },
+  "provider_boundary": {
+    "http_routes_generated": [],
+    "entry_points": [
+      "previewBookingAction",
+      "runCommand(createBooking)",
+      "runCommand(updateBooking)",
+      "readBookingHost",
+      "snapshot_booking_editor",
+      "finalize_booking_editor",
+      "booking_editor_people",
+      "replay-only finalize_booking_conflicts/create_booking/update_booking"
+    ],
+    "authentication": "Cookie-bound user client with current tenant and Bookings.Manage authority; SQL tenant gate/current membership authorization and actor lock checks protect direct RPC and replay. Montor has own-joined read scope only.",
+    "request": "Validated canonical booking facts plus command UUID, optional stable proposed create UUID, and separate editorReview {receipt,decision:{acknowledged,reviewedLogicalIds,selectedLogicalIds,reason}}. Decision is normalized, closed, unique and selected subset; signatures/receipt/time/correlation remain transport.",
+    "responses": "Command success {ok:true,data:{bookingId:string}} or safe {ok:false,code,message}; action preview uses {status:'success',preview:{receipt,bookingId,warnings,availability}}; snapshot is snapshot/replay; finalize is committed/stale. No HTTP status guessed for server actions/native commands.",
+    "errors": [
+      "BOOKING_CONFLICT_UNACKNOWLEDGED",
+      "PREVIEW_STALE",
+      "COMMAND_CONFLICT",
+      "VALIDATION_FAILED",
+      "PERMISSION_DENIED",
+      "TENANT_ACCESS_DENIED",
+      "SERVER_ERROR"
+    ],
+    "sql_errors": {
+      "BK409": "COMMAND_CONFLICT",
+      "BR428": "BOOKING_CONFLICT_UNACKNOWLEDGED",
+      "BR409": "PREVIEW_STALE",
+      "42501/23503": "TENANT_ACCESS_DENIED",
+      "23514/22P02/22007/22008": "VALIDATION_FAILED"
+    },
+    "workflow": "Persisted status open/accepted/resolved. Fresh selection expands the authenticated complete logical identity to exact v1 base and v2 association keys. Current SQL actor/time/reason are written after derived refresh before one audit in the same transaction.",
+    "privacy": "Explicit browser projection excludes canonical tenant facts, detector output/proof/signature, secrets and durable create/update command history. Opaque review receipt has a separate authenticated domain."
+  },
+  "adapter_scrutiny": {
+    "files_read": [
+      "tests/support/booking-editor-atdd.ts",
+      "tests/support/booking-editor-production.ts",
+      "tests/support/bookings-atdd.ts",
+      "tests/support/booking-conflict-attestation.ts"
+    ],
+    "boundary": "Production preview action and read host use a test-bound real authenticated client; save executes production runCommand/createBooking/updateBooking; direct bypass invokes actual checked snapshot/finalize RPC. RPC observation proxies preserve actual replies and pause at deterministic boundaries.",
+    "independent_expected_groups": "Literal seeded intervals and sorted participant UUIDs form expected engine identities and SHA256 v1/v2 keys independently of preview output; the candidate sorts third among at least four participants. The 96-participant regression independently reconstructs every expected association key.",
+    "no_op_snapshots": "bookingSnapshot reads to_jsonb(t), all columns for bookings, booking_assignees, booking_conflicts and audit_events in both isolated tenants, including create_command_id/create_payload_digest/create_result/update_outcomes. Negative paths compare exact snapshots without stripping timestamps.",
+    "faults": "Correlation-scoped test-only triggers observe actual accepted natural keys inside the transaction before forced after_acceptance/before_audit faults; snapshots prove all-column rollback for create/update and explicit retry adds one audit.",
+    "current_authority": "withRevokedPlanner observes two pg_blocking_pids waiters on the actual membership/gate before real admin revocation commits; direct replay must then return 42501. Existing replay suite also covers disabled/invited/role-removed current authority.",
+    "mock_limit": "Client-factory substitution supplies real cookie-equivalent authenticated clients. Separate mocked read transport tests are not counted as API/RLS proof; no SQL reply, detector result, signer or durable success is fabricated."
+  },
+  "ac_mapping": [
+    {
+      "ac": "AC3",
+      "obligations": [
+        "14.4-INT-001",
+        "14.4-INT-002",
+        "14.4-INT-003"
+      ],
+      "coverage": [
+        "Stable create ID and sanitized candidate-only preview with distinct receipt domain",
+        "Create/update unacknowledged save, whitespace/blank reason with selected/empty groups, partial review are exact no-ops",
+        "Candidate-third complete aggregate accepts every v1/v2 key with current actor/SQL time/trimmed reason and one audit; unselected/unrelated/foreign controls unchanged",
+        "Ten signed/forged substitution attacks, unknown selection, proof/review domain substitution, expired/edited/fact-drifted reviews, concurrent saves and newly appearing warnings fail closed",
+        "Create/update after-acceptance and before-audit rollback then explicit retry",
+        "96-participant genuine capacity group succeeds; genuinely signed partial map and forged selected ID are exact no-ops"
+      ],
+      "source_stops": [
+        "tests/integration/commands/booking-editor.int.test.ts:65",
+        "tests/integration/commands/booking-editor.int.test.ts:115",
+        "tests/integration/commands/booking-editor.int.test.ts:160",
+        "tests/integration/commands/booking-editor.int.test.ts:219",
+        "tests/integration/commands/booking-editor.int.test.ts:270",
+        "tests/integration/commands/booking-editor.int.test.ts:363",
+        "tests/integration/commands/booking-editor-review-fixes.int.test.ts:12"
+      ],
+      "new_tests_needed": false
+    },
+    {
+      "ac": "AC4",
+      "obligations": [
+        "14.4-INT-004",
+        "14.4-INT-005"
+      ],
+      "coverage": [
+        "Explicit review with nonblank reason and empty selection saves every candidate warning open, one audit",
+        "Identical accepted identity survives description edit and empty selection with exact existing acceptance evidence and durable open-only logical count",
+        "Changed complete collision identity removes old keys and creates all new keys open with null acceptance metadata",
+        "Unselected candidate groups remain open and unrelated candidate-excluded conflicts retain exact existing state"
+      ],
+      "source_stops": [
+        "tests/integration/commands/booking-editor.int.test.ts:201",
+        "tests/integration/commands/booking-editor.int.test.ts:387",
+        "tests/integration/commands/booking-editor.int.test.ts:417",
+        "src/features/resources/bookings-read.ts:44"
+      ],
+      "boundary_limit": "This report credits the API/read persistence assertions. Actual reload chip and resolved/open user-visible count cases belong to the E2E worker; no duplicate browser claim here.",
+      "new_tests_needed": false
+    },
+    {
+      "ac": "AC7",
+      "obligations": [
+        "current authority",
+        "direct checked RPC",
+        "Montor own reads",
+        "same-tenant references",
+        "private/anonymous ACL"
+      ],
+      "coverage": [
+        "Create/update revoked replay denied through command and direct checked RPC, including actual blocked replay before revocation completes",
+        "Fresh current and obsolete finalize entry points cannot bypass review; legacy wrappers remain replay-only",
+        "Exact checked/private signatures and owner-only private ACL; anon/Montor/foreign checked RPC denial",
+        "Actor/time/status cannot be authored in derived output",
+        "Montor own joined booking/conflict visibility excludes coworkers/foreign tenant and cannot preview/save/override",
+        "Six foreign assignee/job/customer/facility/contact/booking references fail at preview/save/direct SQL with generic errors and exact two-tenant no-op",
+        "Same-tenant picker/warning staff identity and foreign-profile exclusion"
+      ],
+      "source_stops": [
+        "tests/integration/commands/booking-editor.int.test.ts:503",
+        "tests/integration/commands/booking-editor.int.test.ts:531",
+        "tests/integration/commands/booking-editor.int.test.ts:552",
+        "tests/integration/commands/booking-editor.int.test.ts:585",
+        "tests/integration/commands/booking-editor.int.test.ts:613",
+        "tests/integration/rls/bookings.rls.test.ts:17",
+        "tests/integration/rls/migration-reset.int.test.ts:636"
+      ],
+      "boundary_limit": "Manifest/scheduling governance is separately owned by the scope/unit worker; no schema-reset execution inferred from schema-inventory passes.",
+      "new_tests_needed": false
+    },
+    {
+      "ac": "business replay and transaction prerequisites",
+      "coverage": [
+        "Create/update lost-response equal retry excludes changed issuance/signature/correlation/expiry and fact drift, returns historical result, exact snapshots unchanged",
+        "Changed selected groups or reason under the same UUID returns COMMAND_CONFLICT without another write",
+        "Reason trim and reordered complete reviewed/selected identities normalize to the historical outcome",
+        "Authorized explicitly absent-review legacy digest replays but cannot be borrowed for an override",
+        "Foundation concurrent identical creates and same-key updates commit one outcome/audit; tenant-scoped same UUID remains independently valid"
+      ],
+      "source_stops": [
+        "tests/integration/commands/booking-editor.int.test.ts:439",
+        "tests/integration/commands/booking-editor.int.test.ts:465",
+        "tests/integration/commands/booking-editor.int.test.ts:483",
+        "tests/integration/commands/bookings-replay-authority.int.test.ts:24",
+        "tests/integration/commands/bookings.int.test.ts:214"
+      ],
+      "new_tests_needed": false
+    }
+  ],
+  "limitations": [
+    "Worker performed static coverage/provider inspection and parsed prior test records only; no tests, browser, resources, SQL reads/writes or hosted calls executed by this worker.",
+    "Full required integration evidence predates the final focus-only UI fix; implementation verification states command/SQL/input bytes were unchanged, and final affected components/browser were rerun. This worker does not manufacture a fresh execution.",
+    "Integration skip is the existing CI-only isolated recovery Storage proof, unrelated to Story 14.4; skipped cases receive no acceptance credit.",
+    "Exact empty-DB migration/seed/required integration Epic CI remains a separate pre-merge gate. Passing migration schema/ACL assertions against the recorded stack does not establish an empty-DB reset run.",
+    "Actual fixtures/signing are local isolated synthetic evidence and do not establish hosted provisioning or production data distributions.",
+    "Story 15.1 calendar empty-slot click/drag, browser UX and non-API evidence remain outside this API worker's generation scope.",
+    "Original setup failure and unidentified partial fixture graph remain recorded operational limits; no worker cleanup attempted."
+  ],
+  "story": "14.4",
+  "generated_at_utc": "2026-10-07T13:49:18.3384236Z",
+  "observed_head": "fb0c54a866617ac0bee9ddaedf55b76e2509adf6",
+  "implementation_authored_revision": "4383b99be5ecbe11e67eb4bb0a838bee918bf357",
+  "output_file": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/tea-automate-api-tests-14-4-2026-10-07T13-43-47Z.json",
+  "contract_c_prerequisites": [
+    {
+      "obligation": "14.3-INT-003",
+      "priority": "P0",
+      "assertion": "Fresh CREATE commits exact derived conflicts, assignments, durable outcome and one target audit atomically",
+      "source": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts:87",
+      "raw_record": {
+        "full_name": "Story 14.3 authoritative conflict persistence [P0] 14.3-INT-003 fresh actual CREATE commits exact conflicts, assignments, outcome and one target audit",
+        "title": "[P0] 14.3-INT-003 fresh actual CREATE commits exact conflicts, assignments, outcome and one target audit",
+        "status": "passed",
+        "duration_ms": 5229.602800000001
+      }
+    },
+    {
+      "obligation": "14.3-INT-004",
+      "priority": "P1",
+      "assertion": "Update replaces assignees/windows and refreshes peer conflicts, removes stale identities, preserves identical accepted identity, and cancellation removes candidate conflicts",
+      "source": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts:116",
+      "raw_record": {
+        "full_name": "Story 14.3 authoritative conflict persistence [P1] 14.3-INT-004 replace old/new assignees/windows, preserve accepted keys, refresh peers and cancellation",
+        "title": "[P1] 14.3-INT-004 replace old/new assignees/windows, preserve accepted keys, refresh peers and cancellation",
+        "status": "passed",
+        "duration_ms": 9110.5174
+      }
+    },
+    {
+      "obligation": "14.3-INT-005",
+      "priority": "P1",
+      "assertion": "Create/update post-conflict and audit faults restore exact all-column snapshots, then explicit retry commits once",
+      "source": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts:159",
+      "raw_record": {
+        "full_name": "Story 14.3 authoritative conflict persistence [P1] 14.3-INT-005 CREATE and UPDATE post-conflict/audit faults roll back every durable column",
+        "title": "[P1] 14.3-INT-005 CREATE and UPDATE post-conflict/audit faults roll back every durable column",
+        "status": "passed",
+        "duration_ms": 12043.1472
+      }
+    },
+    {
+      "obligation": "14.3-INT-006",
+      "priority": "P0",
+      "assertion": "Peer commits after preview: original save returns stale without writing; deliberately renewed review under the same command UUID detects the current collision and commits once",
+      "source": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts:179",
+      "raw_record": {
+        "full_name": "Story 14.3 authoritative conflict persistence [P0] 14.3-INT-006 stale save requires deliberate renewed review under the original command UUID",
+        "title": "[P0] 14.3-INT-006 stale save requires deliberate renewed review under the original command UUID",
+        "status": "passed",
+        "duration_ms": 2846.8027
+      }
+    }
+  ],
+  "existing_evidence": {
+    "path": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-r1-full-int.json",
+    "sha256": "c8c94fb5484dbc53920fbfb761721a10c88c79a3e1b4a3e7d56fd32818dc3174",
+    "raw_records_counted": true,
+    "report_declared_counts_agree": true,
+    "report_success": true,
+    "start_time_unix_ms": 1791379124822,
+    "full_counts": {
+      "registered": 1456,
+      "passed": 1455,
+      "failed": 0,
+      "skipped": 1
+    },
+    "affected_counts": {
+      "registered": 169,
+      "passed": 169,
+      "failed": 0,
+      "skipped": 0
+    },
+    "suites": [
+      {
+        "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-editor.int.test.ts",
+        "registered": 58,
+        "passed": 58,
+        "failed": 0,
+        "skipped": 0,
+        "raw_assertion_records": [
+          {
+            "full_name": "Story 14.4 current candidate preview and private authority [P0] 14.4-INT-001-preview stable create UUID and candidate-only complete warnings",
+            "title": "[P0] 14.4-INT-001-preview stable create UUID and candidate-only complete warnings",
+            "status": "passed",
+            "duration_ms": 11552.2732
+          },
+          {
+            "full_name": "Story 14.4 current candidate preview and private authority [P0] 14.4-INT-001-receipt domain is distinct and binds actor candidate full groups facts versions validity",
+            "title": "[P0] 14.4-INT-001-receipt domain is distinct and binds actor candidate full groups facts versions validity",
+            "status": "passed",
+            "duration_ms": 7915.814199999999
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-001-create warns without acknowledgment and writes nothing",
+            "title": "[P0] 14.4-INT-001-create warns without acknowledgment and writes nothing",
+            "status": "passed",
+            "duration_ms": 9393.917399999998
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-001-update warns without acknowledgment and writes nothing",
+            "title": "[P0] 14.4-INT-001-update warns without acknowledgment and writes nothing",
+            "status": "passed",
+            "duration_ms": 10943.017100000001
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-001-reason \"\" selection=false is a durable no-op",
+            "title": "[P0] 14.4-INT-001-reason \"\" selection=false is a durable no-op",
+            "status": "passed",
+            "duration_ms": 3907.631300000001
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-001-reason \" \\t\\n \" selection=false is a durable no-op",
+            "title": "[P0] 14.4-INT-001-reason \" \\t\\n \" selection=false is a durable no-op",
+            "status": "passed",
+            "duration_ms": 3016.0691000000006
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-001-reason \"\" selection=true is a durable no-op",
+            "title": "[P0] 14.4-INT-001-reason \"\" selection=true is a durable no-op",
+            "status": "passed",
+            "duration_ms": 2644.953499999996
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-001-reason \" \\t\\n \" selection=true is a durable no-op",
+            "title": "[P0] 14.4-INT-001-reason \" \\t\\n \" selection=true is a durable no-op",
+            "status": "passed",
+            "duration_ms": 4119.597700000006
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-001-partial-review subset acknowledgment is not current whole-set review",
+            "title": "[P0] 14.4-INT-001-partial-review subset acknowledgment is not current whole-set review",
+            "status": "passed",
+            "duration_ms": 4189.950499999999
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-002 selected aggregate candidate third accepts all v1/v2 keys once",
+            "title": "[P0] 14.4-INT-002 selected aggregate candidate third accepts all v1/v2 keys once",
+            "status": "passed",
+            "duration_ms": 4567.666600000004
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-004 empty selection saves current reviewed warnings open with one audit",
+            "title": "[P0] 14.4-INT-004 empty selection saves current reviewed warnings open with one audit",
+            "status": "passed",
+            "duration_ms": 2749.1287999999986
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-003-forged-receipt cannot alter booking outcomes acceptance or audit",
+            "title": "[P0] 14.4-INT-003-forged-receipt cannot alter booking outcomes acceptance or audit",
+            "status": "passed",
+            "duration_ms": 2181.8996999999945
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-003-partial-logical-group cannot alter booking outcomes acceptance or audit",
+            "title": "[P0] 14.4-INT-003-partial-logical-group cannot alter booking outcomes acceptance or audit",
+            "status": "passed",
+            "duration_ms": 2132.254700000005
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-003-unrelated-logical-group cannot alter booking outcomes acceptance or audit",
+            "title": "[P0] 14.4-INT-003-unrelated-logical-group cannot alter booking outcomes acceptance or audit",
+            "status": "passed",
+            "duration_ms": 2263.0474000000104
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-003-wrong-tenant cannot alter booking outcomes acceptance or audit",
+            "title": "[P0] 14.4-INT-003-wrong-tenant cannot alter booking outcomes acceptance or audit",
+            "status": "passed",
+            "duration_ms": 2046.4361999999965
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-003-wrong-actor cannot alter booking outcomes acceptance or audit",
+            "title": "[P0] 14.4-INT-003-wrong-actor cannot alter booking outcomes acceptance or audit",
+            "status": "passed",
+            "duration_ms": 1846.80260000001
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-003-wrong-candidate cannot alter booking outcomes acceptance or audit",
+            "title": "[P0] 14.4-INT-003-wrong-candidate cannot alter booking outcomes acceptance or audit",
+            "status": "passed",
+            "duration_ms": 1962.1629000000103
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-003-wrong-target cannot alter booking outcomes acceptance or audit",
+            "title": "[P0] 14.4-INT-003-wrong-target cannot alter booking outcomes acceptance or audit",
+            "status": "passed",
+            "duration_ms": 1921.8098000000027
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-003-wrong-operation cannot alter booking outcomes acceptance or audit",
+            "title": "[P0] 14.4-INT-003-wrong-operation cannot alter booking outcomes acceptance or audit",
+            "status": "passed",
+            "duration_ms": 1883.346000000005
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-003-different-preview cannot alter booking outcomes acceptance or audit",
+            "title": "[P0] 14.4-INT-003-different-preview cannot alter booking outcomes acceptance or audit",
+            "status": "passed",
+            "duration_ms": 1870.8420000000042
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-003-client-detector-fields cannot alter booking outcomes acceptance or audit",
+            "title": "[P0] 14.4-INT-003-client-detector-fields cannot alter booking outcomes acceptance or audit",
+            "status": "passed",
+            "duration_ms": 1937.5648000000074
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-003-unknown-select cannot accept a made-up logical identity",
+            "title": "[P0] 14.4-INT-003-unknown-select cannot accept a made-up logical identity",
+            "status": "passed",
+            "duration_ms": 1912.1312000000034
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-003-detectorProofAsReceipt is denied below wrapper",
+            "title": "[P0] 14.4-INT-003-detectorProofAsReceipt is denied below wrapper",
+            "status": "passed",
+            "duration_ms": 1976.005600000004
+          },
+          {
+            "full_name": "Story 14.4 deliberate whole-set review and complete selected acceptance [P0] 14.4-INT-003-receiptAsDetectorProof is denied below wrapper",
+            "title": "[P0] 14.4-INT-003-receiptAsDetectorProof is denied below wrapper",
+            "status": "passed",
+            "duration_ms": 1984.478700000007
+          },
+          {
+            "full_name": "Story 14.4 stale reviews and transaction isolation [P0] 14.4-INT-003-stale-candidate-time requires renewed review",
+            "title": "[P0] 14.4-INT-003-stale-candidate-time requires renewed review",
+            "status": "passed",
+            "duration_ms": 1926.705799999996
+          },
+          {
+            "full_name": "Story 14.4 stale reviews and transaction isolation [P0] 14.4-INT-003-stale-candidate-assignees requires renewed review",
+            "title": "[P0] 14.4-INT-003-stale-candidate-assignees requires renewed review",
+            "status": "passed",
+            "duration_ms": 1881.5437999999995
+          },
+          {
+            "full_name": "Story 14.4 stale reviews and transaction isolation [P0] 14.4-INT-003-stale-candidate-connections requires renewed review",
+            "title": "[P0] 14.4-INT-003-stale-candidate-connections requires renewed review",
+            "status": "passed",
+            "duration_ms": 1928.157400000011
+          },
+          {
+            "full_name": "Story 14.4 stale reviews and transaction isolation [P0] 14.4-INT-003-stale-candidate-status requires renewed review",
+            "title": "[P0] 14.4-INT-003-stale-candidate-status requires renewed review",
+            "status": "passed",
+            "duration_ms": 1793.8861000000034
+          },
+          {
+            "full_name": "Story 14.4 stale reviews and transaction isolation [P0] 14.4-INT-003-current-facts-schedule has one finalize no silent redetection",
+            "title": "[P0] 14.4-INT-003-current-facts-schedule has one finalize no silent redetection",
+            "status": "passed",
+            "duration_ms": 2140.396099999998
+          },
+          {
+            "full_name": "Story 14.4 stale reviews and transaction isolation [P0] 14.4-INT-003-current-facts-concurrent-booking has one finalize no silent redetection",
+            "title": "[P0] 14.4-INT-003-current-facts-concurrent-booking has one finalize no silent redetection",
+            "status": "passed",
+            "duration_ms": 2434.8987999999954
+          },
+          {
+            "full_name": "Story 14.4 stale reviews and transaction isolation [P0] 14.4-INT-003-expiry fresh expired current review is exact no-op",
+            "title": "[P0] 14.4-INT-003-expiry fresh expired current review is exact no-op",
+            "status": "passed",
+            "duration_ms": 2181.6450999999943
+          },
+          {
+            "full_name": "Story 14.4 stale reviews and transaction isolation [P0] 14.4-INT-003-concurrent editors reviewed same facts commit one and force other review",
+            "title": "[P0] 14.4-INT-003-concurrent editors reviewed same facts commit one and force other review",
+            "status": "passed",
+            "duration_ms": 2317.0503000000026
+          },
+          {
+            "full_name": "Story 14.4 stale reviews and transaction isolation [P0] 14.4-INT-003-clean-review newly appearing warning cannot be saved by retained retry",
+            "title": "[P0] 14.4-INT-003-clean-review newly appearing warning cannot be saved by retained retry",
+            "status": "passed",
+            "duration_ms": 1265.6837000000087
+          },
+          {
+            "full_name": "Story 14.4 stale reviews and transaction isolation [P0] 14.4-INT-002-rollback-create-after_acceptance restores exact state and retries once",
+            "title": "[P0] 14.4-INT-002-rollback-create-after_acceptance restores exact state and retries once",
+            "status": "passed",
+            "duration_ms": 2390.7688000000053
+          },
+          {
+            "full_name": "Story 14.4 stale reviews and transaction isolation [P0] 14.4-INT-002-rollback-create-before_audit restores exact state and retries once",
+            "title": "[P0] 14.4-INT-002-rollback-create-before_audit restores exact state and retries once",
+            "status": "passed",
+            "duration_ms": 2323.8580999999976
+          },
+          {
+            "full_name": "Story 14.4 stale reviews and transaction isolation [P0] 14.4-INT-002-rollback-update-after_acceptance restores exact state and retries once",
+            "title": "[P0] 14.4-INT-002-rollback-update-after_acceptance restores exact state and retries once",
+            "status": "passed",
+            "duration_ms": 2622.04800000001
+          },
+          {
+            "full_name": "Story 14.4 stale reviews and transaction isolation [P0] 14.4-INT-002-rollback-update-before_audit restores exact state and retries once",
+            "title": "[P0] 14.4-INT-002-rollback-update-before_audit restores exact state and retries once",
+            "status": "passed",
+            "duration_ms": 2691.412400000001
+          },
+          {
+            "full_name": "Story 14.4 workflow identity and business replay [P0] 14.4-INT-005 unchanged accepted identity survives description edit and empty selection",
+            "title": "[P0] 14.4-INT-005 unchanged accepted identity survives description edit and empty selection",
+            "status": "passed",
+            "duration_ms": 2875.7137999999977
+          },
+          {
+            "full_name": "Story 14.4 workflow identity and business replay [P0] 14.4-INT-005 changed complete collision key reopens all rows",
+            "title": "[P0] 14.4-INT-005 changed complete collision key reopens all rows",
+            "status": "passed",
+            "duration_ms": 2453.95199999999
+          },
+          {
+            "full_name": "Story 14.4 workflow identity and business replay [P0] 14.4-INT-002-replay-create lost-response equal retry excludes transport facts drift expiry",
+            "title": "[P0] 14.4-INT-002-replay-create lost-response equal retry excludes transport facts drift expiry",
+            "status": "passed",
+            "duration_ms": 2112.6547999999893
+          },
+          {
+            "full_name": "Story 14.4 workflow identity and business replay [P0] 14.4-INT-003-replay-create-selection conflicts without any second write",
+            "title": "[P0] 14.4-INT-003-replay-create-selection conflicts without any second write",
+            "status": "passed",
+            "duration_ms": 2044.4524999999994
+          },
+          {
+            "full_name": "Story 14.4 workflow identity and business replay [P0] 14.4-INT-003-replay-create-reason conflicts without any second write",
+            "title": "[P0] 14.4-INT-003-replay-create-reason conflicts without any second write",
+            "status": "passed",
+            "duration_ms": 1993.215000000011
+          },
+          {
+            "full_name": "Story 14.4 workflow identity and business replay [P0] 14.4-INT-002-replay-update lost-response equal retry excludes transport facts drift expiry",
+            "title": "[P0] 14.4-INT-002-replay-update lost-response equal retry excludes transport facts drift expiry",
+            "status": "passed",
+            "duration_ms": 2337.248499999987
+          },
+          {
+            "full_name": "Story 14.4 workflow identity and business replay [P0] 14.4-INT-003-replay-update-selection conflicts without any second write",
+            "title": "[P0] 14.4-INT-003-replay-update-selection conflicts without any second write",
+            "status": "passed",
+            "duration_ms": 2130.1970000000147
+          },
+          {
+            "full_name": "Story 14.4 workflow identity and business replay [P0] 14.4-INT-003-replay-update-reason conflicts without any second write",
+            "title": "[P0] 14.4-INT-003-replay-update-reason conflicts without any second write",
+            "status": "passed",
+            "duration_ms": 2170.133999999991
+          },
+          {
+            "full_name": "Story 14.4 workflow identity and business replay [P1] 14.4-INT-002-replay-normalized reason trim and reordered logical IDs return historical result",
+            "title": "[P1] 14.4-INT-002-replay-normalized reason trim and reordered logical IDs return historical result",
+            "status": "passed",
+            "duration_ms": 1903.3979000000108
+          },
+          {
+            "full_name": "Story 14.4 current authority on command checked RPC and reads [P0] 14.4-AC7-revoked-create replay denies both command and direct checked RPC",
+            "title": "[P0] 14.4-AC7-revoked-create replay denies both command and direct checked RPC",
+            "status": "passed",
+            "duration_ms": 2278.004799999995
+          },
+          {
+            "full_name": "Story 14.4 current authority on command checked RPC and reads [P0] 14.4-AC7-revoked-update replay denies both command and direct checked RPC",
+            "title": "[P0] 14.4-AC7-revoked-update replay denies both command and direct checked RPC",
+            "status": "passed",
+            "duration_ms": 2514.6547000000137
+          },
+          {
+            "full_name": "Story 14.4 current authority on command checked RPC and reads [P0] 14.4-AC7-direct all fresh current obsolete finalize paths enforce human review",
+            "title": "[P0] 14.4-AC7-direct all fresh current obsolete finalize paths enforce human review",
+            "status": "passed",
+            "duration_ms": 1832.2148999999918
+          },
+          {
+            "full_name": "Story 14.4 current authority on command checked RPC and reads [P0] 14.4-AC7-acl checked receipt RPC is authenticated private helpers remain uncallable",
+            "title": "[P0] 14.4-AC7-acl checked receipt RPC is authenticated private helpers remain uncallable",
+            "status": "passed",
+            "duration_ms": 2023.373099999997
+          },
+          {
+            "full_name": "Story 14.4 current authority on command checked RPC and reads [P0] 14.4-INT-003-direct actor timestamp status cannot be client-authored",
+            "title": "[P0] 14.4-INT-003-direct actor timestamp status cannot be client-authored",
+            "status": "passed",
+            "duration_ms": 1818.7573000000266
+          },
+          {
+            "full_name": "Story 14.4 current authority on command checked RPC and reads [P0] 14.4-AC7-montor own visibility excludes coworkers preview save override",
+            "title": "[P0] 14.4-AC7-montor own visibility excludes coworkers preview save override",
+            "status": "passed",
+            "duration_ms": 2373.2274000000034
+          },
+          {
+            "full_name": "Story 14.4 current authority on command checked RPC and reads [P0] 14.4-AC7-cross-tenant-assignee generic denial exact two-tenant no-op",
+            "title": "[P0] 14.4-AC7-cross-tenant-assignee generic denial exact two-tenant no-op",
+            "status": "passed",
+            "duration_ms": 2079.2042000000074
+          },
+          {
+            "full_name": "Story 14.4 current authority on command checked RPC and reads [P0] 14.4-AC7-cross-tenant-job generic denial exact two-tenant no-op",
+            "title": "[P0] 14.4-AC7-cross-tenant-job generic denial exact two-tenant no-op",
+            "status": "passed",
+            "duration_ms": 2123.3239999999932
+          },
+          {
+            "full_name": "Story 14.4 current authority on command checked RPC and reads [P0] 14.4-AC7-cross-tenant-customer generic denial exact two-tenant no-op",
+            "title": "[P0] 14.4-AC7-cross-tenant-customer generic denial exact two-tenant no-op",
+            "status": "passed",
+            "duration_ms": 2085.909500000009
+          },
+          {
+            "full_name": "Story 14.4 current authority on command checked RPC and reads [P0] 14.4-AC7-cross-tenant-facility generic denial exact two-tenant no-op",
+            "title": "[P0] 14.4-AC7-cross-tenant-facility generic denial exact two-tenant no-op",
+            "status": "passed",
+            "duration_ms": 2076.983200000017
+          },
+          {
+            "full_name": "Story 14.4 current authority on command checked RPC and reads [P0] 14.4-AC7-cross-tenant-contact generic denial exact two-tenant no-op",
+            "title": "[P0] 14.4-AC7-cross-tenant-contact generic denial exact two-tenant no-op",
+            "status": "passed",
+            "duration_ms": 2038.218600000022
+          },
+          {
+            "full_name": "Story 14.4 current authority on command checked RPC and reads [P0] 14.4-AC7-cross-tenant-booking generic denial exact two-tenant no-op",
+            "title": "[P0] 14.4-AC7-cross-tenant-booking generic denial exact two-tenant no-op",
+            "status": "passed",
+            "duration_ms": 2235.4782000000123
+          }
+        ]
+      },
+      {
+        "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-editor-review-fixes.int.test.ts",
+        "registered": 2,
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "raw_assertion_records": [
+          {
+            "full_name": "Round1 genuine capacity group with 95 peers saves and accepts every exact association; signed partial map denied",
+            "title": "Round1 genuine capacity group with 95 peers saves and accepts every exact association; signed partial map denied",
+            "status": "passed",
+            "duration_ms": 8529.1224
+          },
+          {
+            "full_name": "Round1 authorized picker and warning resolve the existing same-tenant staff email identity",
+            "title": "Round1 authorized picker and warning resolve the existing same-tenant staff email identity",
+            "status": "passed",
+            "duration_ms": 1737.1196
+          }
+        ]
+      },
+      {
+        "file": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+        "registered": 62,
+        "passed": 62,
+        "failed": 0,
+        "skipped": 0,
+        "raw_assertion_records": [
+          {
+            "full_name": "Story 14.3 authoritative conflict persistence [P1] 14.3-INT-001 frozen internal preview and real save use identical normalized conflicts",
+            "title": "[P1] 14.3-INT-001 frozen internal preview and real save use identical normalized conflicts",
+            "status": "passed",
+            "duration_ms": 8094.590499999999
+          },
+          {
+            "full_name": "Story 14.3 authoritative conflict persistence [P1] 14.3-INT-002 a stale signed preview writes nothing after a peer booking commits",
+            "title": "[P1] 14.3-INT-002 a stale signed preview writes nothing after a peer booking commits",
+            "status": "passed",
+            "duration_ms": 5395.4277999999995
+          },
+          {
+            "full_name": "Story 14.3 authoritative conflict persistence [P0] 14.3-INT-003 fresh actual CREATE commits exact conflicts, assignments, outcome and one target audit",
+            "title": "[P0] 14.3-INT-003 fresh actual CREATE commits exact conflicts, assignments, outcome and one target audit",
+            "status": "passed",
+            "duration_ms": 5229.602800000001
+          },
+          {
+            "full_name": "Story 14.3 authoritative conflict persistence [P1] 14.3-INT-004 replace old/new assignees/windows, preserve accepted keys, refresh peers and cancellation",
+            "title": "[P1] 14.3-INT-004 replace old/new assignees/windows, preserve accepted keys, refresh peers and cancellation",
+            "status": "passed",
+            "duration_ms": 9110.5174
+          },
+          {
+            "full_name": "Story 14.3 authoritative conflict persistence [P1] 14.3-INT-005 CREATE and UPDATE post-conflict/audit faults roll back every durable column",
+            "title": "[P1] 14.3-INT-005 CREATE and UPDATE post-conflict/audit faults roll back every durable column",
+            "status": "passed",
+            "duration_ms": 12043.1472
+          },
+          {
+            "full_name": "Story 14.3 authoritative conflict persistence [P0] 14.3-INT-006 stale save requires deliberate renewed review under the original command UUID",
+            "title": "[P0] 14.3-INT-006 stale save requires deliberate renewed review under the original command UUID",
+            "status": "passed",
+            "duration_ms": 2846.8027
+          },
+          {
+            "full_name": "Story 14.3 authoritative conflict persistence [P0] AC10 three explicitly renewed reviews each go stale without target/outcome/audit writes",
+            "title": "[P0] AC10 three explicitly renewed reviews each go stale without target/outcome/audit writes",
+            "status": "passed",
+            "duration_ms": 2988.7095000000045
+          },
+          {
+            "full_name": "Story 14.3 authoritative conflict persistence [P0] AC10 distinct-key concurrent bookings cannot commit a conflict-free write skew",
+            "title": "[P0] AC10 distinct-key concurrent bookings cannot commit a conflict-free write skew",
+            "status": "passed",
+            "duration_ms": 1897.8882999999987
+          },
+          {
+            "full_name": "[P0] AC10 schedule holds first gate before row lock; waiting finalize verifies coherent facts",
+            "title": "[P0] AC10 schedule holds first gate before row lock; waiting finalize verifies coherent facts",
+            "status": "passed",
+            "duration_ms": 1352.355899999995
+          },
+          {
+            "full_name": "[P0] AC10 profile holds first gate before row lock; waiting finalize verifies coherent facts",
+            "title": "[P0] AC10 profile holds first gate before row lock; waiting finalize verifies coherent facts",
+            "status": "passed",
+            "duration_ms": 2213.5699999999997
+          },
+          {
+            "full_name": "[P0] AC10 calendar holds first gate before row lock; waiting finalize verifies coherent facts",
+            "title": "[P0] AC10 calendar holds first gate before row lock; waiting finalize verifies coherent facts",
+            "status": "passed",
+            "duration_ms": 2175.7479999999996
+          },
+          {
+            "full_name": "[P0] AC10 combined_form holds first gate before row lock; waiting finalize verifies coherent facts",
+            "title": "[P0] AC10 combined_form holds first gate before row lock; waiting finalize verifies coherent facts",
+            "status": "passed",
+            "duration_ms": 2219.195899999999
+          },
+          {
+            "full_name": "[P0] AC10 work_role_upsert holds first gate before row lock; waiting finalize verifies coherent facts",
+            "title": "[P0] AC10 work_role_upsert holds first gate before row lock; waiting finalize verifies coherent facts",
+            "status": "passed",
+            "duration_ms": 2190.063000000002
+          },
+          {
+            "full_name": "[P0] AC10 work_role_active holds first gate before row lock; waiting finalize verifies coherent facts",
+            "title": "[P0] AC10 work_role_active holds first gate before row lock; waiting finalize verifies coherent facts",
+            "status": "passed",
+            "duration_ms": 2351.3328000000038
+          },
+          {
+            "full_name": "[P0] AC10 membership holds first gate before row lock; waiting finalize verifies coherent facts",
+            "title": "[P0] AC10 membership holds first gate before row lock; waiting finalize verifies coherent facts",
+            "status": "passed",
+            "duration_ms": 2415.1843999999983
+          },
+          {
+            "full_name": "[P0] AC10 invitation_acceptance holds first gate before row lock; waiting finalize verifies coherent facts",
+            "title": "[P0] AC10 invitation_acceptance holds first gate before row lock; waiting finalize verifies coherent facts",
+            "status": "passed",
+            "duration_ms": 1298.9013999999952
+          },
+          {
+            "full_name": "[P0] AC10 create replay waits for real admin revocation then denies without added writes",
+            "title": "[P0] AC10 create replay waits for real admin revocation then denies without added writes",
+            "status": "passed",
+            "duration_ms": 1809.8996000000043
+          },
+          {
+            "full_name": "[P1] AC10 create authorized historical replay survives assignee deactivation; changed payload conflicts",
+            "title": "[P1] AC10 create authorized historical replay survives assignee deactivation; changed payload conflicts",
+            "status": "passed",
+            "duration_ms": 1634.3266000000003
+          },
+          {
+            "full_name": "[P0] AC10 update replay waits for real admin revocation then denies without added writes",
+            "title": "[P0] AC10 update replay waits for real admin revocation then denies without added writes",
+            "status": "passed",
+            "duration_ms": 1646.3371000000043
+          },
+          {
+            "full_name": "[P1] AC10 update authorized historical replay survives assignee deactivation; changed payload conflicts",
+            "title": "[P1] AC10 update authorized historical replay survives assignee deactivation; changed payload conflicts",
+            "status": "passed",
+            "duration_ms": 1858.454899999997
+          },
+          {
+            "full_name": "[P0] AC11 finalize rejects missing proof with exact durable no-op and valid control",
+            "title": "[P0] AC11 finalize rejects missing proof with exact durable no-op and valid control",
+            "status": "passed",
+            "duration_ms": 970.5593000000081
+          },
+          {
+            "full_name": "[P0] AC11 finalize rejects forged_signature proof with exact durable no-op and valid control",
+            "title": "[P0] AC11 finalize rejects forged_signature proof with exact durable no-op and valid control",
+            "status": "passed",
+            "duration_ms": 819.3361000000004
+          },
+          {
+            "full_name": "[P0] AC11 finalize rejects malformed_signature proof with exact durable no-op and valid control",
+            "title": "[P0] AC11 finalize rejects malformed_signature proof with exact durable no-op and valid control",
+            "status": "passed",
+            "duration_ms": 835.5563000000111
+          },
+          {
+            "full_name": "[P0] AC11 finalize rejects tenantId proof with exact durable no-op and valid control",
+            "title": "[P0] AC11 finalize rejects tenantId proof with exact durable no-op and valid control",
+            "status": "passed",
+            "duration_ms": 844.3081999999995
+          },
+          {
+            "full_name": "[P0] AC11 finalize rejects actorId proof with exact durable no-op and valid control",
+            "title": "[P0] AC11 finalize rejects actorId proof with exact durable no-op and valid control",
+            "status": "passed",
+            "duration_ms": 794.9563000000053
+          },
+          {
+            "full_name": "[P0] AC11 finalize rejects operation proof with exact durable no-op and valid control",
+            "title": "[P0] AC11 finalize rejects operation proof with exact durable no-op and valid control",
+            "status": "passed",
+            "duration_ms": 832.1473000000115
+          },
+          {
+            "full_name": "[P0] AC11 finalize rejects commandId proof with exact durable no-op and valid control",
+            "title": "[P0] AC11 finalize rejects commandId proof with exact durable no-op and valid control",
+            "status": "passed",
+            "duration_ms": 809.8349000000017
+          },
+          {
+            "full_name": "[P0] AC11 finalize rejects bookingId proof with exact durable no-op and valid control",
+            "title": "[P0] AC11 finalize rejects bookingId proof with exact durable no-op and valid control",
+            "status": "passed",
+            "duration_ms": 832.2137999999977
+          },
+          {
+            "full_name": "[P0] AC11 finalize rejects candidateDigest proof with exact durable no-op and valid control",
+            "title": "[P0] AC11 finalize rejects candidateDigest proof with exact durable no-op and valid control",
+            "status": "passed",
+            "duration_ms": 813.755799999999
+          },
+          {
+            "full_name": "[P0] AC11 finalize rejects factDigest proof with exact durable no-op and valid control",
+            "title": "[P0] AC11 finalize rejects factDigest proof with exact durable no-op and valid control",
+            "status": "passed",
+            "duration_ms": 776.4248999999982
+          },
+          {
+            "full_name": "[P0] AC11 finalize rejects outputText proof with exact durable no-op and valid control",
+            "title": "[P0] AC11 finalize rejects outputText proof with exact durable no-op and valid control",
+            "status": "passed",
+            "duration_ms": 826.6411999999982
+          },
+          {
+            "full_name": "[P0] AC11 finalize rejects engineVersion proof with exact durable no-op and valid control",
+            "title": "[P0] AC11 finalize rejects engineVersion proof with exact durable no-op and valid control",
+            "status": "passed",
+            "duration_ms": 847.5559000000067
+          },
+          {
+            "full_name": "[P0] AC11 finalize rejects configVersion proof with exact durable no-op and valid control",
+            "title": "[P0] AC11 finalize rejects configVersion proof with exact durable no-op and valid control",
+            "status": "passed",
+            "duration_ms": 849.7810999999929
+          },
+          {
+            "full_name": "[P0] AC11 finalize rejects correlationId proof with exact durable no-op and valid control",
+            "title": "[P0] AC11 finalize rejects correlationId proof with exact durable no-op and valid control",
+            "status": "passed",
+            "duration_ms": 779.8418999999994
+          },
+          {
+            "full_name": "[P0] AC11 finalize rejects keyId proof with exact durable no-op and valid control",
+            "title": "[P0] AC11 finalize rejects keyId proof with exact durable no-op and valid control",
+            "status": "passed",
+            "duration_ms": 779.3165000000008
+          },
+          {
+            "full_name": "[P0] AC11 finalize rejects issuedAt proof with exact durable no-op and valid control",
+            "title": "[P0] AC11 finalize rejects issuedAt proof with exact durable no-op and valid control",
+            "status": "passed",
+            "duration_ms": 825.8429000000033
+          },
+          {
+            "full_name": "[P0] AC11 finalize rejects expiresAt proof with exact durable no-op and valid control",
+            "title": "[P0] AC11 finalize rejects expiresAt proof with exact durable no-op and valid control",
+            "status": "passed",
+            "duration_ms": 802.5497000000032
+          },
+          {
+            "full_name": "[P0] AC11 SQL rejects correctly signed duplicate_natural_key output/claims past HMAC verification",
+            "title": "[P0] AC11 SQL rejects correctly signed duplicate_natural_key output/claims past HMAC verification",
+            "status": "passed",
+            "duration_ms": 936.1224000000075
+          },
+          {
+            "full_name": "[P0] AC11 SQL rejects correctly signed foreign_person output/claims past HMAC verification",
+            "title": "[P0] AC11 SQL rejects correctly signed foreign_person output/claims past HMAC verification",
+            "status": "passed",
+            "duration_ms": 969.4873999999982
+          },
+          {
+            "full_name": "[P0] AC11 SQL rejects correctly signed foreign_booking output/claims past HMAC verification",
+            "title": "[P0] AC11 SQL rejects correctly signed foreign_booking output/claims past HMAC verification",
+            "status": "passed",
+            "duration_ms": 960.9478999999992
+          },
+          {
+            "full_name": "[P0] AC11 SQL rejects correctly signed invalid_type output/claims past HMAC verification",
+            "title": "[P0] AC11 SQL rejects correctly signed invalid_type output/claims past HMAC verification",
+            "status": "passed",
+            "duration_ms": 952.4306999999972
+          },
+          {
+            "full_name": "[P0] AC11 SQL rejects correctly signed reversed_interval output/claims past HMAC verification",
+            "title": "[P0] AC11 SQL rejects correctly signed reversed_interval output/claims past HMAC verification",
+            "status": "passed",
+            "duration_ms": 939.6732999999949
+          },
+          {
+            "full_name": "[P0] AC11 SQL rejects correctly signed out_of_range output/claims past HMAC verification",
+            "title": "[P0] AC11 SQL rejects correctly signed out_of_range output/claims past HMAC verification",
+            "status": "passed",
+            "duration_ms": 977.0374999999913
+          },
+          {
+            "full_name": "[P0] AC11 SQL rejects correctly signed accepted_metadata output/claims past HMAC verification",
+            "title": "[P0] AC11 SQL rejects correctly signed accepted_metadata output/claims past HMAC verification",
+            "status": "passed",
+            "duration_ms": 1007.2448000000004
+          },
+          {
+            "full_name": "[P0] AC11 SQL rejects correctly signed unsupported_version output/claims past HMAC verification",
+            "title": "[P0] AC11 SQL rejects correctly signed unsupported_version output/claims past HMAC verification",
+            "status": "passed",
+            "duration_ms": 954.4388000000035
+          },
+          {
+            "full_name": "[P0] AC11 SQL rejects correctly signed expired_signed output/claims past HMAC verification",
+            "title": "[P0] AC11 SQL rejects correctly signed expired_signed output/claims past HMAC verification",
+            "status": "passed",
+            "duration_ms": 960.1210999999894
+          },
+          {
+            "full_name": "[P0] AC11 checked snapshot/finalize deny Montör and cross-tenant/actor callers",
+            "title": "[P0] AC11 checked snapshot/finalize deny Montör and cross-tenant/actor callers",
+            "status": "passed",
+            "duration_ms": 1226.649099999995
+          },
+          {
+            "full_name": "[P0] AC11 fresh legacy RPC/private helper/direct DML cannot bypass detection",
+            "title": "[P0] AC11 fresh legacy RPC/private helper/direct DML cannot bypass detection",
+            "status": "passed",
+            "duration_ms": 2107.4089000000095
+          },
+          {
+            "full_name": "[P0] AC11 own-assignment conflict read scope survives authoritative peer refresh",
+            "title": "[P0] AC11 own-assignment conflict read scope survives authoritative peer refresh",
+            "status": "passed",
+            "duration_ms": 1432.9688000000024
+          },
+          {
+            "full_name": "[P0] AC11 Node/Postgres proof framing matches exact UTF-8 and microsecond claims",
+            "title": "[P0] AC11 Node/Postgres proof framing matches exact UTF-8 and microsecond claims",
+            "status": "passed",
+            "duration_ms": 771.1912999999913
+          },
+          {
+            "full_name": "[P0] AC10 invitation expiry is checked after a gate/row wait at the current database instant",
+            "title": "[P0] AC10 invitation expiry is checked after a gate/row wait at the current database instant",
+            "status": "passed",
+            "duration_ms": 2862.632700000002
+          },
+          {
+            "full_name": "[P0] AC10 invitation expiry is checked after the operation-row lock wait before activation",
+            "title": "[P0] AC10 invitation expiry is checked after the operation-row lock wait before activation",
+            "status": "passed",
+            "duration_ms": 2916.4811999999947
+          },
+          {
+            "full_name": "[P0] AC10 invitation rechecks current confirmed Auth identity after the operation-row wait: confirmation revoked",
+            "title": "[P0] AC10 invitation rechecks current confirmed Auth identity after the operation-row wait: confirmation revoked",
+            "status": "passed",
+            "duration_ms": 962.1180999999924
+          },
+          {
+            "full_name": "[P0] AC10 invitation rechecks current confirmed Auth identity after the operation-row wait: confirmed email changed",
+            "title": "[P0] AC10 invitation rechecks current confirmed Auth identity after the operation-row wait: confirmed email changed",
+            "status": "passed",
+            "duration_ms": 916.6263999999937
+          },
+          {
+            "full_name": "[P0] AC8 every participant in four-booking daily capacity is retrievable and refreshed independently",
+            "title": "[P0] AC8 every participant in four-booking daily capacity is retrievable and refreshed independently",
+            "status": "passed",
+            "duration_ms": 2108.3147000000026
+          },
+          {
+            "full_name": "[P0] AC2 persisted dated absence and blocked time produce independent literal UTC warnings",
+            "title": "[P0] AC2 persisted dated absence and blocked time produce independent literal UTC warnings",
+            "status": "passed",
+            "duration_ms": 1083.1683000000048
+          },
+          {
+            "full_name": "[P0] AC11 correctly signed otherwise valid expired proof isolates database clock and maximum lifetime",
+            "title": "[P0] AC11 correctly signed otherwise valid expired proof isolates database clock and maximum lifetime",
+            "status": "passed",
+            "duration_ms": 944.5304999999935
+          },
+          {
+            "full_name": "[P0] AC11 correctly signed otherwise valid future proof isolates database clock and maximum lifetime",
+            "title": "[P0] AC11 correctly signed otherwise valid future proof isolates database clock and maximum lifetime",
+            "status": "passed",
+            "duration_ms": 1057.3243999999977
+          },
+          {
+            "full_name": "[P0] AC11 correctly signed otherwise valid oversized proof isolates database clock and maximum lifetime",
+            "title": "[P0] AC11 correctly signed otherwise valid oversized proof isolates database clock and maximum lifetime",
+            "status": "passed",
+            "duration_ms": 931.1394999999902
+          },
+          {
+            "full_name": "[P0] AC11 previous incomplete normalization version cannot authorize a fresh commit",
+            "title": "[P0] AC11 previous incomplete normalization version cannot authorize a fresh commit",
+            "status": "passed",
+            "duration_ms": 1004.1034999999974
+          },
+          {
+            "full_name": "[P0] AC10 1 deliberately reviewed signed expiries during gate waits preserve the same command UUID",
+            "title": "[P0] AC10 1 deliberately reviewed signed expiries during gate waits preserve the same command UUID",
+            "status": "passed",
+            "duration_ms": 3250.3349000000017
+          },
+          {
+            "full_name": "[P0] AC10 3 deliberately reviewed signed expiries during gate waits preserve the same command UUID",
+            "title": "[P0] AC10 3 deliberately reviewed signed expiries during gate waits preserve the same command UUID",
+            "status": "passed",
+            "duration_ms": 7416.489100000006
+          }
+        ]
+      },
+      {
+        "file": "C:/DEV/ElproSaas/tests/integration/commands/bookings.int.test.ts",
+        "registered": 16,
+        "passed": 16,
+        "failed": 0,
+        "skipped": 0,
+        "raw_assertion_records": [
+          {
+            "full_name": "Story 14.2 booking transaction foundation ATDD [P1] 14.2-INT-003 six-digit timestamp replay agrees across envelope and checked RPC",
+            "title": "[P1] 14.2-INT-003 six-digit timestamp replay agrees across envelope and checked RPC",
+            "status": "passed",
+            "duration_ms": 14288.870600000002
+          },
+          {
+            "full_name": "Story 14.2 booking transaction foundation ATDD [P1] 14.2-INT-005 overlapping same-key updates commit one outcome and one audit",
+            "title": "[P1] 14.2-INT-005 overlapping same-key updates commit one outcome and one audit",
+            "status": "passed",
+            "duration_ms": 9561.258700000002
+          },
+          {
+            "full_name": "Story 14.2 booking transaction foundation ATDD [P0] 14.2-INT-001 actual envelope commits exact booking, assignees, durable outcome and one audit",
+            "title": "[P0] 14.2-INT-001 actual envelope commits exact booking, assignees, durable outcome and one audit",
+            "status": "passed",
+            "duration_ms": 5556.879799999999
+          },
+          {
+            "full_name": "Story 14.2 booking transaction foundation ATDD [P1] 14.2-INT-002 update replaces mutable fields and exact assignees with immutable identity/history",
+            "title": "[P1] 14.2-INT-002 update replaces mutable fields and exact assignees with immutable identity/history",
+            "status": "passed",
+            "duration_ms": 6272.975700000003
+          },
+          {
+            "full_name": "Story 14.2 booking transaction foundation ATDD [P1] 14.2-INT-003 canonical replay survives subsequent updates and assignee deactivation",
+            "title": "[P1] 14.2-INT-003 canonical replay survives subsequent updates and assignee deactivation",
+            "status": "passed",
+            "duration_ms": 4655.065999999999
+          },
+          {
+            "full_name": "Story 14.2 booking transaction foundation ATDD [P1] 14.2-INT-004 changed canonical scoped key returns generic conflict without any durable change",
+            "title": "[P1] 14.2-INT-004 changed canonical scoped key returns generic conflict without any durable change",
+            "status": "passed",
+            "duration_ms": 3325.6838999999964
+          },
+          {
+            "full_name": "Story 14.2 booking transaction foundation ATDD [P1] 14.2-INT-005 concurrent identical creates persist one booking and one attributable audit",
+            "title": "[P1] 14.2-INT-005 concurrent identical creates persist one booking and one attributable audit",
+            "status": "passed",
+            "duration_ms": 1417.616900000001
+          },
+          {
+            "full_name": "Story 14.2 booking transaction foundation ATDD [P1] 14.2-INT-006 booking preparation and audit faults roll back create and update snapshots",
+            "title": "[P1] 14.2-INT-006 booking preparation and audit faults roll back create and update snapshots",
+            "status": "passed",
+            "duration_ms": 3330.249799999998
+          },
+          {
+            "full_name": "Story 14.2 booking transaction foundation ATDD [P1] 14.2-INT-007 assignee preparation fault restores all business, outcomes and audit rows",
+            "title": "[P1] 14.2-INT-007 assignee preparation fault restores all business, outcomes and audit rows",
+            "status": "passed",
+            "duration_ms": 2803.6281000000017
+          },
+          {
+            "full_name": "Story 14.2 booking transaction foundation ATDD [P1] 14.2-DB-001 standalone booking preserves independent null links and reserved recurrence storage",
+            "title": "[P1] 14.2-DB-001 standalone booking preserves independent null links and reserved recurrence storage",
+            "status": "passed",
+            "duration_ms": 2696.1019000000015
+          },
+          {
+            "full_name": "Story 14.2 booking transaction foundation ATDD [P1] 14.2-DB-002 each nullable link accepts coherent own parents and rejects foreign/mismatched links atomically",
+            "title": "[P1] 14.2-DB-002 each nullable link accepts coherent own parents and rejects foreign/mismatched links atomically",
+            "status": "passed",
+            "duration_ms": 8602.109499999999
+          },
+          {
+            "full_name": "Story 14.2 booking transaction foundation ATDD [P1] 14.2-DB-003 zero/negative booking and conflict windows plus incoherent workflow metadata are constrained",
+            "title": "[P1] 14.2-DB-003 zero/negative booking and conflict windows plus incoherent workflow metadata are constrained",
+            "status": "passed",
+            "duration_ms": 1172.1619000000064
+          },
+          {
+            "full_name": "Story 14.2 booking transaction foundation ATDD [P1] 14.2-DB-004 UTC timed/all-day bounds round-trip Stockholm spring 23h and fall 25h days",
+            "title": "[P1] 14.2-DB-004 UTC timed/all-day bounds round-trip Stockholm spring 23h and fall 25h days",
+            "status": "passed",
+            "duration_ms": 1514.8484000000026
+          },
+          {
+            "full_name": "Story 14.2 booking transaction foundation ATDD [P1] 14.2-DB-005 assignee uniqueness, minimum set and composite child references cannot be bypassed",
+            "title": "[P1] 14.2-DB-005 assignee uniqueness, minimum set and composite child references cannot be bypassed",
+            "status": "passed",
+            "duration_ms": 1238.9388999999937
+          },
+          {
+            "full_name": "Story 14.2 booking transaction foundation ATDD [P1] 14.2-INT-009 existing Phase A basic job ID/links remain intact on booking create and update",
+            "title": "[P1] 14.2-INT-009 existing Phase A basic job ID/links remain intact on booking create and update",
+            "status": "passed",
+            "duration_ms": 2113.1851000000024
+          },
+          {
+            "full_name": "Story 14.2 booking transaction foundation ATDD [P1] 14.2-INT-010 disabled/archive assignment history survives; new assignment and lock race are rejected",
+            "title": "[P1] 14.2-INT-010 disabled/archive assignment history survives; new assignment and lock race are rejected",
+            "status": "passed",
+            "duration_ms": 1637.1745000000083
+          }
+        ]
+      },
+      {
+        "file": "C:/DEV/ElproSaas/tests/integration/commands/bookings-replay-authority.int.test.ts",
+        "registered": 12,
+        "passed": 12,
+        "failed": 0,
+        "skipped": 0,
+        "raw_assertion_records": [
+          {
+            "full_name": "Story 14.2 completed UPDATE replay authority [P0] 14.4 preserves explicitly absent-review legacy create/update outcomes without borrowing them for override",
+            "title": "[P0] 14.4 preserves explicitly absent-review legacy create/update outcomes without borrowing them for override",
+            "status": "passed",
+            "duration_ms": 7687.3608
+          },
+          {
+            "full_name": "Story 14.2 completed UPDATE replay authority [P1] 14.2-INT-003 UPDATE replay rejects stale caller after 'role downgraded and secondary roles r…'",
+            "title": "[P1] 14.2-INT-003 UPDATE replay rejects stale caller after 'role downgraded and secondary roles r…'",
+            "status": "passed",
+            "duration_ms": 6350.1451
+          },
+          {
+            "full_name": "Story 14.2 completed UPDATE replay authority [P1] 14.2-INT-003 UPDATE replay rejects stale caller after 'membership invited'",
+            "title": "[P1] 14.2-INT-003 UPDATE replay rejects stale caller after 'membership invited'",
+            "status": "passed",
+            "duration_ms": 6637.695
+          },
+          {
+            "full_name": "Story 14.2 completed UPDATE replay authority [P1] 14.2-INT-003 UPDATE replay rejects stale caller after 'membership disabled'",
+            "title": "[P1] 14.2-INT-003 UPDATE replay rejects stale caller after 'membership disabled'",
+            "status": "passed",
+            "duration_ms": 7410.346500000003
+          },
+          {
+            "full_name": "Story 14.2 replay authority after serialization waits [P1] 14.2-INT-003 'create' replay rejects 'primary and secondary roles' revoked during lock wait",
+            "title": "[P1] 14.2-INT-003 'create' replay rejects 'primary and secondary roles' revoked during lock wait",
+            "status": "passed",
+            "duration_ms": 5667.9912
+          },
+          {
+            "full_name": "Story 14.2 replay authority after serialization waits [P1] 14.2-INT-003 'update' replay rejects 'primary and secondary roles' revoked during lock wait",
+            "title": "[P1] 14.2-INT-003 'update' replay rejects 'primary and secondary roles' revoked during lock wait",
+            "status": "passed",
+            "duration_ms": 5103.294900000001
+          },
+          {
+            "full_name": "Story 14.2 replay authority after serialization waits [P1] 14.2-INT-003 'create' replay rejects 'secondary-only planner' revoked during lock wait",
+            "title": "[P1] 14.2-INT-003 'create' replay rejects 'secondary-only planner' revoked during lock wait",
+            "status": "passed",
+            "duration_ms": 2057.119799999993
+          },
+          {
+            "full_name": "Story 14.2 replay authority after serialization waits [P1] 14.2-INT-003 'update' replay rejects 'secondary-only planner' revoked during lock wait",
+            "title": "[P1] 14.2-INT-003 'update' replay rejects 'secondary-only planner' revoked during lock wait",
+            "status": "passed",
+            "duration_ms": 1977.560599999997
+          },
+          {
+            "full_name": "Story 14.2 replay authority after serialization waits [P1] 14.2-INT-003 'create' replay rejects 'disabled membership' revoked during lock wait",
+            "title": "[P1] 14.2-INT-003 'create' replay rejects 'disabled membership' revoked during lock wait",
+            "status": "passed",
+            "duration_ms": 1672.7381999999998
+          },
+          {
+            "full_name": "Story 14.2 replay authority after serialization waits [P1] 14.2-INT-003 'update' replay rejects 'disabled membership' revoked during lock wait",
+            "title": "[P1] 14.2-INT-003 'update' replay rejects 'disabled membership' revoked during lock wait",
+            "status": "passed",
+            "duration_ms": 1633.765099999997
+          },
+          {
+            "full_name": "Story 14.2 checked SQL timestamp grammar [P1] 14.2-INT-008 'create' checked RPC rejects out-of-range clock fields",
+            "title": "[P1] 14.2-INT-008 'create' checked RPC rejects out-of-range clock fields",
+            "status": "passed",
+            "duration_ms": 1220.7206000000006
+          },
+          {
+            "full_name": "Story 14.2 checked SQL timestamp grammar [P1] 14.2-INT-008 'update' checked RPC rejects out-of-range clock fields",
+            "title": "[P1] 14.2-INT-008 'update' checked RPC rejects out-of-range clock fields",
+            "status": "passed",
+            "duration_ms": 2165.6101000000053
+          }
+        ]
+      },
+      {
+        "file": "C:/DEV/ElproSaas/tests/integration/rls/bookings.rls.test.ts",
+        "registered": 6,
+        "passed": 6,
+        "failed": 0,
+        "skipped": 0,
+        "raw_assertion_records": [
+          {
+            "full_name": "Story 14.2 booking authority ATDD [P0] 14.4 checked editor RPCs have closed anon ACL and current manager gate",
+            "title": "[P0] 14.4 checked editor RPCs have closed anon ACL and current manager gate",
+            "status": "passed",
+            "duration_ms": 5145.3351
+          },
+          {
+            "full_name": "Story 14.2 booking authority ATDD [P1] 14.2-RLS-002 secondary Montor grants own reads and revocation removes them",
+            "title": "[P1] 14.2-RLS-002 secondary Montor grants own reads and revocation removes them",
+            "status": "passed",
+            "duration_ms": 12854.8602
+          },
+          {
+            "full_name": "Story 14.2 booking authority ATDD [P0] 14.2-RLS-001 foreign booking/assignee/conflict reads and every write path expose no state",
+            "title": "[P0] 14.2-RLS-001 foreign booking/assignee/conflict reads and every write path expose no state",
+            "status": "passed",
+            "duration_ms": 6662.803
+          },
+          {
+            "full_name": "Story 14.2 booking authority ATDD [P1] 14.2-RLS-002 Montor reads own/shared bookings, own assignment rows and own-participation visible conflicts only",
+            "title": "[P1] 14.2-RLS-002 Montor reads own/shared bookings, own assignment rows and own-participation visible conflicts only",
+            "status": "passed",
+            "duration_ms": 7388.3772999999965
+          },
+          {
+            "full_name": "Story 14.2 booking authority ATDD [P1] 14.2-RLS-003 Montor cannot create/update via envelope, checked RPC or direct own-table DML",
+            "title": "[P1] 14.2-RLS-003 Montor cannot create/update via envelope, checked RPC or direct own-table DML",
+            "status": "passed",
+            "duration_ms": 6075.061699999998
+          },
+          {
+            "full_name": "Story 14.2 booking authority ATDD [P1] 14.2-RLS-004 admin/planner checked paths succeed but every outer wrapper independently rechecks authority",
+            "title": "[P1] 14.2-RLS-004 admin/planner checked paths succeed but every outer wrapper independently rechecks authority",
+            "status": "passed",
+            "duration_ms": 7106.8217
+          }
+        ]
+      },
+      {
+        "file": "C:/DEV/ElproSaas/tests/integration/rls/migration-reset.int.test.ts",
+        "registered": 13,
+        "passed": 13,
+        "failed": 0,
+        "skipped": 0,
+        "raw_assertion_records": [
+          {
+            "full_name": "Story 14.3 exact checked/private conflict authority inventory [P0] snapshot/finalize are authenticated-only; every helper has empty search path and owner-only execution",
+            "title": "[P0] snapshot/finalize are authenticated-only; every helper has empty search path and owner-only execution",
+            "status": "passed",
+            "duration_ms": 1078.5412999999999
+          },
+          {
+            "full_name": "Migration reset green — tenant_foundation objects present (AC1 / R-007) [P0] tables `tenants` and `tenant_memberships` exist after reset",
+            "title": "[P0] tables `tenants` and `tenant_memberships` exist after reset",
+            "status": "passed",
+            "duration_ms": 6.779400000000123
+          },
+          {
+            "full_name": "Migration reset green — tenant_foundation objects present (AC1 / R-007) [10.8][P0] the complete local audit-failure seed fixture exists after reset",
+            "title": "[10.8][P0] the complete local audit-failure seed fixture exists after reset",
+            "status": "passed",
+            "duration_ms": 15.788999999999987
+          },
+          {
+            "full_name": "Migration reset green — tenant_foundation objects present (AC1 / R-007) [P0] helper functions `is_active_tenant_member(uuid)` and `is_tenant_admin(uuid)` exist",
+            "title": "[P0] helper functions `is_active_tenant_member(uuid)` and `is_tenant_admin(uuid)` exist",
+            "status": "passed",
+            "duration_ms": 4.025200000000041
+          },
+          {
+            "full_name": "Migration reset green — tenant_foundation objects present (AC1 / R-007) [P0] both helpers are SECURITY DEFINER with an EXACTLY-EMPTY search_path (AC4 hardening)",
+            "title": "[P0] both helpers are SECURITY DEFINER with an EXACTLY-EMPTY search_path (AC4 hardening)",
+            "status": "passed",
+            "duration_ms": 4.228399999999965
+          },
+          {
+            "full_name": "Migration reset green — tenant_foundation objects present (AC1 / R-007) [P0] `tenant_memberships.role` CHECK admits the closed five-role set and `status` remains closed",
+            "title": "[P0] `tenant_memberships.role` CHECK admits the closed five-role set and `status` remains closed",
+            "status": "passed",
+            "duration_ms": 6.083599999999933
+          },
+          {
+            "full_name": "Migration reset green — tenant_foundation objects present (AC1 / R-007) [P0] RLS is ENABLED and FORCED on foundation authorization tables",
+            "title": "[P0] RLS is ENABLED and FORCED on foundation authorization tables",
+            "status": "passed",
+            "duration_ms": 4.714899999999943
+          },
+          {
+            "full_name": "Migration reset green — tenant_foundation objects present (AC1 / R-007) [P0] `tenants.name` is NOT NULL (deferred-work reconciliation)",
+            "title": "[P0] `tenants.name` is NOT NULL (deferred-work reconciliation)",
+            "status": "passed",
+            "duration_ms": 7.363399999999956
+          },
+          {
+            "full_name": "Migration reset green — tenant_foundation objects present (AC1 / R-007) [P0] the public policy set is EXACTLY the expected per-table enumeration",
+            "title": "[P0] the public policy set is EXACTLY the expected per-table enumeration",
+            "status": "passed",
+            "duration_ms": 11.207099999999855
+          },
+          {
+            "full_name": "Migration reset green — tenant_foundation objects present (AC1 / R-007) [P0] Story 6.4 sent-lock + append-only triggers + the mark_quote_version_sent RPC exist after reset",
+            "title": "[P0] Story 6.4 sent-lock + append-only triggers + the mark_quote_version_sent RPC exist after reset",
+            "status": "passed",
+            "duration_ms": 6.900000000000091
+          },
+          {
+            "full_name": "Migration reset green — tenant_foundation objects present (AC1 / R-007) [P0] Story 6.5 create_new_quote_version + mark_quote_version_lifecycle RPCs exist after reset (hardened)",
+            "title": "[P0] Story 6.5 create_new_quote_version + mark_quote_version_lifecycle RPCs exist after reset (hardened)",
+            "status": "passed",
+            "duration_ms": 5.96530000000007
+          },
+          {
+            "full_name": "Migration reset green — tenant_foundation objects present (AC1 / R-007) [P0] 11.1 reset: membership_roles has a composite tenant FK and has_tenant_role is a hardened DEFINER helper",
+            "title": "[P0] 11.1 reset: membership_roles has a composite tenant FK and has_tenant_role is a hardened DEFINER helper",
+            "status": "passed",
+            "duration_ms": 23.524000000000115
+          },
+          {
+            "full_name": "[P0] 14.4 migration inventory has exact authenticated editor entries and private helpers",
+            "title": "[P0] 14.4 migration inventory has exact authenticated editor entries and private helpers",
+            "status": "passed",
+            "duration_ms": 5.167500000000018
+          }
+        ]
+      }
+    ],
+    "nonpassing_records": [
+      {
+        "file": "C:/DEV/ElproSaas/tests/integration/ops/recovery-storage-immutability.int.test.ts",
+        "full_name": "isolated recovery Storage physical-loader proof serves loader-materialized bytes without mutating logical rows and rejects generic plus quote-PDF overwrite attempts",
+        "status": "skipped"
+      }
+    ],
+    "execution_configuration_source": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-4-verification.md",
+    "required_integration_flag": "SUPABASE_TEST_REQUIRED=1 recorded by implementation author; no new worker execution"
+  }
+}

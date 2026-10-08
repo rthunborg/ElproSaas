@@ -1,0 +1,34 @@
+{
+  "success": true,
+  "subagent": "e2e-tests",
+  "model": "gpt-6.1-sol",
+  "effort": "low",
+  "tests": [],
+  "fixture_needs": [],
+  "knowledge_fragments_used": [
+    "library-integration-mandate",
+    "playwright-utils-mandate",
+    "fixture-architecture",
+    "network-first",
+    "selector-resilience"
+  ],
+  "playwright_utils_deviations": [],
+  "test_count": 0,
+  "summary": "Story 14.3 has no approved browser journey. Its pure deterministic detection core and internal authoritative create/update command persistence belong to unit and real database integration coverage. The approved intent explicitly excludes booking UI, routes, user-facing server actions, browser preview and explicit override/resolver commands until Story 14.4. Resources is active with no navigation items; scheduling is pending with empty live surfaces. Browser tests repeating pure or database facts would add no journey evidence. No browser exploration, selectors, test execution, fixture creation or managed resources were needed.",
+  "scoped_justification": {
+    "approved_surface": "Pure detector plus internal command snapshot/detect/finalize persistence; an internal frozen-fact preview seam has no entry point.",
+    "deferred_surface": "Story 14.4 editor/browser preview and explicit acknowledgment/override behavior; scheduling activation is not authorized by Story 14.3.",
+    "evidence": [
+      "_bmad-output/implementation-artifacts/spec-14-3-deterministic-conflict-engine-detection-core.md intent, boundaries, acceptance criterion 12 and task 5",
+      "src/scope/manifest.ts resources and scheduling entries",
+      "_bmad-output/test-artifacts/automation-summary-14-3-deterministic-conflict-engine-detection-core.md steps 1 and 2",
+      "_bmad-output/test-artifacts/tea-atdd-e2e-tests-story14-3-2026-10-06.json",
+      "playwright.config.ts",
+      "package.json"
+    ],
+    "playwright_utils": "Flag true but @seontechnologies/playwright-utils absent from package.json: the two-gate mandate does not bind. No imports or dependency setup are generated. Framework workflow is the appropriate adoption route if a future approved browser scope requires this integration.",
+    "pact": "Internal same-repository boundaries do not require a Pact consumer/provider suite.",
+    "exploration": "No approved target page or selector exists; unrelated browser exploration cannot establish Story 14.3 acceptance.",
+    "routing": "Low scope classification only; no security or transactional implementation review performed."
+  }
+}

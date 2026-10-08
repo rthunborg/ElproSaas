@@ -28,6 +28,12 @@ export const PERMISSION_MATRIX = {
     "Notifications.View": { roles: ["tenant_admin"] },
     "Notifications.Personal": { roles: ["tenant_admin", "projektledare", "montor", "saljare", "ekonomi"] },
   },
+  resources: {
+    "Resources.View": { roles: ["tenant_admin", "projektledare"] },
+    "Resources.Maintain": { roles: ["tenant_admin", "projektledare"] },
+    "Bookings.View": { roles: ["tenant_admin", "projektledare", "montor"] },
+    "Bookings.Manage": { roles: ["tenant_admin", "projektledare"] },
+  },
   dashboard: { "Dashboard.View": { roles: ["tenant_admin", "projektledare", "montor", "saljare", "ekonomi"] } },
   crm: {
     "Customers.View": { roles: ["tenant_admin", "projektledare", "saljare"] },

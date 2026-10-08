@@ -44,3 +44,13 @@ test("[P0] table metadata fails loud for missing and unknown entries", () => {
   assert.throws(() => validateRoleHarnessMetadata({ directRlsAllowedRoles: { stale_table: [] } }), /unknown direct RLS metadata: stale_table/);
 });
 });
+
+test("14.2 booking obligations stay resource-owned and generated Montor mutations deny",()=>{
+ const cases=buildRoleHarnessCases();
+ for(const table of ["bookings","booking_assignees","booking_conflicts"]){
+  assert.ok(cases.some(c=>c.id===`table:resources:${table}`&&c.role==="montor"&&c.expected==="allowed"));
+ }
+ for(const command of ["createBooking","updateBooking"]){
+  assert.ok(cases.some(c=>c.id===`command:${command}`&&c.role==="montor"&&c.expected==="denied"));
+ }
+});

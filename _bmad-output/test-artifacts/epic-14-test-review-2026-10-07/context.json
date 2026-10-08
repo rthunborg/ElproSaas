@@ -1,0 +1,2210 @@
+{
+  "head": "e92e0ec126ea541e109e8abe0ac02ba57085e68e",
+  "base": "main",
+  "mode": "epic",
+  "review_files": [
+    "C:/DEV/ElproSaas/.agents/skills/auto-bmad/scripts/tests/test_routing_migration.py",
+    "C:/DEV/ElproSaas/.claude/skills/auto-bmad/scripts/tests/test_routing_migration.py",
+    "C:/DEV/ElproSaas/.env.test.example",
+    "C:/DEV/ElproSaas/compose.test.yaml",
+    "C:/DEV/ElproSaas/tests/e2e/booking-editor.e2e.spec.ts",
+    "C:/DEV/ElproSaas/tests/e2e/global-setup.ts",
+    "C:/DEV/ElproSaas/tests/e2e/resources-person-profile.e2e.spec.ts",
+    "C:/DEV/ElproSaas/tests/e2e/support/booking-editor-atdd.ts",
+    "C:/DEV/ElproSaas/tests/e2e/support/resource-cdp-attachment.ts",
+    "C:/DEV/ElproSaas/tests/factories/tenants/core.ts",
+    "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/capacity.json",
+    "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/conflicts.json",
+    "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/dst.json",
+    "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/regressions.json",
+    "C:/DEV/ElproSaas/tests/integration/commands/audit-anon-isolation.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/booking-editor-review-fixes.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/booking-editor-round2.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/booking-editor.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/bookings-replay-authority.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/bookings.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/quote-pdf-validity.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/resources-boundaries.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/resources.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/commands/update-job.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/components/booking-editor.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/features/booking-read-actions.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/jobs/job-runs.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/admin-user-management.rls.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/approved-public-acl-repair.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/bookings.rls.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/calc-tables-migration-reset.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/crm-tables-migration-reset.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/cross-tenant-isolation.rls.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/file-tables-migration-reset.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/membership-self-grant.rls.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/migration-reset.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/onboarding-checklist.rls.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/pricing-tables-migration-reset.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/quote-follow-ups-migration-reset.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/quote-pipeline-read-model.rls.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/quote-review-authorization-migration-reset.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/resources.rls.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/role-harness.atdd.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/settings-rls.int.test.ts",
+    "C:/DEV/ElproSaas/tests/integration/rls/tenant-table-inventory.ts",
+    "C:/DEV/ElproSaas/tests/support/authz/role-harness.ts",
+    "C:/DEV/ElproSaas/tests/support/booking-conflict-attestation.ts",
+    "C:/DEV/ElproSaas/tests/support/booking-conflicts-atdd.ts",
+    "C:/DEV/ElproSaas/tests/support/booking-editor-atdd.ts",
+    "C:/DEV/ElproSaas/tests/support/booking-editor-contract.ts",
+    "C:/DEV/ElproSaas/tests/support/booking-editor-production.ts",
+    "C:/DEV/ElproSaas/tests/support/bookings-atdd.ts",
+    "C:/DEV/ElproSaas/tests/support/global-setup.ts",
+    "C:/DEV/ElproSaas/tests/support/quote-send-diagnostics.ts",
+    "C:/DEV/ElproSaas/tests/support/scheduling-atdd.ts",
+    "C:/DEV/ElproSaas/tests/support/stack-gate.ts",
+    "C:/DEV/ElproSaas/tests/support/test-env.ts",
+    "C:/DEV/ElproSaas/tests/unit/admin-users/read-pagination.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/e2e/resource-cdp-attachment.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/resources/booking-attempt-transport.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/resources/booking-editor-input.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/resources/capacity-inputs.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/resources/resource-form-inputs.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/resources/schedule-form-merge.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/resources/schedule-read.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/resources/work-hours.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/scheduling/capacity.golden.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/scheduling/conflicts.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/features/scheduling/dst.golden.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/quote-send-diagnostics.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/scope/booking-editor-scope.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/scope/manifest-derivations.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/scope/manifest-shape.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/scope/resources-activation.atdd.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/security-headers.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/server/authz/permission-matrix.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/server/authz/role-catalogue.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/server/authz/role-harness.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/server/bookings/conflict-attestation.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/server/commands/bookings-validation.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/server/resources/e2e-save-failure.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/support/global-setup.test.ts",
+    "C:/DEV/ElproSaas/tests/unit/support/test-env.test.ts"
+  ],
+  "context_files": [
+    "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-1-scheduling-activation-person-profiles-and-work-hours.md",
+    "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-2-bookings-and-assignees-schema-and-transactional-commands.md",
+    "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-3-deterministic-conflict-engine-detection-core.md",
+    "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md"
+  ],
+  "headless": true,
+  "output_file_override": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-test-review-2026-10-07/test-review.md",
+  "generate_inline_comments": false,
+  "timestamp": "2026-10-07-epic14",
+  "files": [
+    {
+      "path": "C:/DEV/ElproSaas/.agents/skills/auto-bmad/scripts/tests/test_routing_migration.py",
+      "relative": ".agents/skills/auto-bmad/scripts/tests/test_routing_migration.py",
+      "encoding": "utf-8",
+      "lines": 968,
+      "bytes": 54615,
+      "sha256": "afbc8ae36d6bef5cc07adb70e45c84d0fd882066dd4a73f82eac08536c806f99",
+      "classification": "mechanical-routing-tests",
+      "tests_lexical": 25,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import hashlib",
+        "import importlib.util",
+        "import json",
+        "import re",
+        "import sys",
+        "import tempfile",
+        "import tomllib",
+        "import unittest"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/.claude/skills/auto-bmad/scripts/tests/test_routing_migration.py",
+      "relative": ".claude/skills/auto-bmad/scripts/tests/test_routing_migration.py",
+      "encoding": "utf-8",
+      "lines": 968,
+      "bytes": 54615,
+      "sha256": "afbc8ae36d6bef5cc07adb70e45c84d0fd882066dd4a73f82eac08536c806f99",
+      "classification": "mechanical-routing-tests",
+      "tests_lexical": 25,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import hashlib",
+        "import importlib.util",
+        "import json",
+        "import re",
+        "import sys",
+        "import tempfile",
+        "import tomllib",
+        "import unittest"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/.env.test.example",
+      "relative": ".env.test.example",
+      "encoding": "utf-8",
+      "lines": 7,
+      "bytes": 607,
+      "sha256": "f17fd0b049424d0371df1be7f6d58c09a73497c1c7d22b40b65e84538bff1fd9",
+      "classification": "configuration",
+      "tests_lexical": 0,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/compose.test.yaml",
+      "relative": "compose.test.yaml",
+      "encoding": "utf-8",
+      "lines": 133,
+      "bytes": 4612,
+      "sha256": "b8d4840b80c228a87d40637f740197c5490c36f65858940cf985ba36e8ff41a0",
+      "classification": "configuration",
+      "tests_lexical": 0,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/e2e/booking-editor.e2e.spec.ts",
+      "relative": "tests/e2e/booking-editor.e2e.spec.ts",
+      "encoding": "utf-8",
+      "lines": 532,
+      "bytes": 39591,
+      "sha256": "a2036d1034634071f8376995061e60b3add06dd52a2f0165cf54321f47089128",
+      "classification": "test-body",
+      "tests_lexical": 16,
+      "describes_lexical": 1,
+      "expect_sites": 178,
+      "imports": [
+        "import { test, expect, type Scenario } from \"./support/booking-editor-atdd\";",
+        "import type { Locator, Page } from \"@playwright/test\";",
+        "import { bookingSnapshot, type BookingSnapshot, type DurableRow } from \"../support/bookings-atdd\";",
+        "import { adminQuery } from \"../factories/admin-sql\";"
+      ],
+      "priority_tokens": 10,
+      "hard_wait_lines": [
+        136
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/e2e/global-setup.ts",
+      "relative": "tests/e2e/global-setup.ts",
+      "encoding": "utf-8",
+      "lines": 1102,
+      "bytes": 47702,
+      "sha256": "7b98ea7c85296ba3396e7d47eabd1e835817c611efca0fe708584aec748304f0",
+      "classification": "helper/fixture",
+      "tests_lexical": 2,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import { mkdirSync, writeFileSync } from \"node:fs\";",
+        "import { createHash } from \"node:crypto\";",
+        "import path from \"node:path\";",
+        "import {",
+        "import { adminQuery } from \"../factories/admin-sql\";",
+        "import { seedQuoteFileFixtures } from \"./seed-quote-file-fixtures\";",
+        "import { seedEpic12BrowserFixtures } from \"./seed-epic-12-browser-fixtures\";",
+        "import { RETRY_FIXTURE_DUE_DATE } from \"./retry-fixture-clock\";"
+      ],
+      "priority_tokens": 1,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/e2e/resources-person-profile.e2e.spec.ts",
+      "relative": "tests/e2e/resources-person-profile.e2e.spec.ts",
+      "encoding": "utf-8",
+      "lines": 175,
+      "bytes": 10539,
+      "sha256": "a0a08fa49b15aaead06cdd5275a6982240c8fc02c3d17da8f9a6d47d1f8b4a69",
+      "classification": "test-body",
+      "tests_lexical": 4,
+      "describes_lexical": 0,
+      "expect_sites": 30,
+      "imports": [
+        "import { expect, test } from \"./support/resource-cdp-attachment\";",
+        "import { readFileSync } from \"node:fs\";",
+        "import path from \"node:path\";"
+      ],
+      "priority_tokens": 4,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/e2e/support/booking-editor-atdd.ts",
+      "relative": "tests/e2e/support/booking-editor-atdd.ts",
+      "encoding": "utf-8",
+      "lines": 307,
+      "bytes": 22965,
+      "sha256": "56b688acb0e4f752ba2ca2181183420e32fdaa006b3d1b90a80240f0215e308c",
+      "classification": "helper/fixture",
+      "tests_lexical": 1,
+      "describes_lexical": 0,
+      "expect_sites": 1,
+      "imports": [
+        "import { test as base, expect } from \"./resource-cdp-attachment\";",
+        "import type { Page, TestInfo } from \"@playwright/test\";",
+        "import { readFileSync } from \"node:fs\";",
+        "import path from \"node:path\";",
+        "import { randomUUID } from \"node:crypto\";",
+        "import { admin, adminInsertContact, adminInsertCustomer, adminInsertFacility, deleteAuthUser, makeAuthedServerClient, type FixtureUser } from \"../../factories/tenants\";",
+        "import { adminQuery, adminSession } from \"../../factories/admin-sql\";",
+        "import { bookingInput } from \"../../support/bookings-atdd\";",
+        "import { createBooking } from \"@/server/commands/bookings/create-booking\";",
+        "import { runCommand } from \"@/server/commands/envelope\";",
+        "import { resolveTenantContext } from \"@/server/auth/resolve-tenant-context\";",
+        "import { previewBookingEditor } from \"@/server/bookings/editor-preview\";",
+        "import { bookingPayload, validateCreateBooking } from \"@/server/commands/bookings/validation\";",
+        "import { formatBookingTime } from \"@/components/resources/BookingConflictPanel\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/e2e/support/resource-cdp-attachment.ts",
+      "relative": "tests/e2e/support/resource-cdp-attachment.ts",
+      "encoding": "utf-8",
+      "lines": 58,
+      "bytes": 2307,
+      "sha256": "3073711d4488f93123044446790a508758e5235609f35f0b3f10e638326187d9",
+      "classification": "helper/fixture",
+      "tests_lexical": 0,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import { chromium, expect, test as base, type Page } from \"@playwright/test\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/factories/tenants/core.ts",
+      "relative": "tests/factories/tenants/core.ts",
+      "encoding": "utf-8",
+      "lines": 493,
+      "bytes": 21309,
+      "sha256": "e877c463e15173bc6b5a8ed0018de919289217c5e9b4379a6eb5aa8fc9457265",
+      "classification": "helper/fixture",
+      "tests_lexical": 0,
+      "describes_lexical": 0,
+      "expect_sites": 1,
+      "imports": [
+        "import { observeQuoteSendRpcs } from \"../../support/quote-send-diagnostics\";",
+        "import { createClient, type SupabaseClient } from \"@supabase/supabase-js\";",
+        "import type { TenantRole } from \"@/server/authz/roles\";",
+        "import {",
+        "import { adminQuery, adminSession } from \"../admin-sql\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/capacity.json",
+      "relative": "tests/fixtures/golden/scheduling/capacity.json",
+      "encoding": "utf-8",
+      "lines": 203,
+      "bytes": 4174,
+      "sha256": "e74ff7204079701b88d95cc6352b6af8019f1c6bb6cbf9760c39b9fd316f6e6a",
+      "classification": "golden-fixture",
+      "tests_lexical": 0,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/conflicts.json",
+      "relative": "tests/fixtures/golden/scheduling/conflicts.json",
+      "encoding": "utf-8",
+      "lines": 296,
+      "bytes": 8322,
+      "sha256": "9c31764bcf199246b2785b456bd795a3d5dcc513c1aaa52e1368f592c4b39b44",
+      "classification": "golden-fixture",
+      "tests_lexical": 0,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/dst.json",
+      "relative": "tests/fixtures/golden/scheduling/dst.json",
+      "encoding": "utf-8",
+      "lines": 69,
+      "bytes": 1792,
+      "sha256": "c1d2388cab20e6da742d62bf7c67b159121b338fe23687bf6f48f88b98fa4e8d",
+      "classification": "golden-fixture",
+      "tests_lexical": 0,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/fixtures/golden/scheduling/regressions.json",
+      "relative": "tests/fixtures/golden/scheduling/regressions.json",
+      "encoding": "utf-8",
+      "lines": 487,
+      "bytes": 13803,
+      "sha256": "d23bd448b32858d8798135a498006b86ecc93fd55976d9ecd20fea7b2cee85a2",
+      "classification": "golden-fixture",
+      "tests_lexical": 0,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/audit-anon-isolation.int.test.ts",
+      "relative": "tests/integration/commands/audit-anon-isolation.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 116,
+      "bytes": 5554,
+      "sha256": "f04a6be815fe251a2f8e7be489b33f57fa03f928af586ccac2baa99e0a62578f",
+      "classification": "test-body",
+      "tests_lexical": 4,
+      "describes_lexical": 1,
+      "expect_sites": 10,
+      "imports": [
+        "import { describe, it, expect, beforeAll, afterAll } from \"vitest\";",
+        "import { adminQuery, closeAdminPool } from \"../../factories/admin-sql\";",
+        "import {",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";"
+      ],
+      "priority_tokens": 5,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/booking-conflicts.int.test.ts",
+      "relative": "tests/integration/commands/booking-conflicts.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 862,
+      "bytes": 64602,
+      "sha256": "f998e6a977600cbfe60bdfde24fcfdf3bc0dc802af88ffd95f34324408a6b3e2",
+      "classification": "test-body",
+      "tests_lexical": 18,
+      "describes_lexical": 1,
+      "expect_sites": 210,
+      "imports": [
+        "import { describe, expect, test } from \"vitest\";"
+      ],
+      "priority_tokens": 29,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/booking-editor-review-fixes.int.test.ts",
+      "relative": "tests/integration/commands/booking-editor-review-fixes.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 59,
+      "bytes": 5738,
+      "sha256": "e6ab178f5c79c4f684e8d5fccce069db669d62733f7d5438c722a3c079c30beb",
+      "classification": "test-body",
+      "tests_lexical": 2,
+      "describes_lexical": 0,
+      "expect_sites": 19,
+      "imports": [
+        "import { createHash } from \"node:crypto\";",
+        "import { expect, test, vi } from \"vitest\";",
+        "import { withConflictFixture } from \"../../support/booking-conflicts-atdd\";",
+        "import { bookingInput, bookingSnapshot } from \"../../support/bookings-atdd\";",
+        "import { actualEditorBindings } from \"../../support/booking-editor-production\";",
+        "import { adminQuery } from \"../../factories/admin-sql\";",
+        "import { openEditorReceipt, sealEditorReceipt } from \"@/server/bookings/editor-preview\";",
+        "import { LOCAL_TEST_BOOKING_CONFLICT_SECRET as secret } from \"../../support/test-env\";",
+        "import * as clientFactory from \"@/server/db/supabase-server-client\";",
+        "import { readBookingEditorOptions } from \"@/features/resources/bookings-read\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/booking-editor-round2.int.test.ts",
+      "relative": "tests/integration/commands/booking-editor-round2.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 39,
+      "bytes": 3559,
+      "sha256": "800cd980ba04db0b2acb9bca862bb38dd6b05c58691215139a7f20516dde038f",
+      "classification": "test-body",
+      "tests_lexical": 2,
+      "describes_lexical": 0,
+      "expect_sites": 10,
+      "imports": [
+        "import { expect, test } from \"vitest\";",
+        "import { withConflictFixture } from \"../../support/booking-conflicts-atdd\";",
+        "import { bookingInput, bookingSnapshot } from \"../../support/bookings-atdd\";",
+        "import { actualEditorBindings } from \"../../support/booking-editor-production\";",
+        "import { adminQuery } from \"../../factories/admin-sql\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/booking-editor.int.test.ts",
+      "relative": "tests/integration/commands/booking-editor.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 637,
+      "bytes": 41585,
+      "sha256": "6f5997d0e830a3c1bf89afa70265efe259bc97b039e4dc4c9aa8e6684f2b84d5",
+      "classification": "test-body",
+      "tests_lexical": 27,
+      "describes_lexical": 5,
+      "expect_sites": 173,
+      "imports": [
+        "import { describe, expect, test } from \"vitest\";",
+        "import type { BookingFixture, BookingSnapshot, DurableRow } from \"../../support/bookings-atdd\";",
+        "import type { Decision, EditorInput, LogicalGroup, LogicalIdentity, Preview, Scenario } from \"../../support/booking-editor-atdd\";"
+      ],
+      "priority_tokens": 27,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "relative": "tests/integration/commands/bookings-replay-authority.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 221,
+      "bytes": 14946,
+      "sha256": "332a32a25674e1e3e9a4bdbaef580ee90209fd7ee5aedda84c1cfb4d4019377a",
+      "classification": "test-body",
+      "tests_lexical": 1,
+      "describes_lexical": 3,
+      "expect_sites": 41,
+      "imports": [
+        "import { authoritativeBookingRpc } from \"../../support/booking-conflict-attestation\";",
+        "import { beforeAll, describe, expect, test } from \"vitest\";",
+        "import { waitForBlocked } from \"../../support/booking-conflicts-atdd\";",
+        "import { adminQuery, adminSession } from \"../../factories/admin-sql\";",
+        "import { makeAuthedServerClient } from \"../../factories/tenants\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";",
+        "import {"
+      ],
+      "priority_tokens": 4,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/bookings.int.test.ts",
+      "relative": "tests/integration/commands/bookings.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 488,
+      "bytes": 36732,
+      "sha256": "cd9d40701a176b71948cd7a4db0cec3bb3974c878b079d8d728eee15e9f8a785",
+      "classification": "test-body",
+      "tests_lexical": 16,
+      "describes_lexical": 1,
+      "expect_sites": 138,
+      "imports": [
+        "import { authoritativeBookingRpc } from \"../../support/booking-conflict-attestation\";",
+        "import { loadConflictBindings } from \"../../support/booking-conflicts-atdd\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";",
+        "import { beforeAll, describe, expect, test } from \"vitest\";",
+        "import { setTimeout as pause } from \"node:timers/promises\";",
+        "import { runCommand } from \"@/server/commands/envelope\";",
+        "import { adminQuery, adminSession } from \"../../factories/admin-sql\";",
+        "import {"
+      ],
+      "priority_tokens": 16,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/quote-pdf-validity.int.test.ts",
+      "relative": "tests/integration/commands/quote-pdf-validity.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 1590,
+      "bytes": 72770,
+      "sha256": "237d1bc5b42e0861002bb38ef278075601f04ac25ac9cd5d3459a2a12f7c2c08",
+      "classification": "test-body",
+      "tests_lexical": 28,
+      "describes_lexical": 1,
+      "expect_sites": 141,
+      "imports": [
+        "import { observeQuoteSendRpcs, type QuoteSendDiagnostic } from \"../../support/quote-send-diagnostics\";",
+        "import { createHash } from \"node:crypto\";",
+        "import { createClient } from \"@supabase/supabase-js\";",
+        "import { afterAll, beforeAll, describe, expect, it } from \"vitest\";",
+        "import {",
+        "import { adminQuery, adminSession, closeAdminPool } from \"../../factories/admin-sql\";",
+        "import {",
+        "import { skipUnlessStack, skipUnlessStorage, type SkippableTestContext } from \"../../support/stack-gate\";",
+        "import {",
+        "import { runCommand } from \"@/server/commands/envelope\";",
+        "import { createSignedFileAccess } from \"@/server/commands/files\";",
+        "import { createQuotePdfSignedAccess, generateQuotePdf, updateDraftQuoteVersion } from \"@/server/commands/quotes\";",
+        "import type { CommandClock } from \"@/server/commands/clock\";"
+      ],
+      "priority_tokens": 27,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/resources-boundaries.int.test.ts",
+      "relative": "tests/integration/commands/resources-boundaries.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 321,
+      "bytes": 20595,
+      "sha256": "2f653b1dd3c63a5776556307cd7d8764b6ed70df10000e13b9b69a8810e340b9",
+      "classification": "test-body",
+      "tests_lexical": 5,
+      "describes_lexical": 1,
+      "expect_sites": 41,
+      "imports": [
+        "import { beforeAll, describe, expect, test } from \"vitest\";",
+        "import { adminQuery } from \"../../factories/admin-sql\";",
+        "import {",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";"
+      ],
+      "priority_tokens": 5,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/resources.int.test.ts",
+      "relative": "tests/integration/commands/resources.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 112,
+      "bytes": 11397,
+      "sha256": "09139989c787832029aa739a8b9d5786bc8708c1a1736ddad03c2fffbc2b0bdf",
+      "classification": "test-body",
+      "tests_lexical": 6,
+      "describes_lexical": 1,
+      "expect_sites": 21,
+      "imports": [
+        "import { describe, expect, test } from \"vitest\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";"
+      ],
+      "priority_tokens": 6,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/update-job.int.test.ts",
+      "relative": "tests/integration/commands/update-job.int.test.ts",
+      "encoding": "cp1252",
+      "lines": 340,
+      "bytes": 16120,
+      "sha256": "5ece36ccff52073c9d8cdbecd39c280d1edbe186bb87703c95c10e196b1f4328",
+      "classification": "test-body",
+      "tests_lexical": 10,
+      "describes_lexical": 1,
+      "expect_sites": 33,
+      "imports": [
+        "import { describe, it, expect, beforeAll, afterAll } from \"vitest\";",
+        "import {",
+        "import { adminSelectAuditEvents } from \"../../factories/audit-events\";",
+        "import { adminQuery } from \"../../factories/admin-sql\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";",
+        "import { expectDatabaseOwnedTimestamp, readDatabaseNow } from \"../../support/database-time\";",
+        "import { observeQuoteSendRpcs } from \"../../support/quote-send-diagnostics\";",
+        "import { establishCurrentQuotePdf } from \"../../support/quote-pdf\";",
+        "import { runCommand } from \"@/server/commands/envelope\";",
+        "import {",
+        "import { updateJob } from \"@/server/commands/jobs\";",
+        "import type { CommandClock } from \"@/server/commands/clock\";"
+      ],
+      "priority_tokens": 11,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/components/booking-editor.test.ts",
+      "relative": "tests/integration/components/booking-editor.test.ts",
+      "encoding": "utf-8",
+      "lines": 165,
+      "bytes": 11993,
+      "sha256": "9320f5ace1446ba2c5da02621b5022c2995c09115cacc32596612b2a3bc4a062",
+      "classification": "test-body",
+      "tests_lexical": 14,
+      "describes_lexical": 1,
+      "expect_sites": 59,
+      "imports": [
+        "import { renderToStaticMarkup } from \"react-dom/server\";",
+        "import { describe, test, expect, vi } from \"vitest\";",
+        "import { createElement } from \"react\";",
+        "import { BookingEditor } from \"@/components/resources/BookingEditor\";",
+        "import { BookingEntry, bookingSummaryDraft } from \"@/components/resources/BookingEntry\";",
+        "import { validateUpdateBooking } from \"@/server/commands/bookings/validation\";",
+        "import { BookingConflictPanel, advanceBookingPreview, type BookingPreviewDisplay } from \"@/components/resources/BookingConflictPanel\";",
+        "import { booking, controlNames, editor, PERSON, PERSON_2, warning,"
+      ],
+      "priority_tokens": 9,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts",
+      "relative": "tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 306,
+      "bytes": 15111,
+      "sha256": "b241d49eae5bda0fd6120668265aaf2f1a294d6ea761fdeb2559acdc01b37218",
+      "classification": "test-body",
+      "tests_lexical": 3,
+      "describes_lexical": 1,
+      "expect_sites": 19,
+      "imports": [
+        "import { afterAll, beforeAll, describe, expect, test } from \"vitest\";",
+        "import {",
+        "import { adminQuery, closeAdminPool } from \"../../factories/admin-sql\";",
+        "import { establishCurrentQuotePdf } from \"../../support/quote-pdf\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";",
+        "import { runCommand } from \"@/server/commands/envelope\";",
+        "import {",
+        "import type { CommandClock } from \"@/server/commands/clock\";"
+      ],
+      "priority_tokens": 3,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/features/booking-read-actions.test.ts",
+      "relative": "tests/integration/features/booking-read-actions.test.ts",
+      "encoding": "utf-8",
+      "lines": 158,
+      "bytes": 11661,
+      "sha256": "635a842dd310eeb98be024e52e1088be02908d24fe0cbdc931805a7a75d6772e",
+      "classification": "test-body",
+      "tests_lexical": 13,
+      "describes_lexical": 1,
+      "expect_sites": 48,
+      "imports": [
+        "import { beforeEach, describe, expect, test, vi } from \"vitest\";",
+        "import { createHash } from \"node:crypto\";",
+        "import { CommandError } from \"@/server/commands/command-errors\";",
+        "import { previewBookingAction, saveBookingAction } from \"@/features/resources/booking-actions\";",
+        "import { openBookingConflictCounts, readBookingEditorDefault, readBookingEditorOptions, readBookingHost } from \"@/features/resources/bookings-read\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/jobs/job-runs.int.test.ts",
+      "relative": "tests/integration/jobs/job-runs.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 76,
+      "bytes": 4904,
+      "sha256": "5d387ead588913269702e3f48e8c9618067bd1e9bec8a1224ee737c351a23ac3",
+      "classification": "test-body",
+      "tests_lexical": 2,
+      "describes_lexical": 1,
+      "expect_sites": 13,
+      "imports": [
+        "import { afterAll, beforeAll, describe, expect, test } from \"vitest\";",
+        "import { adminQuery, closeAdminPool } from \"../../factories/admin-sql\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";",
+        "import { TENANT_TABLES } from \"../rls/tenant-table-inventory\";"
+      ],
+      "priority_tokens": 2,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/admin-user-management.rls.test.ts",
+      "relative": "tests/integration/rls/admin-user-management.rls.test.ts",
+      "encoding": "utf-8",
+      "lines": 58,
+      "bytes": 2937,
+      "sha256": "9fd6b91e737ce5a0fe4a946752578ef94980210a5af452ac8f9ae0280eb61cc5",
+      "classification": "test-body",
+      "tests_lexical": 2,
+      "describes_lexical": 1,
+      "expect_sites": 5,
+      "imports": [
+        "import { describe, expect, test } from \"vitest\";"
+      ],
+      "priority_tokens": 2,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/approved-public-acl-repair.int.test.ts",
+      "relative": "tests/integration/rls/approved-public-acl-repair.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 167,
+      "bytes": 5879,
+      "sha256": "1e2d539b377ac8894ddfa3451d0a4cf9abb5717dce7a35c5385cb7170d057204",
+      "classification": "test-body",
+      "tests_lexical": 3,
+      "describes_lexical": 1,
+      "expect_sites": 6,
+      "imports": [
+        "import { beforeAll, describe, expect, it } from \"vitest\";",
+        "import { adminQuery } from \"../../factories/admin-sql\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";"
+      ],
+      "priority_tokens": 3,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/bookings.rls.test.ts",
+      "relative": "tests/integration/rls/bookings.rls.test.ts",
+      "encoding": "utf-8",
+      "lines": 242,
+      "bytes": 18658,
+      "sha256": "ce48a522751eafa6c1f880ebaed16ae60ebd54f53a40b1c8220d38a57b5c77a4",
+      "classification": "test-body",
+      "tests_lexical": 6,
+      "describes_lexical": 1,
+      "expect_sites": 68,
+      "imports": [
+        "import { authoritativeBookingRpc } from \"../../support/booking-conflict-attestation\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";",
+        "import { beforeAll, describe, expect, test } from \"vitest\";",
+        "import { adminQuery, adminSession } from \"../../factories/admin-sql\";",
+        "import { makeAnonServerClient, makeAuthedServerClient } from \"../../factories/tenants\";",
+        "import {"
+      ],
+      "priority_tokens": 6,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/calc-tables-migration-reset.int.test.ts",
+      "relative": "tests/integration/rls/calc-tables-migration-reset.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 354,
+      "bytes": 17617,
+      "sha256": "6bde96f98eb3ef614eaccc6251873edf4655a23fa70b0dbec2d085871c61bb34",
+      "classification": "test-body",
+      "tests_lexical": 25,
+      "describes_lexical": 1,
+      "expect_sites": 34,
+      "imports": [
+        "import { describe, it, expect, beforeAll, afterAll } from \"vitest\";",
+        "import { adminQuery, closeAdminPool } from \"../../factories/admin-sql\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";"
+      ],
+      "priority_tokens": 15,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/crm-tables-migration-reset.int.test.ts",
+      "relative": "tests/integration/rls/crm-tables-migration-reset.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 269,
+      "bytes": 12763,
+      "sha256": "d46217d09b5b7accfb40ac3bfd1b4f5788d6591276f1c3895a3e2abd24cd6a0a",
+      "classification": "test-body",
+      "tests_lexical": 17,
+      "describes_lexical": 1,
+      "expect_sites": 21,
+      "imports": [
+        "import { describe, it, expect, beforeAll, afterAll } from \"vitest\";",
+        "import { adminQuery, closeAdminPool } from \"../../factories/admin-sql\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";"
+      ],
+      "priority_tokens": 11,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/cross-tenant-isolation.rls.test.ts",
+      "relative": "tests/integration/rls/cross-tenant-isolation.rls.test.ts",
+      "encoding": "utf-8",
+      "lines": 756,
+      "bytes": 38014,
+      "sha256": "a11ec3e21c5f02869a651ed4a7a638b8f154431ce4fdb96d6efe1c164c14ba55",
+      "classification": "test-body",
+      "tests_lexical": 5,
+      "describes_lexical": 2,
+      "expect_sites": 54,
+      "imports": [
+        "import { bookingPublicColumns, seedBookingReadRows } from \"../../support/bookings-atdd\";",
+        "import { describe, it, expect, beforeAll, afterAll } from \"vitest\";",
+        "import {",
+        "import { adminInsertAuditEvent } from \"../../factories/audit-events\";",
+        "import { adminQuery } from \"../../factories/admin-sql\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";",
+        "import {"
+      ],
+      "priority_tokens": 6,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/file-tables-migration-reset.int.test.ts",
+      "relative": "tests/integration/rls/file-tables-migration-reset.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 360,
+      "bytes": 16978,
+      "sha256": "5ccac43218fe6570c1b7e1c3d8e77e64586ea748758ebff3f45e1835cbe77093",
+      "classification": "test-body",
+      "tests_lexical": 24,
+      "describes_lexical": 1,
+      "expect_sites": 34,
+      "imports": [
+        "import { describe, it, expect, beforeAll, afterAll } from \"vitest\";",
+        "import { adminQuery, closeAdminPool } from \"../../factories/admin-sql\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";"
+      ],
+      "priority_tokens": 17,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/membership-self-grant.rls.test.ts",
+      "relative": "tests/integration/rls/membership-self-grant.rls.test.ts",
+      "encoding": "utf-8",
+      "lines": 165,
+      "bytes": 6993,
+      "sha256": "fc90521be58abf4ec83097704c5a176dae2e27bd5239d381315719ba29d54e80",
+      "classification": "test-body",
+      "tests_lexical": 7,
+      "describes_lexical": 2,
+      "expect_sites": 22,
+      "imports": [
+        "import { describe, it, expect, beforeAll, afterAll } from \"vitest\";",
+        "import {",
+        "import { adminQuery } from \"../../factories/admin-sql\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";"
+      ],
+      "priority_tokens": 7,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/migration-reset.int.test.ts",
+      "relative": "tests/integration/rls/migration-reset.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 671,
+      "bytes": 32022,
+      "sha256": "94a8b50078b5b55e976f9a3ccd46bfc1d98faae79bbd93b0e007be73bb9fbd44",
+      "classification": "test-body",
+      "tests_lexical": 14,
+      "describes_lexical": 2,
+      "expect_sites": 45,
+      "imports": [
+        "import { describe, it, expect, beforeAll, afterAll } from \"vitest\";",
+        "import { adminQuery, closeAdminPool } from \"../../factories/admin-sql\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";",
+        "import { assertSearchPathExactlyEmpty } from \"../../support/search-path\";"
+      ],
+      "priority_tokens": 13,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/onboarding-checklist.rls.test.ts",
+      "relative": "tests/integration/rls/onboarding-checklist.rls.test.ts",
+      "encoding": "utf-8",
+      "lines": 135,
+      "bytes": 9987,
+      "sha256": "3e2f1e3d5a21c43d5663e73cffe00d9bd0f9a71fccdc88871355efd677bd3505",
+      "classification": "test-body",
+      "tests_lexical": 6,
+      "describes_lexical": 1,
+      "expect_sites": 19,
+      "imports": [
+        "import { describe, expect, test } from \"vitest\";"
+      ],
+      "priority_tokens": 6,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/pricing-tables-migration-reset.int.test.ts",
+      "relative": "tests/integration/rls/pricing-tables-migration-reset.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 242,
+      "bytes": 12255,
+      "sha256": "655aae873f6aa3cbd4b9fe8966918b3ea79b36824c28fa2d86fc1801702900db",
+      "classification": "test-body",
+      "tests_lexical": 12,
+      "describes_lexical": 1,
+      "expect_sites": 23,
+      "imports": [
+        "import { describe, it, expect, beforeAll, afterAll } from \"vitest\";",
+        "import { adminQuery, closeAdminPool } from \"../../factories/admin-sql\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";"
+      ],
+      "priority_tokens": 11,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/quote-follow-ups-migration-reset.int.test.ts",
+      "relative": "tests/integration/rls/quote-follow-ups-migration-reset.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 207,
+      "bytes": 11523,
+      "sha256": "b4bd272cb64fd5b8e9384f8c271fecb0c075287978dfce158e2ea69212c09c80",
+      "classification": "test-body",
+      "tests_lexical": 19,
+      "describes_lexical": 1,
+      "expect_sites": 16,
+      "imports": [
+        "import { describe, it, expect, beforeAll, afterAll } from \"vitest\";",
+        "import { adminQuery, closeAdminPool } from \"../../factories/admin-sql\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";"
+      ],
+      "priority_tokens": 11,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/quote-pipeline-read-model.rls.test.ts",
+      "relative": "tests/integration/rls/quote-pipeline-read-model.rls.test.ts",
+      "encoding": "utf-8",
+      "lines": 342,
+      "bytes": 21191,
+      "sha256": "adc7b49b9cca0c5c147a96eb2f0a5fc111d4d448fe8d12940cce644bb171857f",
+      "classification": "test-body",
+      "tests_lexical": 10,
+      "describes_lexical": 1,
+      "expect_sites": 29,
+      "imports": [
+        "import { describe, it, expect, beforeAll, afterAll } from \"vitest\";",
+        "import { existsSync, readFileSync } from \"node:fs\";",
+        "import path from \"node:path\";",
+        "import {",
+        "import { adminExec } from \"../../factories/admin-sql\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";",
+        "import { readQuotePipeline } from \"@/server/read-models/quote-pipeline\";",
+        "import {"
+      ],
+      "priority_tokens": 1,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/quote-review-authorization-migration-reset.int.test.ts",
+      "relative": "tests/integration/rls/quote-review-authorization-migration-reset.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 191,
+      "bytes": 9491,
+      "sha256": "9f06dd4b86659b4ca521535c5a99607ba3b3ee70d9f2f3d442316ff29ba90dce",
+      "classification": "test-body",
+      "tests_lexical": 4,
+      "describes_lexical": 1,
+      "expect_sites": 16,
+      "imports": [
+        "import { afterAll, beforeAll, describe, expect, it } from \"vitest\";",
+        "import { adminQuery, closeAdminPool } from \"../../factories/admin-sql\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";"
+      ],
+      "priority_tokens": 4,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/resources.rls.test.ts",
+      "relative": "tests/integration/rls/resources.rls.test.ts",
+      "encoding": "utf-8",
+      "lines": 36,
+      "bytes": 3882,
+      "sha256": "5bb2c1e40bd8e9a2d8a802f432ab6afb69a061f6b67247270acb61f2f22390a6",
+      "classification": "test-body",
+      "tests_lexical": 2,
+      "describes_lexical": 1,
+      "expect_sites": 7,
+      "imports": [
+        "import { describe, expect, test } from \"vitest\";",
+        "import { TENANT_TABLES } from \"./tenant-table-inventory\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";"
+      ],
+      "priority_tokens": 2,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/role-harness.atdd.int.test.ts",
+      "relative": "tests/integration/rls/role-harness.atdd.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 253,
+      "bytes": 24326,
+      "sha256": "77b845a0ac9ac8748e90c539d0a6e7fc0786ff6ef67afcff1360e7de9dfce024",
+      "classification": "test-body",
+      "tests_lexical": 4,
+      "describes_lexical": 1,
+      "expect_sites": 25,
+      "imports": [
+        "import { seedBookingReadRows } from \"../../support/bookings-atdd\";",
+        "import { afterAll, beforeAll, describe, expect, test } from \"vitest\";",
+        "import { buildEffectivePermissions } from \"@/server/authz/role-catalogue\";",
+        "import { roleCatalogueForAdminUsers, type AdminUserRow } from \"@/features/admin-users/read\";",
+        "import { TENANT_ROLES, type TenantRole } from \"@/server/authz/roles\";",
+        "import { activeRoleHarnessObligations, buildRoleHarnessCases, runCommandHarnessProbe, tableRlsProjectionAdapter } from \"../../support/authz/role-harness\";",
+        "import type { TenantTableName } from \"./tenant-table-inventory\";",
+        "import { adminInsertAuditEvent } from \"../../factories/audit-events\";",
+        "import {",
+        "import { adminQuery, closeAdminPool } from \"../../factories/admin-sql\";",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";"
+      ],
+      "priority_tokens": 5,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/settings-rls.int.test.ts",
+      "relative": "tests/integration/rls/settings-rls.int.test.ts",
+      "encoding": "utf-8",
+      "lines": 388,
+      "bytes": 19415,
+      "sha256": "f3ee2ce17ebbeb46e66b79884451135f0635a8a50379c34f62d58b892de33a66",
+      "classification": "test-body",
+      "tests_lexical": 16,
+      "describes_lexical": 4,
+      "expect_sites": 36,
+      "imports": [
+        "import { describe, it, expect, beforeAll, afterAll } from \"vitest\";",
+        "import { adminQuery, closeAdminPool } from \"../../factories/admin-sql\";",
+        "import {",
+        "import { isLocalStackReachable } from \"../../support/test-env\";",
+        "import { skipUnlessStack } from \"../../support/stack-gate\";",
+        "import {"
+      ],
+      "priority_tokens": 18,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/rls/tenant-table-inventory.ts",
+      "relative": "tests/integration/rls/tenant-table-inventory.ts",
+      "encoding": "utf-8",
+      "lines": 2074,
+      "bytes": 98334,
+      "sha256": "23fb6f90b93a97776de0447acfa43fff8544648a16bb44b3457eb391c28737c1",
+      "classification": "helper/fixture",
+      "tests_lexical": 1,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import type { TwoTenantFixture } from \"../../factories/tenants\";",
+        "import { calendarDayIn } from \"@/features/quotes/follow-up-dates\";",
+        "import { SCOPE_MANIFEST } from \"@/scope/manifest\";",
+        "import { tenantTablesFromManifest } from \"@/scope/manifest-schema\";"
+      ],
+      "priority_tokens": 1,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/authz/role-harness.ts",
+      "relative": "tests/support/authz/role-harness.ts",
+      "encoding": "utf-8",
+      "lines": 252,
+      "bytes": 14678,
+      "sha256": "853aec7b2e5f01211c46726b6f1bd776357de718f092e9f8bc8b1ffb84e9a96b",
+      "classification": "helper/fixture",
+      "tests_lexical": 0,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import { BOOKING_PUBLIC_COLUMNS } from \"@/features/resources/booking-types\";",
+        "import { COMMAND_CAPABILITIES, defineCommand, runCommand, type CommandDbClient } from \"@/server/commands/envelope\";",
+        "import { PERMISSION_MATRIX } from \"@/server/authz/permission-matrix\";",
+        "import { TENANT_ROLES, type TenantRole } from \"@/server/authz/roles\";",
+        "import { SCOPE_MANIFEST } from \"@/scope/manifest\";",
+        "import { TENANT_TABLES, type TenantTableName } from \"../../integration/rls/tenant-table-inventory\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/booking-conflict-attestation.ts",
+      "relative": "tests/support/booking-conflict-attestation.ts",
+      "encoding": "utf-8",
+      "lines": 196,
+      "bytes": 17265,
+      "sha256": "614aa5b29780e004d627dab902ed55d6c2d76715de1b1317420dcab77f6a4060",
+      "classification": "helper/fixture",
+      "tests_lexical": 0,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import { createHash } from \"node:crypto\";",
+        "import { parseDetectionSnapshot, snapshotBookingConflicts, previewBookingConflicts, deriveBookingConflicts, conflictClaims,",
+        "import { signConflictOutput } from \"@/server/bookings/conflict-attestation\";",
+        "import { validateCreateBooking, validateUpdateBooking, bookingPayload } from \"@/server/commands/bookings/validation\";",
+        "import { LOCAL_TEST_BOOKING_CONFLICT_KEY_ID, LOCAL_TEST_BOOKING_CONFLICT_SECRET, assertLocalStack } from \"./test-env\";",
+        "import { bookingCommand, bookingRpcDiagnostic, type BookingInput, type DurableRow } from \"./bookings-atdd\";",
+        "import type { ConflictBindings, DetectionSnapshot, AttestedAttempt, DerivedConflict, Operation, FinalizeResult } from \"./booking-conflicts-atdd\";",
+        "import type { TestServerClient } from \"../factories/tenants\";",
+        "import { editorClaims, signEditorClaims } from \"@/server/bookings/editor-preview\";",
+        "import { EMPTY_BOOKING_DECISION } from \"@/features/resources/booking-editor-input\";",
+        "import { proposedBookingIdentity } from \"@/server/bookings/create-identity\";",
+        "import { reviewedFixtureInput } from \"./booking-editor-production\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/booking-conflicts-atdd.ts",
+      "relative": "tests/support/booking-conflicts-atdd.ts",
+      "encoding": "utf-8",
+      "lines": 205,
+      "bytes": 14220,
+      "sha256": "490feed1bdc90c6c21de7eb0954c0a373117aa30123aecb5c45e248dab380b4f",
+      "classification": "helper/fixture",
+      "tests_lexical": 0,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import type { BookingFixture, BookingInput, BookingSnapshot, DurableRow } from \"./bookings-atdd\";",
+        "import type { TestServerClient } from \"../factories/tenants\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/booking-editor-atdd.ts",
+      "relative": "tests/support/booking-editor-atdd.ts",
+      "encoding": "utf-8",
+      "lines": 151,
+      "bytes": 9484,
+      "sha256": "f956002d233af096bbcbb297b75c99025b063d22e667c9e91fa553523e39ff2c",
+      "classification": "helper/fixture",
+      "tests_lexical": 0,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import type { BookingFixture, BookingInput, DurableRow } from \"./bookings-atdd\";",
+        "import type { TestServerClient } from \"../factories/tenants\";",
+        "import type { Operation } from \"./booking-conflicts-atdd\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/booking-editor-contract.ts",
+      "relative": "tests/support/booking-editor-contract.ts",
+      "encoding": "utf-8",
+      "lines": 69,
+      "bytes": 4373,
+      "sha256": "4f7c7615b3f2cb255fd2425f6c8427be2f1821b5bc7bfcca517ca88ec018349b",
+      "classification": "helper/fixture",
+      "tests_lexical": 0,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import type { ReactElement } from \"react\";",
+        "import type { BookingFacts } from \"@/features/resources/booking-types\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/booking-editor-production.ts",
+      "relative": "tests/support/booking-editor-production.ts",
+      "encoding": "utf-8",
+      "lines": 453,
+      "bytes": 35383,
+      "sha256": "bfd51d321114f0d22c3de3c3ef6a7a244889dc385e1f6e3990c033d7a95fd1db",
+      "classification": "helper/fixture",
+      "tests_lexical": 0,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import { createHash } from \"node:crypto\";",
+        "import { vi } from \"vitest\";",
+        "import { adminQuery, adminSession } from \"../factories/admin-sql\";",
+        "import { bookingInput, bookingCommand, bookingPublicColumns, seedBookingParents,",
+        "import { waitForBlocked } from \"./booking-conflicts-atdd\";",
+        "import { LOCAL_TEST_BOOKING_CONFLICT_KEY_ID as keyId, LOCAL_TEST_BOOKING_CONFLICT_SECRET as secret } from \"./test-env\";",
+        "import { snapshotBookingConflicts, deriveBookingConflicts, conflictClaims,",
+        "import { openEditorReceipt, sealEditorReceipt, signEditorClaims, editorClaims, BOOKING_EDITOR_DOMAIN } from \"@/server/bookings/editor-preview\";",
+        "import { signConflictOutput } from \"@/server/bookings/conflict-attestation\";",
+        "import { proposedBookingIdentity } from \"@/server/bookings/create-identity\";",
+        "import { bookingPayload, canonicalBookingPayload, validateCreateBooking, validateUpdateBooking } from \"@/server/commands/bookings/validation\";",
+        "import { EMPTY_BOOKING_DECISION } from \"@/features/resources/booking-editor-input\";",
+        "import { runCommand } from \"@/server/commands/envelope\";",
+        "import { createBooking } from \"@/server/commands/bookings/create-booking\";",
+        "import { updateBooking } from \"@/server/commands/bookings/update-booking\";",
+        "import { previewBookingAction } from \"@/features/resources/booking-actions\";",
+        "import { readBookingHost } from \"@/features/resources/bookings-read\";",
+        "import * as clientFactory from \"@/server/db/supabase-server-client\";",
+        "import type { TestServerClient } from \"../factories/tenants\";",
+        "import type { Operation } from \"./booking-conflicts-atdd\";",
+        "import type { EditorBindings, EditorInput, LogicalGroup, Preview, Scenario } from \"./booking-editor-atdd\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/bookings-atdd.ts",
+      "relative": "tests/support/bookings-atdd.ts",
+      "encoding": "utf-8",
+      "lines": 294,
+      "bytes": 21348,
+      "sha256": "20de5c5f3cca6e42c93c20e4908b6b554eb3235e408d8c4c4ea35da20092286a",
+      "classification": "helper/fixture",
+      "tests_lexical": 0,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import type { Command } from \"@/server/commands/envelope\";",
+        "import { runCommand } from \"@/server/commands/envelope\";",
+        "import { adminQuery } from \"../factories/admin-sql\";",
+        "import {"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/global-setup.ts",
+      "relative": "tests/support/global-setup.ts",
+      "encoding": "utf-8",
+      "lines": 64,
+      "bytes": 2964,
+      "sha256": "24332a20bedc11a3c4aff0e06afe1e74e2cc4c5a182675f90e3bc396f1bc3e71",
+      "classification": "helper/fixture",
+      "tests_lexical": 0,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import {"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/quote-send-diagnostics.ts",
+      "relative": "tests/support/quote-send-diagnostics.ts",
+      "encoding": "utf-8",
+      "lines": 156,
+      "bytes": 10393,
+      "sha256": "b1905dcca863e2c40ce1e9bb11f21cfea3d2e003231048dce94a21b8ba0dd3a5",
+      "classification": "helper/fixture",
+      "tests_lexical": 1,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import { adminQuery } from \"../factories/admin-sql\";",
+        "import type { TestServerClient } from \"../factories/tenants\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/scheduling-atdd.ts",
+      "relative": "tests/support/scheduling-atdd.ts",
+      "encoding": "utf-8",
+      "lines": 56,
+      "bytes": 3593,
+      "sha256": "128ed74ad466c55f0c4439cd6696b7fbbfc128e4ee04f5d342c5f8bcf15d8f91",
+      "classification": "helper/fixture",
+      "tests_lexical": 0,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { readFile } from \"node:fs/promises\";",
+        "import type { CapacityTerms, SchedulingBooking, SchedulingConflict, SchedulingFacts, SchedulingPerson } from \"../../src/features/scheduling/types\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/stack-gate.ts",
+      "relative": "tests/support/stack-gate.ts",
+      "encoding": "utf-8",
+      "lines": 104,
+      "bytes": 4674,
+      "sha256": "6b65bcb73816e4528a9be7549c4e2c2411d90a20ea62b0ee736920f76ce06603",
+      "classification": "helper/fixture",
+      "tests_lexical": 1,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import {"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/support/test-env.ts",
+      "relative": "tests/support/test-env.ts",
+      "encoding": "utf-8",
+      "lines": 281,
+      "bytes": 12281,
+      "sha256": "e4441549b684ab5c6c13198091dff0eb3b91604a682111ae12ba8d6335adac60",
+      "classification": "helper/fixture",
+      "tests_lexical": 2,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [],
+      "priority_tokens": 0,
+      "hard_wait_lines": [
+        193
+      ]
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/admin-users/read-pagination.test.ts",
+      "relative": "tests/unit/admin-users/read-pagination.test.ts",
+      "encoding": "utf-8",
+      "lines": 134,
+      "bytes": 6797,
+      "sha256": "1baa2394c82b3626234c7eba2a30c22a48169c48b7408feef35daaf1304fbcff",
+      "classification": "test-body",
+      "tests_lexical": 4,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { test } from \"node:test\";",
+        "import { RLS_PAGE_SIZE, RLS_ID_BATCH_SIZE } from \"@/server/read-models/pagination\";",
+        "import { readAdminUsersForTenant } from \"@/features/admin-users/read-model\";"
+      ],
+      "priority_tokens": 4,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/e2e/resource-cdp-attachment.test.ts",
+      "relative": "tests/unit/e2e/resource-cdp-attachment.test.ts",
+      "encoding": "utf-8",
+      "lines": 22,
+      "bytes": 1102,
+      "sha256": "baa6b335ddb5b3edf14200e016b83cc66ea9fe4d569264f3c7725cb90086d570",
+      "classification": "test-body",
+      "tests_lexical": 2,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { test } from \"node:test\";",
+        "import {"
+      ],
+      "priority_tokens": 2,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/resources/booking-attempt-transport.test.ts",
+      "relative": "tests/unit/features/resources/booking-attempt-transport.test.ts",
+      "encoding": "utf-8",
+      "lines": 23,
+      "bytes": 1765,
+      "sha256": "c8fc55495e5e1451c4a00a44469103bdc80e906b82dd285fcf4f6808bb563448",
+      "classification": "test-body",
+      "tests_lexical": 3,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { test } from \"node:test\";",
+        "import { retainUnresolvedBookingAttempt } from \"@/features/resources/booking-editor-input\";",
+        "import { BOOKING_ACTION_INPUT_LIMIT_BYTES, bookingActionFitsTransport } from \"@/features/resources/booking-transport\";",
+        "import { sealEditorReceipt, type EditorClaims } from \"@/server/bookings/editor-preview\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/resources/booking-editor-input.test.ts",
+      "relative": "tests/unit/features/resources/booking-editor-input.test.ts",
+      "encoding": "utf-8",
+      "lines": 108,
+      "bytes": 7381,
+      "sha256": "9bbb9d7ad515ff6dea2d4db384cbf50932221af9dd50e294ef47b05c4fee364d",
+      "classification": "test-body",
+      "tests_lexical": 13,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { test } from \"node:test\";",
+        "import { booking, decision, GROUP_A, GROUP_B } from \"@/tests-support/booking-editor-contract\";",
+        "import { normalizeBookingDecision, prepareBookingTimes } from \"@/features/resources/booking-editor-input\";"
+      ],
+      "priority_tokens": 11,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/resources/capacity-inputs.test.ts",
+      "relative": "tests/unit/features/resources/capacity-inputs.test.ts",
+      "encoding": "utf-8",
+      "lines": 66,
+      "bytes": 2962,
+      "sha256": "235005930e50e71749b0fbc20cccb4d48a96bf2a05988052d839bc5ffcb24652",
+      "classification": "test-body",
+      "tests_lexical": 5,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { test } from \"node:test\";"
+      ],
+      "priority_tokens": 5,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/resources/resource-form-inputs.test.ts",
+      "relative": "tests/unit/features/resources/resource-form-inputs.test.ts",
+      "encoding": "utf-8",
+      "lines": 21,
+      "bytes": 1349,
+      "sha256": "75b90f69f3a6516680c2ff6a27a62c092bb0bd68101aa0ab6ff504d982f4d064",
+      "classification": "test-body",
+      "tests_lexical": 3,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { test } from \"node:test\";",
+        "import { mergeRenderedException, normalizeStoredExceptions } from \"../../../../src/features/resources/resource-form-inputs\";",
+        "import { validateCapacityInputs } from \"../../../../src/features/resources/capacity-inputs\";"
+      ],
+      "priority_tokens": 3,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/resources/schedule-form-merge.test.ts",
+      "relative": "tests/unit/features/resources/schedule-form-merge.test.ts",
+      "encoding": "utf-8",
+      "lines": 48,
+      "bytes": 2506,
+      "sha256": "d7edbb09918657d4a09e9f44366266aed9dd7e904132fb475d02b37bf65892d5",
+      "classification": "test-body",
+      "tests_lexical": 5,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { test } from \"node:test\";",
+        "import { mergeRenderedSchedule } from \"../../../../src/features/resources/schedule-form-merge\";"
+      ],
+      "priority_tokens": 5,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/resources/schedule-read.test.ts",
+      "relative": "tests/unit/features/resources/schedule-read.test.ts",
+      "encoding": "utf-8",
+      "lines": 15,
+      "bytes": 935,
+      "sha256": "8e6dd0099a127c4fbdac3472bc233a78570b62a57477013be5289ae9869c17f4",
+      "classification": "test-body",
+      "tests_lexical": 1,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { test } from \"node:test\";",
+        "import { buildScheduleReadShifts } from \"../../../../src/features/resources/schedule-read\";"
+      ],
+      "priority_tokens": 1,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/resources/work-hours.test.ts",
+      "relative": "tests/unit/features/resources/work-hours.test.ts",
+      "encoding": "utf-8",
+      "lines": 81,
+      "bytes": 3540,
+      "sha256": "e7089b74afddc1e40d79631bee94e8ccc46af88f84ccb8018440b81e5e815442",
+      "classification": "test-body",
+      "tests_lexical": 4,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { test } from \"node:test\";"
+      ],
+      "priority_tokens": 4,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/scheduling/capacity.golden.test.ts",
+      "relative": "tests/unit/features/scheduling/capacity.golden.test.ts",
+      "encoding": "utf-8",
+      "lines": 88,
+      "bytes": 9201,
+      "sha256": "23daeed0ba3341ec1c63409ae04c69de63dd708347bdd553357d339a0ec978e2",
+      "classification": "test-body",
+      "tests_lexical": 3,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { test } from \"node:test\";",
+        "import { PEER, PERSON, candidate, capacity, engine, facts, golden, type Terms } from \"../../../support/scheduling-atdd\";",
+        "import { DEFAULT_SCHEDULING_RULES } from \"../../../../src/features/scheduling/types\";"
+      ],
+      "priority_tokens": 3,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/scheduling/conflicts.test.ts",
+      "relative": "tests/unit/features/scheduling/conflicts.test.ts",
+      "encoding": "utf-8",
+      "lines": 110,
+      "bytes": 9163,
+      "sha256": "af5dc41ec8b900c690334a7575f5c70ccc8898bc5bb4c406006e766eacb9243a",
+      "classification": "test-body",
+      "tests_lexical": 9,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { test } from \"node:test\";",
+        "import fs from \"node:fs\";",
+        "import fsp from \"node:fs/promises\";",
+        "import { BOOKING, OTHER, PEER, PERSON, ROLE, THIRD, candidate, domain, engine, facts, freeze, golden,"
+      ],
+      "priority_tokens": 9,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/features/scheduling/dst.golden.test.ts",
+      "relative": "tests/unit/features/scheduling/dst.golden.test.ts",
+      "encoding": "utf-8",
+      "lines": 46,
+      "bytes": 4365,
+      "sha256": "040ebd89c45d87ab58b071a69e2bc8c55db8fd602c330f8369e63108d58f4e97",
+      "classification": "test-body",
+      "tests_lexical": 2,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { test } from \"node:test\";",
+        "import { PERSON, capacity, domain, engine, facts, golden, localTime } from \"../../../support/scheduling-atdd\";",
+        "import { formatUtcInstant, localDateForInstant, parseUtcInstant } from \"../../../../src/features/scheduling/time-zone\";"
+      ],
+      "priority_tokens": 2,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/quote-send-diagnostics.test.ts",
+      "relative": "tests/unit/quote-send-diagnostics.test.ts",
+      "encoding": "utf-8",
+      "lines": 46,
+      "bytes": 2311,
+      "sha256": "ff9675b8cbff64e0c4e3d588d07065400afb1646fbd218b946d091f9aedd7357",
+      "classification": "test-body",
+      "tests_lexical": 2,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { test } from \"node:test\";",
+        "import type { TestServerClient } from \"../factories/tenants\";",
+        "import { observeQuoteSendRpcs } from \"../support/quote-send-diagnostics\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/scope/booking-editor-scope.test.ts",
+      "relative": "tests/unit/scope/booking-editor-scope.test.ts",
+      "encoding": "utf-8",
+      "lines": 26,
+      "bytes": 1648,
+      "sha256": "b54041b7dd9d6abac8828843bf1b0971e2f272e5ef272a419ea813ebd5b139a3",
+      "classification": "test-body",
+      "tests_lexical": 1,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { test } from \"node:test\";",
+        "import { SCOPE_MANIFEST } from \"@/scope/manifest\";",
+        "import { booking } from \"@/tests-support/booking-editor-contract\";",
+        "import { validateCreateBooking } from \"@/server/commands/bookings/validation\";"
+      ],
+      "priority_tokens": 1,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/scope/manifest-derivations.test.ts",
+      "relative": "tests/unit/scope/manifest-derivations.test.ts",
+      "encoding": "utf-8",
+      "lines": 185,
+      "bytes": 8740,
+      "sha256": "782184a1f448a0e4472805961daefcf4dce5e818a39a2597147a0b15ba2ef09a",
+      "classification": "test-body",
+      "tests_lexical": 6,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import { test } from \"node:test\";",
+        "import assert from \"node:assert/strict\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/scope/manifest-shape.test.ts",
+      "relative": "tests/unit/scope/manifest-shape.test.ts",
+      "encoding": "utf-8",
+      "lines": 217,
+      "bytes": 10290,
+      "sha256": "48b432f27a38c17fff4061eff42d6978453185ad60d149cba7db969ef81a1cf9",
+      "classification": "test-body",
+      "tests_lexical": 8,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import { test } from \"node:test\";",
+        "import assert from \"node:assert/strict\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/scope/resources-activation.atdd.test.ts",
+      "relative": "tests/unit/scope/resources-activation.atdd.test.ts",
+      "encoding": "utf-8",
+      "lines": 28,
+      "bytes": 1348,
+      "sha256": "95a134a7424010ae8efd521168afc6f8b4013def8d9c1cdce0eb01a4daa3bdd1",
+      "classification": "test-body",
+      "tests_lexical": 1,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { test } from \"node:test\";"
+      ],
+      "priority_tokens": 1,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/security-headers.test.ts",
+      "relative": "tests/unit/security-headers.test.ts",
+      "encoding": "utf-8",
+      "lines": 20,
+      "bytes": 1158,
+      "sha256": "63f23f136f9bac35333737aae99e697f13b544ac387bf793a315de2b18827ba6",
+      "classification": "test-body",
+      "tests_lexical": 1,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { test } from \"node:test\";",
+        "import nextConfig from \"../../next.config\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/server/authz/permission-matrix.test.ts",
+      "relative": "tests/unit/server/authz/permission-matrix.test.ts",
+      "encoding": "utf-8",
+      "lines": 62,
+      "bytes": 2979,
+      "sha256": "3a885ffe05d748efa032aed16150100211fb7430781572538e54a3402ed4433c",
+      "classification": "test-body",
+      "tests_lexical": 6,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import { test } from \"node:test\";",
+        "import assert from \"node:assert/strict\";",
+        "import {"
+      ],
+      "priority_tokens": 5,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/server/authz/role-catalogue.test.ts",
+      "relative": "tests/unit/server/authz/role-catalogue.test.ts",
+      "encoding": "utf-8",
+      "lines": 46,
+      "bytes": 3524,
+      "sha256": "7994ffd4eaee7edc1e5c0266d8beeeb0d9cd1becd52ba08c55177801c4955dd0",
+      "classification": "test-body",
+      "tests_lexical": 3,
+      "describes_lexical": 1,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { describe, test } from \"node:test\";",
+        "import { buildEffectivePermissions, buildRoleCatalogue, effectivePermissionsForMembership, resolveMembershipRoles } from \"@/server/authz/role-catalogue\";",
+        "import { PERMISSION_MATRIX } from \"@/server/authz/permission-matrix\";",
+        "import type { TenantRole } from \"@/server/authz/roles\";",
+        "import { SCOPE_MANIFEST } from \"@/scope/manifest\";"
+      ],
+      "priority_tokens": 3,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/server/authz/role-harness.test.ts",
+      "relative": "tests/unit/server/authz/role-harness.test.ts",
+      "encoding": "utf-8",
+      "lines": 56,
+      "bytes": 2907,
+      "sha256": "c5176b9d40a182aa36aaf29dfadd1bd871d0a86daff5bb2c03586518c16dd7e1",
+      "classification": "test-body",
+      "tests_lexical": 5,
+      "describes_lexical": 1,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { describe, test } from \"node:test\";",
+        "import { TENANT_ROLES } from \"@/server/authz/roles\";",
+        "import { TABLE_PROJECTION_CAPABILITIES, activeRoleHarnessObligations, buildRoleHarnessCases, validateRoleHarnessMetadata } from \"../../../support/authz/role-harness\";",
+        "import { defineCommand } from \"@/server/commands/envelope\";"
+      ],
+      "priority_tokens": 4,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/server/bookings/conflict-attestation.test.ts",
+      "relative": "tests/unit/server/bookings/conflict-attestation.test.ts",
+      "encoding": "utf-8",
+      "lines": 41,
+      "bytes": 3068,
+      "sha256": "e3faab7e857d5f620031cbc3fab02c384b43ff1d329d71a786eb15347fb8e982",
+      "classification": "test-body",
+      "tests_lexical": 4,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { test } from \"node:test\";",
+        "import { canonicalConflictProofBytes, CONFLICT_CLAIM_FIELDS, signConflictOutput, verifyConflictOutput,"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/server/commands/bookings-validation.test.ts",
+      "relative": "tests/unit/server/commands/bookings-validation.test.ts",
+      "encoding": "utf-8",
+      "lines": 68,
+      "bytes": 6028,
+      "sha256": "5a2fe7f57af470129f9f41f532484148ce0381e0e3e04ebfe1172e7cff213318",
+      "classification": "test-body",
+      "tests_lexical": 8,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import { test } from \"node:test\";",
+        "import assert from \"node:assert/strict\";",
+        "import { validateCreateBooking, validateUpdateBooking, canonicalBookingPayload } from \"@/server/commands/bookings/validation\";",
+        "import { proposedBookingIdentity } from \"@/server/bookings/create-identity\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/server/resources/e2e-save-failure.test.ts",
+      "relative": "tests/unit/server/resources/e2e-save-failure.test.ts",
+      "encoding": "utf-8",
+      "lines": 14,
+      "bytes": 846,
+      "sha256": "a1b4955c5e39173596fc613cf911c43b34e2f840d2bbba5f9f56636d3f5ec456",
+      "classification": "test-body",
+      "tests_lexical": 1,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { test } from \"node:test\";",
+        "import {"
+      ],
+      "priority_tokens": 1,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/support/global-setup.test.ts",
+      "relative": "tests/unit/support/global-setup.test.ts",
+      "encoding": "utf-8",
+      "lines": 19,
+      "bytes": 691,
+      "sha256": "c7f8c49d16af79d8cb633b14b3add88e80ef8dc71af4e6111a63185696d0a38a",
+      "classification": "test-body",
+      "tests_lexical": 1,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import assert from \"node:assert/strict\";",
+        "import { test } from \"node:test\";",
+        "import { formatRequiredStackError } from \"../../support/global-setup\";"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/unit/support/test-env.test.ts",
+      "relative": "tests/unit/support/test-env.test.ts",
+      "encoding": "utf-8",
+      "lines": 120,
+      "bytes": 4077,
+      "sha256": "baf2c182dcca0a2dd27289985c4996c86d81f83ed4713e912ef19d88a5142b8b",
+      "classification": "test-body",
+      "tests_lexical": 5,
+      "describes_lexical": 0,
+      "expect_sites": 0,
+      "imports": [
+        "import { afterEach, test } from \"node:test\";",
+        "import assert from \"node:assert/strict\";",
+        "import {"
+      ],
+      "priority_tokens": 0,
+      "hard_wait_lines": []
+    }
+  ],
+  "convention_baseline": {
+    "corpusSize": 369,
+    "sampled": 40,
+    "sample_files": [
+      "C:/DEV/ElproSaas/.agents/skills/auto-bmad/scripts/tests/test_cli_delegate_windows_pid.py",
+      "C:/DEV/ElproSaas/.claude/skills/auto-bmad/scripts/tests/test_cli_delegate_windows_pid.py",
+      "C:/DEV/ElproSaas/tests/integration/commands/accept-quote-and-create-job.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/acceptance-evidence-link.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/accepted-record-lock.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/admin-invitation-retry-flow.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/admin-user-management.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/audit-actor-on-delete-set-null.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/audit-append-only.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/audit-metadata-hygiene-e2e.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/calculation-commands.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/calculation-parent-ownership.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/calculation-row-source.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/capture-quote-acceptance.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/create-job.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/create-new-quote-version.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/crm-command-coverage.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/crm-customer-commands.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/crm-parent-ownership.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/disabled-membership-no-access.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/envelope-audit-write.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/envelope-failure-modes.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/file-audit-events.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/file-link-lock.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/file-link-ownership.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/file-signed-access-refresh.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/file-signed-access.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/file-upload.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/generate-quote-pdf-determinism.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/generate-quote-pdf-retry-consistency.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/generate-quote-pdf-source-of-truth.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/generate-quote-pdf-storage-privacy.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/job-source-of-truth.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/mark-quote-version-lost.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/mark-quote-version-sent.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/non-admin-audit-authority.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/pricing-commands.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/provision-tenant.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/quote-attachment-carry-forward.int.test.ts",
+      "C:/DEV/ElproSaas/tests/integration/commands/quote-audit-rollback.int.test.ts"
+    ],
+    "conventions": {
+      "priorityMarkers": {
+        "adopted": 37,
+        "sampled": 40,
+        "status": "established",
+        "form": "\\bP[0-3]\\b|@p[0-3]\\b",
+        "measurement": "mechanical token signal; bddNaming/assertionStyle require reader confirmation"
+      },
+      "testIds": {
+        "adopted": 0,
+        "sampled": 40,
+        "status": "absent",
+        "form": "getByTestId|data-testid",
+        "measurement": "mechanical token signal; bddNaming/assertionStyle require reader confirmation"
+      },
+      "networkFirst": {
+        "adopted": 0,
+        "sampled": 40,
+        "status": "absent",
+        "form": "page\\.route\\(|waitForResponse\\(|interceptNetworkCall",
+        "measurement": "mechanical token signal; bddNaming/assertionStyle require reader confirmation"
+      },
+      "playwrightUtils": {
+        "adopted": 0,
+        "sampled": 40,
+        "status": "absent",
+        "form": "@seontechnologies/playwright-utils",
+        "measurement": "mechanical token signal; bddNaming/assertionStyle require reader confirmation"
+      },
+      "dataFactories": {
+        "adopted": 37,
+        "sampled": 40,
+        "status": "established",
+        "form": "createTenantFixture|createAuthzFixture|createRoleHarnessFixture|build\\w+\\(|factory|factories",
+        "measurement": "mechanical token signal; bddNaming/assertionStyle require reader confirmation"
+      },
+      "fixtures": {
+        "adopted": 35,
+        "sampled": 40,
+        "status": "established",
+        "form": "createTenantFixture|createAuthzFixture|createRoleHarnessFixture|test\\.extend|beforeEach\\(|beforeAll\\(",
+        "measurement": "mechanical token signal; bddNaming/assertionStyle require reader confirmation"
+      },
+      "bddNaming": {
+        "adopted": 40,
+        "sampled": 40,
+        "status": "established",
+        "form": "behavior/outcome names, often [P#] + scenario ID then behavior",
+        "measurement": "reader confirmed test names in all40 sampled files including Python names"
+      },
+      "assertionStyle": {
+        "adopted": 40,
+        "sampled": 40,
+        "status": "established",
+        "form": "Vitest expect matchers in TS; unittest assert methods in Python",
+        "measurement": "runner-specific consistent assertion dialect; TS expect signal38/40, remaining2 Python unittest"
+      }
+    }
+  },
+  "playwright_utils_installed": false,
+  "pactjs_utils_installed": false,
+  "audit_directory": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/epic-14-test-review-2026-10-07",
+  "input_manifest_sha256": "b5f76773161c558c4eff92ee934d23655f4ed79509fdaffbe23119f7b79042a5",
+  "context_metadata": [
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-1-scheduling-activation-person-profiles-and-work-hours.md",
+      "sha256": "da4e6d23f523da9bd2105cf8890495ea2b80d21e82828df50760e9c32855e4d6",
+      "bytes": 29181,
+      "read_only": true
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-2-bookings-and-assignees-schema-and-transactional-commands.md",
+      "sha256": "2681df586fe5c2f8e25c2961340e933c52a0321637bc7e349ed6ef1d7fd6738f",
+      "bytes": 80129,
+      "read_only": true
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-3-deterministic-conflict-engine-detection-core.md",
+      "sha256": "5a2ace81faa68df0b9ca93a3bd2a730f9eb4af12c70a927a6dc44e86850fba38",
+      "bytes": 76408,
+      "read_only": true
+    },
+    {
+      "path": "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/spec-14-4-booking-editor-with-live-conflict-warnings-and-audited-override.md",
+      "sha256": "445b728cf245831683df5db51955bc8eaa541cbbf492beb6b7690df53f165ee0",
+      "bytes": 72566,
+      "read_only": true
+    }
+  ],
+  "baseline_sample_metadata": [
+    {
+      "path": "C:/DEV/ElproSaas/.agents/skills/auto-bmad/scripts/tests/test_cli_delegate_windows_pid.py",
+      "sha256": "f620c9725a5d7be6c6103a23eb48c293a0600da2eccf06f074bfb1f5d0e2493d"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/.claude/skills/auto-bmad/scripts/tests/test_cli_delegate_windows_pid.py",
+      "sha256": "f620c9725a5d7be6c6103a23eb48c293a0600da2eccf06f074bfb1f5d0e2493d"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/accept-quote-and-create-job.int.test.ts",
+      "sha256": "6c540b1184d92dfcc1cdd18f8b6a80b1900fce6199f9bf022f9cb24eaef52eeb"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/acceptance-evidence-link.int.test.ts",
+      "sha256": "21c0a9ad14edf697843e9c6640d87112c82cc88a9e999240d9879ce3b334e806"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/accepted-record-lock.int.test.ts",
+      "sha256": "99cc6b0fb5309a9d1b1149cd72f8cc26cf4c494be2189fb42cee3e304be99041"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/admin-invitation-retry-flow.test.ts",
+      "sha256": "fad5361637fd75e1a0295d3ec8744da26951996920a7cae7544cd839cf244571"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/admin-user-management.int.test.ts",
+      "sha256": "2454d24ed054b710ef2ef20c2e87d6d2ad4524acbaf26e89e5ef63a45ac2e0e4"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/audit-actor-on-delete-set-null.int.test.ts",
+      "sha256": "d0869ef9722a849f00c0275ba3dbeb07e8169fa01c011e2a275bf19bf10a680a"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/audit-append-only.int.test.ts",
+      "sha256": "b7915d8ee958ca046255f7a91bf083e609a15cacfbbcd801233a0600cb95351e"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/audit-metadata-hygiene-e2e.int.test.ts",
+      "sha256": "102cd0ff4e5985f521bdf99bc15fc5aa68ca69e8f1f0b5abd5691b833eb0ae17"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/calculation-commands.int.test.ts",
+      "sha256": "5119f1b212a851afccd0b0911304a926a196779edcf65930bc71c9f4cbb50ad7"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/calculation-parent-ownership.int.test.ts",
+      "sha256": "f62c9db28515ff86e4c4ae388da9b0d63419969b3a58a22465c4c5c1e96df0a5"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/calculation-row-source.int.test.ts",
+      "sha256": "1360e9cce007ad83a91139acb9b9ccffc0f24e8527f06ee8f40efd5b89b36a34"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/capture-quote-acceptance.int.test.ts",
+      "sha256": "20ce669c035d70c92fe58399cac362d5e656097843a3558814f98c1168b11248"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/create-job.int.test.ts",
+      "sha256": "200e8f82029e8643f2987e93d942ada8fefbfc7460d0fccab940337c39af4905"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/create-new-quote-version.int.test.ts",
+      "sha256": "d37cb5ec7b9e5c06cf10aad01e80c103aa8f7feb3025a0ae78c47316662be90c"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/crm-command-coverage.int.test.ts",
+      "sha256": "50086416266865232d2f60a6f340b50dc9bab535f48bb2d56b406b24fe552cd1"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/crm-customer-commands.int.test.ts",
+      "sha256": "834ef79891aa7339f2bbdceacfde6fab9506b4ba88f3a1bd953277be71dfb85c"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/crm-parent-ownership.int.test.ts",
+      "sha256": "8276fc76e0afc0b15da22cc2c5e12604343a5e855ab7c591b439802706e19d18"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/disabled-membership-no-access.int.test.ts",
+      "sha256": "4eda07f28a44ac60b139a10a3e6925de25645244510498a53c7339ded70afc4e"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/envelope-audit-write.int.test.ts",
+      "sha256": "83fe00a14ed8ac7c62d202f7e9c5742da856d55a0bb387797dded7658db525e0"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/envelope-failure-modes.int.test.ts",
+      "sha256": "27d37c3c9a982692f8e07b8831171ae3224abf79b70bc268d60097734cb1a8c0"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/file-audit-events.int.test.ts",
+      "sha256": "29c93d64542ea6f4828ce1fe221bfcc9fb3e4f8d3cb3fd04b23723fe397a4c52"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/file-link-lock.int.test.ts",
+      "sha256": "95497065a66be78edb3438e660ca32012e7ada444273dce289c558b42052d9f2"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/file-link-ownership.int.test.ts",
+      "sha256": "bde60656eb202ca3a973f0aa22902c10395b356080f67a109d46ff144cb2cf68"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/file-signed-access-refresh.int.test.ts",
+      "sha256": "e264450c9fcd4c1408f80a4bf087e399e1524af2750060dab4098d1b7883e39a"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/file-signed-access.int.test.ts",
+      "sha256": "dd4256bf950c0dab74fe4b34fa1ddeedafc256704e9984e80bed58f72ee4cc50"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/file-upload.int.test.ts",
+      "sha256": "6910132363b0c94306e532ce38ba788cceb2a162d730fa30938659800df432b6"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/generate-quote-pdf-determinism.int.test.ts",
+      "sha256": "5ac6b549c57f01a83752160467f8bbc69ee693e594bd25ccac2e6e83987329a4"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/generate-quote-pdf-retry-consistency.int.test.ts",
+      "sha256": "4aeca9c0fad3582e86fb4be14576ac4ed848bbdd031272489118fc98c93f1312"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/generate-quote-pdf-source-of-truth.int.test.ts",
+      "sha256": "5cb8b8704be4e8e500d7318dda87f8eac1f1d6abd45a44b4111ff27a41b40953"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/generate-quote-pdf-storage-privacy.int.test.ts",
+      "sha256": "0af904e2596477794cac2818ffac32794089a7a6343099026a55a2fb19b21b16"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/job-source-of-truth.int.test.ts",
+      "sha256": "e0d4643385785a5eeb4379f48c8fdf07c6cf4a4852dc5117b8cb8faaf0bed8f6"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/mark-quote-version-lost.int.test.ts",
+      "sha256": "8b3c940d3318eae138a641f72016b0a1cf070b88ce2ecc32f4d60db0056bdcc2"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/mark-quote-version-sent.int.test.ts",
+      "sha256": "53e3ce33ead87f290d88a53567c26dffa01d23e51c498398f2ad9d8315167e9b"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/non-admin-audit-authority.int.test.ts",
+      "sha256": "ccf6024a7d38e1f34859acd5956472ecd6f027d91e3da4da97791aa6bd24243a"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/pricing-commands.int.test.ts",
+      "sha256": "8f8afd4af32a56d2d1f8f6b804aca4d1fa86d4ed7d57f29271e4939333479504"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/provision-tenant.int.test.ts",
+      "sha256": "5dab20966c123771b3cac7fdcbc80c5969b03020a314de3a8ebb7405cb13e895"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/quote-attachment-carry-forward.int.test.ts",
+      "sha256": "52a54057167864ccc7a94c7fb5dcc94c9e1353381c64980334a7a03c00d81583"
+    },
+    {
+      "path": "C:/DEV/ElproSaas/tests/integration/commands/quote-audit-rollback.int.test.ts",
+      "sha256": "6b2bf20ddf928e40bc1f8fa822f05342cb06082b42f8b58671f7635d73cebd9d"
+    }
+  ],
+  "execution": {
+    "requestedMode": "auto",
+    "resolvedMode": "capacity-batched subagents plus sequential performance fallback",
+    "probeEnabled": true,
+    "supports": {
+      "subagent": true,
+      "agentTeam": false
+    },
+    "capacity_refusals": [
+      {
+        "dimension": "isolation",
+        "attempts": 2,
+        "message": "agent thread limit reached"
+      },
+      {
+        "dimension": "performance",
+        "attempts": 4,
+        "message": "agent thread limit reached"
+      }
+    ],
+    "new_product_executions": 0,
+    "capacity_recovery": "Fresh independent isolation and maintainability spawns succeeded after determinism completed; capacity-batched subagent mode retained.",
+    "worker_batches": [
+      [
+        "determinism"
+      ],
+      [
+        "isolation",
+        "maintainability"
+      ],
+      [
+        "performance: sequential capability fallback"
+      ]
+    ],
+    "parallel_gain_claim": null,
+    "independent_high_children": 3,
+    "sequential_dimensions": [
+      "performance"
+    ]
+  },
+  "routing": {
+    "model": "gpt-6.1-sol",
+    "worker_effort": "high",
+    "reason": "actual authorization/RLS/security expiry and transactional test quality",
+    "recorded_before_dispatch": true
+  },
+  "workflow_limitations": [
+    "Registry L2 missing priority marker is not assigned by any of the four installed dimension step row lists; measured convention reported, no unassigned deduction invented."
+  ],
+  "knowledge_profile": {
+    "stack": "fullstack:Next/ReactPlaywrightUI+SupabaseSQL integration+Vitest/unit+mechanicalPython",
+    "utility_flags": true,
+    "both_utility_packages_installed": false,
+    "pact_artifacts_present": false,
+    "maestro_flows_present": false,
+    "mandate_rows_disabled": [
+      "M9",
+      "M10",
+      "L9"
+    ],
+    "framework_recommendation": "Align configuration and package installation through framework workflow if utility adoption is intended; no dependency change by this audit."
+  }
+}

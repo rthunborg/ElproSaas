@@ -1,0 +1,409 @@
+{
+  "success": true,
+  "subagent": "e2e-tests",
+  "tests": [],
+  "fixture_needs": [],
+  "knowledge_fragments_used": [
+    "library-integration-mandate",
+    "playwright-utils-mandate",
+    "overview",
+    "intercept-network-call",
+    "network-error-monitor",
+    "fixtures-composition",
+    "log",
+    "auth-session",
+    "network-recorder",
+    "fixture-architecture",
+    "network-first",
+    "selector-resilience",
+    "playwright-cli",
+    "file-utils",
+    "burn-in"
+  ],
+  "playwright_utils_deviations": [],
+  "test_count": 0,
+  "summary": "No missing retained Story 14.4 E2E journey found. Generate zero tests/fixtures and reuse 13 active retained ATDD cases plus two browser regressions, all 15 passed on the final production build with zero failures, skips, flakiness or retries. Only actual calendar empty-slot click/drag remains transferred/pending in Story 15.1.",
+  "scope": {
+    "workflow": "bmad-testarch-automate/steps-c/step-03b-subagent-e2e.md",
+    "story": "14.4",
+    "audit_type": "Selective coverage audit; no broad review",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "routing_reason": "Actual browser authentication and committed save/replay transactional integrity",
+    "routing_policy": "docs/process/agent-model-routing.md",
+    "parent_supplied_head": "fb0c54a8",
+    "parent_supplied_authored_revision": "4383b99b",
+    "new_journeys_needed": 0,
+    "new_selector_exploration_needed": false
+  },
+  "counts": {
+    "generated_e2e_tests": 0,
+    "generated_fixtures": 0,
+    "existing_retained_atdd_cases": 13,
+    "existing_additional_browser_regressions": 2,
+    "existing_browser_registered": 15,
+    "existing_browser_executed": 15,
+    "existing_browser_passed": 15,
+    "existing_browser_failed": 0,
+    "existing_browser_skipped": 0,
+    "existing_browser_flaky": 0,
+    "retained_priority_coverage": {
+      "P0": 5,
+      "P1": 8,
+      "P2": 0,
+      "P3": 0
+    },
+    "extra_regressions_without_priority_tags": 2,
+    "tests_run_by_this_worker": 0,
+    "component_cases": 13,
+    "component_read_report_total": 25,
+    "component_read_report_passed": 25,
+    "component_read_report_failed": 0,
+    "component_read_report_skipped": 0
+  },
+  "ac_mapping": [
+    {
+      "ac": "AC1",
+      "passed_titles": [
+        "Round1 endpoint-only mounted edits preserve the other PostgreSQL instant exactly",
+        "Round1 compatible customer contact retains facility; archived current links remain visible and deliberately clearable",
+        "[P0] E2E-006 toolbar creates a standalone booking through the desktop sheet",
+        "[P0] E2E-006 job entry persists preconnection then reopens and edits",
+        "[P0] E2E-006 customer entry persists preconnection then reopens and edits",
+        "[P1] E2E-001/007 360x640 fullscreen editor scrolls without overflow and keeps actions reachable"
+      ],
+      "coverage": "Toolbar standalone and job/customer preconnection create/reopen/edit, compatible optional clears, desktop sheet and 360x640 geometry/scroll/reachable targets. Round1 mounted endpoint microseconds and archived references/current-only options are durable regressions.",
+      "cross_level": "COMP-001/002 prove approved field/multi-person/role-filter semantics and reusable person/start/end prefill. That seam stays in 14.4 and gives no calendar execution credit.",
+      "status": "Retained browser obligations covered"
+    },
+    {
+      "ac": "AC2",
+      "passed_titles": [
+        "[P1] AC2/ E2E-007 latest warning wins and preview failure remains visibly unknown",
+        "[P1] E2E-007 keyboard focus remains in sheet and warnings announce explanatory timeline"
+      ],
+      "coverage": "Actual Next serialized transport retires old warnings/review, discards obsolete delivery, renders latest rule/person/window/collision/timeline and makes preview failure visibly unknown.",
+      "cross_level": "Production advanceBookingPreview cases prove reverse old-success delivery, obsolete failure and candidate-change invalidation; no duplicate E2E journey added.",
+      "status": "Covered with serialized-transport limit disclosed"
+    },
+    {
+      "ac": "AC4",
+      "passed_titles": [
+        "[P1] E2E-002 reload chip counts persisted OPEN logical conflicts only"
+      ],
+      "coverage": "OPEN-only logical conflict chip survives actual reload, excludes seeded accepted/resolved states, and preserves exact durable snapshot.",
+      "cross_level": "Unchanged acceptance, changed collision reopening and unrelated/whole-group identities remain existing command/read-level obligations.",
+      "status": "Retained browser count obligation covered"
+    },
+    {
+      "ac": "AC5",
+      "passed_titles": [
+        "[P1] E2E-003/007 dirty Escape cancel retains draft and discard restores entry focus",
+        "[P1] E2E-003/007 dirty close cancel retains draft and discard restores entry focus",
+        "[P1] E2E-003/007 dirty back cancel retains draft and discard restores entry focus",
+        "[P1] E2E-003 in-flight save blocks Escape close and back until confirmed",
+        "[P1] E2E-007 keyboard focus remains in sheet and warnings announce explanatory timeline"
+      ],
+      "coverage": "Dirty Escape/close/back cancellation retains draft; discard restores entry focus with no writes; discard confirmation rejects submission; held save prevents dismissal until confirmation; keyboard/live warning timeline remains accessible.",
+      "status": "Retained browser obligations covered"
+    },
+    {
+      "ac": "AC6",
+      "passed_titles": [
+        "[P0] E2E-004/005 phone failure keeps unsent draft and explicit retry confirms one durable save",
+        "[P0] E2E-005 phone lost committed response replays one booking assignments conflicts and attributable audit"
+      ],
+      "coverage": "360x640 transient pre-write failure retains unsent draft with no success or durable change; explicit retry confirms one save. Lost post-commit response freezes candidate/review decision; exact replay leaves one booking/assignments/conflict state and attributable audit, selected acceptance actor/time/reason and unselected open conflicts.",
+      "status": "Retained browser obligations covered"
+    },
+    {
+      "ac": "AC3/AC7",
+      "passed_titles": [
+        "[P0] E2E-005 phone lost committed response replays one booking assignments conflicts and attributable audit"
+      ],
+      "coverage": "Replay case supplies additional selective acceptance readback. Safe-error/no-op, forged/stale/unauthorized review and RLS/governance remain API/RLS/unit responsibilities.",
+      "status": "Cross-level context only; no complete browser-only AC3/AC7 claim"
+    }
+  ],
+  "existing_evidence": {
+    "browser_report": "_bmad-output/test-artifacts/story14-4-r1-booking-browser-final.json",
+    "browser_evidence": "_bmad-output/test-artifacts/story14-4-r1-booking-browser-final-evidence.json",
+    "native_exit": 0,
+    "build_id": "TGBWaTwRYVJLLfZUysZQV",
+    "build_before": "TGBWaTwRYVJLLfZUysZQV",
+    "build_after": "TGBWaTwRYVJLLfZUysZQV",
+    "run_started_at": "2026-10-07T13:26:11.976Z",
+    "duration_ms": 61313.278,
+    "source_fingerprint": "624e4347d9fd7ded2ec26164a7ec5655706ac597c20711b7aeeb395dde440fc8",
+    "executed_source_fingerprint": "7079fd92d3f60e599469ebd9aec7b3e8698137ce2627b53697509f174a8d90de",
+    "cosmetic_change": {
+      "file": "tests/integration/components/booking-editor.test.ts",
+      "change": "Removed duplicate EOF newline, retaining exactly one final newline",
+      "semanticChange": false,
+      "newExecution": false
+    },
+    "report_cases": [
+      {
+        "title": "Round1 endpoint-only mounted edits preserve the other PostgreSQL instant exactly",
+        "file": "booking-editor.e2e.spec.ts",
+        "line": 82,
+        "ok": true,
+        "test_status": "expected",
+        "result_status": "passed",
+        "retry": 0
+      },
+      {
+        "title": "Round1 compatible customer contact retains facility; archived current links remain visible and deliberately clearable",
+        "file": "booking-editor.e2e.spec.ts",
+        "line": 100,
+        "ok": true,
+        "test_status": "expected",
+        "result_status": "passed",
+        "retry": 0
+      },
+      {
+        "title": "[P0] E2E-006 toolbar creates a standalone booking through the desktop sheet",
+        "file": "booking-editor.e2e.spec.ts",
+        "line": 134,
+        "ok": true,
+        "test_status": "expected",
+        "result_status": "passed",
+        "retry": 0
+      },
+      {
+        "title": "[P0] E2E-006 job entry persists preconnection then reopens and edits",
+        "file": "booking-editor.e2e.spec.ts",
+        "line": 162,
+        "ok": true,
+        "test_status": "expected",
+        "result_status": "passed",
+        "retry": 0
+      },
+      {
+        "title": "[P0] E2E-006 customer entry persists preconnection then reopens and edits",
+        "file": "booking-editor.e2e.spec.ts",
+        "line": 162,
+        "ok": true,
+        "test_status": "expected",
+        "result_status": "passed",
+        "retry": 0
+      },
+      {
+        "title": "[P1] E2E-001/007 360x640 fullscreen editor scrolls without overflow and keeps actions reachable",
+        "file": "booking-editor.e2e.spec.ts",
+        "line": 214,
+        "ok": true,
+        "test_status": "expected",
+        "result_status": "passed",
+        "retry": 0
+      },
+      {
+        "title": "[P1] E2E-002 reload chip counts persisted OPEN logical conflicts only",
+        "file": "booking-editor.e2e.spec.ts",
+        "line": 241,
+        "ok": true,
+        "test_status": "expected",
+        "result_status": "passed",
+        "retry": 0
+      },
+      {
+        "title": "[P1] E2E-003/007 dirty Escape cancel retains draft and discard restores entry focus",
+        "file": "booking-editor.e2e.spec.ts",
+        "line": 259,
+        "ok": true,
+        "test_status": "expected",
+        "result_status": "passed",
+        "retry": 0
+      },
+      {
+        "title": "[P1] E2E-003/007 dirty close cancel retains draft and discard restores entry focus",
+        "file": "booking-editor.e2e.spec.ts",
+        "line": 259,
+        "ok": true,
+        "test_status": "expected",
+        "result_status": "passed",
+        "retry": 0
+      },
+      {
+        "title": "[P1] E2E-003/007 dirty back cancel retains draft and discard restores entry focus",
+        "file": "booking-editor.e2e.spec.ts",
+        "line": 259,
+        "ok": true,
+        "test_status": "expected",
+        "result_status": "passed",
+        "retry": 0
+      },
+      {
+        "title": "[P1] E2E-003 in-flight save blocks Escape close and back until confirmed",
+        "file": "booking-editor.e2e.spec.ts",
+        "line": 286,
+        "ok": true,
+        "test_status": "expected",
+        "result_status": "passed",
+        "retry": 0
+      },
+      {
+        "title": "[P0] E2E-004/005 phone failure keeps unsent draft and explicit retry confirms one durable save",
+        "file": "booking-editor.e2e.spec.ts",
+        "line": 320,
+        "ok": true,
+        "test_status": "expected",
+        "result_status": "passed",
+        "retry": 0
+      },
+      {
+        "title": "[P0] E2E-005 phone lost committed response replays one booking assignments conflicts and attributable audit",
+        "file": "booking-editor.e2e.spec.ts",
+        "line": 349,
+        "ok": true,
+        "test_status": "expected",
+        "result_status": "passed",
+        "retry": 0
+      },
+      {
+        "title": "[P1] AC2/ E2E-007 latest warning wins and preview failure remains visibly unknown",
+        "file": "booking-editor.e2e.spec.ts",
+        "line": 402,
+        "ok": true,
+        "test_status": "expected",
+        "result_status": "passed",
+        "retry": 0
+      },
+      {
+        "title": "[P1] E2E-007 keyboard focus remains in sheet and warnings announce explanatory timeline",
+        "file": "booking-editor.e2e.spec.ts",
+        "line": 440,
+        "ok": true,
+        "test_status": "expected",
+        "result_status": "passed",
+        "retry": 0
+      }
+    ],
+    "selector_verification": "Successful current final browser execution verifies retained selectors/actions against the actual production components. No new selector/journey is emitted, so no additional browser exploration is needed.",
+    "inspected_source_hashes": [
+      {
+        "path": "src/app/(app)/customers/[customerId]/page.tsx",
+        "sha256": "4db8c3f247e6aba0d9b0ba066fbbe74e9c116d943ff32a70f272ea7a3330f916",
+        "matches_final_evidence": true
+      },
+      {
+        "path": "src/app/(app)/jobs/[jobId]/page.tsx",
+        "sha256": "fbf3d595a369d7ef9e5c323ffb0bddc57b4da5721d8a977182ea28b7edc8e1f6",
+        "matches_final_evidence": true
+      },
+      {
+        "path": "src/app/(app)/jobs/page.tsx",
+        "sha256": "78f2d31a3b6da3893bf154b0bf736b1323c108535c46ba749f31964b26e743ce",
+        "matches_final_evidence": true
+      },
+      {
+        "path": "src/components/crm/Dialog.tsx",
+        "sha256": "0f03051fc0c6b56ba885079c14d689f7706151f2fce4cc48c5e6a2c686bda309",
+        "matches_final_evidence": true
+      },
+      {
+        "path": "src/components/resources/BookingConflictChip.tsx",
+        "sha256": "06e74e77da667e564b06ef7e97ce464fa8c460b00b4b629869c0f2db43970d0f",
+        "matches_final_evidence": true
+      },
+      {
+        "path": "src/components/resources/BookingConflictPanel.tsx",
+        "sha256": "5e3e0061a36d53663a087226935db8d75ee9285434a8d40af58637fbbb1a88ad",
+        "matches_final_evidence": true
+      },
+      {
+        "path": "src/components/resources/BookingEditor.tsx",
+        "sha256": "b0738411cac380fc8a14bb1b82c768edcaa06b0291c23f7ee18bd978de24cc11",
+        "matches_final_evidence": true
+      },
+      {
+        "path": "src/components/resources/BookingEntry.tsx",
+        "sha256": "bbea07eb4fac0bf1863300b658590cc578d8c5f641c35d162cf952536dded173",
+        "matches_final_evidence": true
+      },
+      {
+        "path": "tests/e2e/booking-editor.e2e.spec.ts",
+        "sha256": "c893092408c2bf6cea660afaf422cf9892c7ca7cd4ff48f8dcb3002b217bf87c",
+        "matches_final_evidence": true
+      },
+      {
+        "path": "tests/e2e/support/booking-editor-atdd.ts",
+        "sha256": "e776eee1cc972a6a1f17a88baf285f0d2797271d74478552e8591a70e738a635",
+        "matches_final_evidence": true
+      },
+      {
+        "path": "tests/integration/components/booking-editor.test.ts",
+        "sha256": "1cca4dea7a8d55021956072c93ab718354ad629ffbc6b15c5fbfab0fc4397382",
+        "matches_final_evidence": true
+      }
+    ],
+    "component_read_report": "_bmad-output/test-artifacts/story14-4-r1-components-reads-final.json",
+    "component_titles": [
+      "Round1 failed host authority renders safe retry without booking controls or data",
+      "Round1 current archived references are visibly selected but unavailable for new selection",
+      "reopening a summary projects only valid command facts and exact microseconds",
+      "existing assignment remains visible when its person is absent from new-booking options",
+      "[P1] 14.4-COMP-001 renders a named modal sheet with approved controls and no recurrence",
+      "[P1] 14.4-COMP-002 binds approved fields and multi-person draft with availability and role filter",
+      "[P1] 14.4-COMP-002 standalone draft renders all four optional connection pickers without required",
+      "[P1] 14.4-COMP-002 reusable person/start/end prefill is rendered without a calendar host",
+      "[P1] 14.4-COMP-004 warning explains rule/person/window/collision and accessible timeline without color",
+      "[P1] 14.4-COMP-004 failed preview visibly remains unknown with an explicit retry",
+      "[P1] 14.4-COMP-003 latest response wins when an older success arrives last",
+      "[P1] 14.4-COMP-003 obsolete failed response cannot replace newest warning set",
+      "[P1] 14.4-COMP-003 changed candidate immediately retires old warnings and explicit review while pending"
+    ],
+    "component_credit": "SSR structural semantics and production preview transitions only; no CSS/focus/persistence/RLS or actual calendar host execution inferred.",
+    "historical_atdd": "_bmad-output/test-artifacts/tea-atdd-e2e-tests-14-4-2026-10-07.json",
+    "atdd_note": "Historical RED JSON had 13 intentionally skipped scaffolds. Current spec has all 13 active; final report proves their execution. Historical skips receive no credit."
+  },
+  "existing_fixture_support": {
+    "fixture": "tests/e2e/support/booking-editor-atdd.ts",
+    "browser_composition": "Existing resource-cdp-attachment resourcePage uses parent-owned guarded Chromium; no lifecycle operation performed here.",
+    "authentication": "Existing scoped per-run fixture credentials drive the actual login form; no credentials are read or copied into this artifact.",
+    "transport": "Typed adapter registers before actions, matches POST Next-action booking inputs, fetches real responses, holds/aborts only tested transport and confirms durable SQL command outcome before committed-response loss.",
+    "data": "Dedicated UUID/description per case, fixed Stockholm 2026-10-12 facts, compatible connections and owned cleanup. No new fixture need.",
+    "persistence": "bookingSnapshot covers bookings, assignees, conflicts, create_result/update_outcomes and audit; exact replay equality verifies no duplicate identity or outcome."
+  },
+  "playwright_utils_gate": {
+    "config_source": "_bmad/tea/config.yaml",
+    "flag": true,
+    "package": "@seontechnologies/playwright-utils",
+    "package_in_manifest": false,
+    "mandate_active": false,
+    "resolution": "library-integration-mandate requires flag AND dependency. package.json has @playwright/test but no playwright-utils. Existing typed fixture/vanilla transport/auth path remains valid; no missing-package import or per-file mandate penalty.",
+    "recommendation": "If adoption is later requested, use TEA framework workflow for package installation, merged fixtures, auth provider and network monitor; this zero-generation audit requires no setup changes.",
+    "generated_self_check": "No generated/edited spec, so utility self-check has no new file to check; deviations array is empty."
+  },
+  "pact": {
+    "contracts_present": false,
+    "broker_reachable": false,
+    "probe_owner": "Parent single capability probe supplied false",
+    "worker_probe_count": 0,
+    "result": "No consumer/provider contracts or broker-derived evidence invented"
+  },
+  "transferred_obligations": [
+    {
+      "id": "14.4-E2E-006 (empty-slot click/drag portion)",
+      "owner": "Story 15.1: The Five Scheduling Views",
+      "authority": "docs/decisions/epic-14-story-ownership-contract-d-2026-10-07.md",
+      "hosts": [
+        "Schema",
+        "Resurser"
+      ],
+      "required": "Actual outer-browser click AND drag on both calendar hosts open the same editor with selected interval and any supplied person context; Resurser proves person/start/end. Preserve keyboard/dialog equivalents and current server authority.",
+      "gate": "Mandatory before applicable calendar entry-point exposure and Story 15.1 completion",
+      "status": "Transferred/pending; prefill seam has no calendar execution credit"
+    }
+  ],
+  "limitations": [
+    "No tests executed and no browser/server/resource/DB operation performed by this worker; all pass claims are explicitly existing final evidence.",
+    "Real Next actions serialize browser requests. Browser proves immediate invalidation and obsolete discard before queued latest preview; reversed delivery is tested through the production component response branch.",
+    "Only actual calendar empty-slot click/drag transfers. Toolbar/job/customer and reusable prefill remain 14.4, with all other retained obligations still required.",
+    "Final evidence records a later cosmetic duplicate-EOF-newline removal in the component test, not a semantic change or new execution. Inspected hashes match the final source manifest.",
+    "Earlier zero-body preflight and 13-pass/2-fail diagnostics are historical only; final report proves 15 first-attempt passes, zero failed/skipped/flaky.",
+    "No download or offline/backend-free journey is in this story. file-utils/network-recorder generation is unnecessary; HAR playback cannot prove real atomic commit or replay.",
+    "No burn-in run or numeric performance-NFR pass claimed. Empty-DB Epic CI and transferred calendar evidence remain separate mandatory gates.",
+    "Component/read evidence is cross-level context only and proves no RLS/security boundary."
+  ]
+}

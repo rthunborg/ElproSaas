@@ -1,0 +1,3 @@
+tests/integration/commands/booking-conflicts.int.test.ts(323,11): error TS2740: Type 'Promise<PostgrestSingleResponse<any>>' is missing the following properties from type 'PostgrestFilterBuilder<any, any, any, any, "create_booking" | "update_booking", null, "RPC", false>': throwOnError, eq, neq, gt, and 55 more.
+tests/integration/commands/booking-conflicts.int.test.ts(325,47): error TS18048: 'denied' is possibly 'undefined'.
+tests/integration/commands/booking-conflicts.int.test.ts(325,89): error TS18048: 'denied' is possibly 'undefined'.

@@ -1,0 +1,26 @@
+{
+  "success": true,
+  "subagent": "atdd-e2e-tests",
+  "story": "14.2",
+  "tests": [],
+  "fixture_needs": [],
+  "knowledge_fragments_used": [],
+  "test_count": 0,
+  "tdd_phase": "RED",
+  "applicability": "NOT_APPLICABLE",
+  "summary": "No E2E scaffolds apply to Story 14.2: its acceptance covers schema and internal transactional foundation commands, with no user-facing booking journey.",
+  "rationale": "The approved Story 14.2 spec and owner-approved contract C prohibit a booking route, server action, UI caller, calendar/editor UI, or user-facing booking entry point. Its foundation acceptance belongs to unit and database/command/RLS integration evidence. Creating browser journeys or selectors here would invent unauthorized product scope. No browser session, infrastructure, fixtures, or test execution is required for this applicability result. An empty test list records scope applicability and does not claim passing product acceptance or waive required foundation evidence.",
+  "mandatory_sequencing_gate": {
+    "prerequisite_story": "14.3",
+    "required_before": ["Any Story 14.4 work", "Epic 14 PR", "Any user-facing booking entry point"],
+    "transferred_checks": ["14.3-INT-003", "14.3-INT-004", "14.3-INT-005", "14.3-INT-006"],
+    "requirement": "Complete the sole conflict engine and authoritative transaction integration in Story 14.3, and pass every transferred P0 and P1 check before the exposure gate. Required integration/RLS evidence uses SUPABASE_TEST_REQUIRED=1; explicitly skipped tests do not satisfy acceptance. Retain independent review, ATDD, automation, cumulative regression, and all Epic gates."
+  },
+  "sources": [
+    ".agents/skills/bmad-testarch-atdd/steps-c/step-04b-subagent-e2e-failing.md",
+    "_bmad-output/implementation-artifacts/spec-14-2-bookings-and-assignees-schema-and-transactional-commands.md",
+    "docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md",
+    "AGENTS.md"
+  ],
+  "knowledge_fragment_note": "No Playwright knowledge fragments were applied because no UI acceptance journey or browser test code exists in this story scope."
+}

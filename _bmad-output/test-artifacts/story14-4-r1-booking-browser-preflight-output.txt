@@ -1,0 +1,18 @@
+Error: E2E_RESOURCE_SAVE_FAILURE_ENABLED=true is required when E2E_GUARD_CHROMIUM_CDP_ENDPOINT is set
+
+   at support\resource-cdp-attachment.ts:25
+
+  23 | ): void {
+  24 |   if (endpoint && runtimeFlag !== "true") {
+> 25 |     throw new Error(
+     |           ^
+  26 |       "E2E_RESOURCE_SAVE_FAILURE_ENABLED=true is required when E2E_GUARD_CHROMIUM_CDP_ENDPOINT is set",
+  27 |     );
+  28 |   }
+    at requireResourceE2eFailureSeamForCdp (C:\DEV\ElproSaas\tests\e2e\support\resource-cdp-attachment.ts:25:11)
+    at Object.<anonymous> (C:\DEV\ElproSaas\tests\e2e\support\resource-cdp-attachment.ts:33:1)
+    at Object.<anonymous> (C:\DEV\ElproSaas\tests\e2e\support\booking-editor-atdd.ts:8:1)
+    at Object.<anonymous> (C:\DEV\ElproSaas\tests\e2e\booking-editor.e2e.spec.ts:8:1)
+Error: No tests found.
+Make sure that arguments are regular expressions matching test files.
+You may need to escape symbols like "$" or "*" and quote the arguments.

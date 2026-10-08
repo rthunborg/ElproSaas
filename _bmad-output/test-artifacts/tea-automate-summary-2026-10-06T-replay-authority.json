@@ -1,0 +1,44 @@
+{
+  "success": true,
+  "detected_stack": "frontend",
+  "mode": "BMad-Integrated",
+  "requested_mode": "auto",
+  "resolved_mode": "subagent",
+  "api_tests": 3,
+  "e2e_tests": 0,
+  "total_tests": 3,
+  "fixtures_created": 0,
+  "api_test_files": 1,
+  "e2e_test_files": 0,
+  "priority_coverage": {
+    "P3": 0,
+    "P2": 0,
+    "P0": 0,
+    "P1": 3
+  },
+  "playwright_utils_deviations": [],
+  "pactjs_utils_deviations": [],
+  "knowledge_fragments_used": [
+    "data-factories",
+    "api-testing-patterns",
+    "playwright-utils-mandate",
+    "pactjs-utils-mandate",
+    "library-integration-mandate"
+  ],
+  "performance_gain": "Not measured",
+  "generatedTestFiles": [
+    "tests/integration/commands/bookings-replay-authority.int.test.ts"
+  ],
+  "validation": {
+    "executed": 3,
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0,
+    "integrationNativeExitCode": 0,
+    "typecheckNativeExitCode": 0,
+    "targetedLintNativeExitCode": 0,
+    "initialTypecheckNativeExitCode": 1,
+    "repair": "Use test.for for real test context",
+    "actorStateRestored": true
+  }
+}

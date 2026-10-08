@@ -126,6 +126,21 @@ Rules (see [`docs/security/security-guardrails.md`](../security/security-guardra
 
 ## Local Supabase (wired)
 
+### Booking conflict attestation
+
+Fresh internal booking writes require non-public `BOOKING_CONFLICT_ATTESTATION_KEY_ID`
+and `BOOKING_CONFLICT_ATTESTATION_HMAC_SECRET`, with matching owner-only Vault secret
+`booking_conflict_attestation_<key-id>`. The database verifies the dedicated
+length-prefixed HMAC over current fact/candidate digests and exact derived output;
+validity is database-issued and limited to two minutes. Missing or unknown keys
+fail closed. Proofs and secrets are never browser data, audit metadata or logs.
+Completed authorized replay does not require new signing material.
+
+`supabase/seed.sql` installs an explicitly synthetic local/CI pair. Vitest sets the
+matching server variables from `tests/support/test-env.ts`; production has no fallback.
+Populated authorized local stacks may apply only that idempotent synthetic seed
+block without reset. Hosted key installation is outside Story 14.3.
+
 Supabase is the backend (Auth + Postgres + Storage, architecture §6). The
 local CLI stack is now wired: `supabase/config.toml`, the first migration
 (`supabase/migrations/*_tenant_foundation.sql`), and a minimal `supabase/seed.sql`
@@ -243,6 +258,24 @@ containers by `project_id` (no fixed `container_name`), uses named volumes for t
 Postgres data (no Windows-path bind mounts), and requires no global Docker/WSL
 changes beyond having Docker running.
 
+### Guard-owned disposable Compose test stack
+
+`compose.test.yaml` is an isolated image-based Auth, PostgREST, Storage, and
+gateway stack for agent-run integration evidence. It uses project-scoped named
+volumes, the default Compose network, and high loopback ports (`55421` API and
+`55422` Postgres). Copy `.env.test.example` to ignored `.env.test`, start it
+only through the resource guard, and inspect the guard's Compose operation before
+using it. Apply migrations to the owned database with the supported SQL-only path:
+
+```powershell
+supabase db push --db-url "postgresql://postgres:postgres@127.0.0.1:55422/postgres"
+```
+
+Set `SUPABASE_TEST_URL=http://127.0.0.1:55421` and
+`SUPABASE_TEST_DB_URL=postgresql://postgres:postgres@127.0.0.1:55422/postgres`
+when running test commands. Stop the lifecycle resource through the guard when
+finished; do not use raw Compose or Supabase lifecycle teardown.
+
 ## Lovable oracle policy
 
 The existing **Lovable app is a behavioral oracle and fixture source only —
@@ -281,3 +314,19 @@ needed and never paste sensitive records into docs or fixtures (see
   requirements and merge gates.
 - architecture.md §3 (repo/Docker conventions), §6 (Supabase/env), §18 (test
   strategy), §19 (CI gates).
+
+## Guarded browser on the current Windows host
+
+For guard-owned headless/CDP automation on Rasmus's Windows host, use installed
+`C:\Program Files\Google\Chrome\Application\chrome.exe` with normal guard
+`Start`, `resourceType='browser'`, the actual checkout as working directory,
+and the actor's own latest trusted hook context. The guard injects and retains
+its private profile. Keep headless mode and bind CDP to loopback; verify the
+returned lifecycle and exact endpoint ownership before attaching.
+
+The cached Playwright Chromium 1228 image currently fails Windows side-by-side
+activation (native error 14001). Installed Chrome passed guarded admission,
+CDP interaction and cleanup on guard 0.9.15. See the
+[October 2 diagnosis and continuation instructions](epic-14-guard-startup-diagnosis-2026-09-29.md#guarded-browser-correction--2026-10-02).
+This host-specific launch correction changes no project dependency or CI browser
+selection and does not waive integration or application E2E acceptance gates.

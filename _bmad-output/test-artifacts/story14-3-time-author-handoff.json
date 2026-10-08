@@ -1,0 +1,379 @@
+{
+  "status": "DIAGNOSTIC AND READINESS COMPLETE; Story14.3 remains blocked until root explicit clean/restoration gate and required verification",
+  "currentFull": {
+    "total": 1366,
+    "passed": 1362,
+    "failed": 3,
+    "skipped": 1,
+    "nativeExit": 1
+  },
+  "affectedFocused": {
+    "total": 143,
+    "passed": 143,
+    "failed": 0,
+    "skipped": 0,
+    "nativeExit": 0
+  },
+  "representativeRuns": [
+    {
+      "total": 102,
+      "passed": 101,
+      "failed": 1,
+      "skipped": 0,
+      "nativeExit": 1
+    },
+    {
+      "total": 102,
+      "passed": 101,
+      "failed": 1,
+      "skipped": 0,
+      "nativeExit": 1
+    }
+  ],
+  "proven": "Owner persistent disable followed by ONE read-only native0 55s check:2734samples,0reversals,minRealtime+11.932203ms,adjusted/raw1.0001272306764746,realtime/raw0.999944761838553; exact loaded/disabled/inactive/dead/MainPID0 before and after. Historical active rollback had3reversals.",
+  "causeLimits": "Supports co-discipline conflict correction; bounded55s stability is not indefinite durability or proof of each historical test cause. Prior automatic guest completion remains unknown.",
+  "ownerProbe": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-admin-probe.ps1",
+  "ownerProbeSafeOutput": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-admin-probe-result.json",
+  "ownerProbeExecuted": true,
+  "uacLaunched": true,
+  "ownerProbeParserErrors": 0,
+  "guestServiceQueriesInOwnerProbe": false,
+  "lifecycle": "48fc14f8-3810-46f8-ab4f-8c416abc7d57",
+  "rootOwnsStop": true,
+  "authorChangedFiles": [
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-admin-probe.ps1",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-attribution-capture.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-attribution-instrumented-result.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-attribution-kernel-schema.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-attribution-proposal.py",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-attribution-result.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-attribution-symbol-eligibility.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-attribution-zero-write-io.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-author-handoff.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-backend-log-extracts.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-backend-surface.cjs",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-backend-surface.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-diagnosis.md",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-docker-unit-logs.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-native-clock-samples.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-native-clock-validated.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-native-rate-analysis.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-provider-log-extracts.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-provider-provenance.cjs",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-provider-provenance.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-raw-clock-comparison.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-readiness.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-root-provider.cjs",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-root-provider.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-sampler-audit.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-system-provenance.cjs",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-system-provenance.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-stability-sampler.py",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-stability-runner.cjs",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-after-rollback-stability.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-owner-experiment-receipt.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-after-disable-stability.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-owner-persistent-disable-receipt.json",
+    "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-current-stack-readiness.json"
+  ],
+  "delegateOwnedFileExcluded": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-windows-ntp-offsets.json",
+  "safeAudit": {
+    "nativeExit": 0,
+    "scannedArtifacts": 38,
+    "jsonParsed": 28,
+    "jsonParseErrors": 0,
+    "secretAuthorityPiiPatternHits": 0,
+    "limits": "Targeted PEM/JWT/Supabase-key/credential-assignment/email patterns only."
+  },
+  "activity": {
+    "testsRunning": false,
+    "samplerRunning": false,
+    "tracerRunning": false,
+    "ownTraceProbesAndBufferReleased": true,
+    "rootAndPriorTraceStatePreserved": true,
+    "allOwnToolInvocationsCompleted": true,
+    "allOwnWindowsInvocationsCompleted": true,
+    "guestReaderCompletion": "UNKNOWN",
+    "guestExit": "UNKNOWN",
+    "existingSharedAgettyAdoptedOrStopped": false,
+    "ownerManualGuestJobCompleted": true,
+    "ownerManualGuestJobStatus": 0,
+    "currentGuestSamplerCompleted": true,
+    "dbReadinessConnectionClosed": true
+  },
+  "specOrProductChanged": false,
+  "clockServicePolicyChanged": false,
+  "ownerProbeSha256": "979ea23d32944609d793d4151fc2c7b1b65b217559df5ecabe98a21ef245bf4a",
+  "ownerProbeFrozen": false,
+  "executedOwnerProbeSha256": "a4030aa5a39b8be5850e27e292d94936d367944ab16ea6d4216012717d4fffda",
+  "uacLaunchOwner": "root with actual ownerconsent; author launched none",
+  "ownerProbeAutomationUnsupported": true,
+  "doNotRetryAutomatedWrapper": true,
+  "actualElevatedProbe": {
+    "administrator": true,
+    "existingVmProvenActive": true,
+    "nativeExit": null,
+    "failureStage": "bounded-root-read",
+    "failureType": "TimeoutException",
+    "elapsedMs": 10069,
+    "ownWindowsProcessesExited": true,
+    "ownHandlesClosed": true,
+    "readCompleted": false,
+    "retainedSafeLines": 0,
+    "partialStdoutDiscardedOnTimeout": true,
+    "guestReaderCompletion": "UNKNOWN",
+    "guestExit": "UNKNOWN"
+  },
+  "sourceProof": {
+    "installedTag": "2.7.12",
+    "client": "https://github.com/microsoft/WSL/blob/2.7.12/src/windows/common/WslClient.cpp#L1351-L1397",
+    "dispatch": "https://github.com/microsoft/WSL/blob/2.7.12/src/windows/common/WslClient.cpp#L1424-L1426",
+    "guestSupervisor": "https://github.com/microsoft/WSL/blob/2.7.12/src/linux/init/main.cpp#L1118-L1155",
+    "conclusion": "interactive existing agetty console, no trailingexec parsing or guestgroup termination guarantee from Windowsclient death"
+  },
+  "ownerManualRoute": {
+    "artifact": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-diagnosis.md",
+    "administratorInteractiveCommand": "wsl.exe --debug-shell",
+    "freshRunningVmRequired": true,
+    "existingGnuGuestTimeoutRequired": true,
+    "guestTimeoutAvailabilityVerified": false,
+    "completionMarkers": [
+      "SAFE|GUEST_READ_COMPLETE|true",
+      "SAFE|GUEST_JOB_STATUS|0"
+    ],
+    "priorGuestReaderExit": "UNKNOWN",
+    "ownerManualReadExecuted": true,
+    "currentGuestReadCompleted": true,
+    "currentGuestJobStatus": 0,
+    "receipt": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-owner-receipt.json"
+  },
+  "resourceState": "Root lifecycle48fc14f8 ACTIVE/registered-start-verified,outcomeVerifiedtrue; shared saved stack readiness verified55421/55422; root owns Stop.",
+  "interventionProposal": {
+    "artifact": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-diagnosis.md",
+    "ownerApprovalRequired": false,
+    "executed": true,
+    "scope": "temporary runtime stop/start Ubuntu-24.04 systemd-timesyncd.service only; all utilityVM PHC/chronyd/config/enablement unchanged",
+    "plannedStopWindowSeconds": 90,
+    "validationMaximumRawSeconds": 55,
+    "newSamplerOrHelperIntroduced": false,
+    "inactiveMainPidZeroRequiredBeforeAndAfter": true,
+    "rollback": "start exact unit and verify prior active/running state; cannot undo time history; start canstep clock",
+    "causeStatus": "primary-source supported controlled isolation experiment, not proven historicalcause or guaranteed immediate convergence",
+    "delegateOwnedExactCommandArtifact": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-owner-intervention-proposal.md",
+    "executor": "owner; no agent service mutation"
+  },
+  "ownerExperimentReceipt": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-owner-experiment-receipt.json",
+  "postRollbackCheck": {
+    "artifact": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-after-rollback-stability.json",
+    "runnerNativeExit": 0,
+    "readOnly": true,
+    "serviceClockMutations": false,
+    "samplerRuns": 1,
+    "runningGuardNativeExit": 0,
+    "ubuntuAlreadyRunningWsl2": true,
+    "gnuTimeoutVerified": true,
+    "before": {
+      "nativeExit": 0,
+      "stderrBytes": 0,
+      "values": {
+        "MainPID": "2457",
+        "Id": "systemd-timesyncd.service",
+        "LoadState": "loaded",
+        "ActiveState": "active",
+        "SubState": "running",
+        "FragmentPath": "/usr/lib/systemd/system/systemd-timesyncd.service",
+        "UnitFileState": "enabled"
+      }
+    },
+    "samplerNativeExit": 0,
+    "samplerTransportError": null,
+    "samplerStderrBytes": 0,
+    "metrics": {
+      "readOnly": true,
+      "rawDeadlineSeconds": 55,
+      "samples": 2811,
+      "backwardSteps": 3,
+      "minimumRealtimeDeltaMs": -1985.812987,
+      "minimumAdjustedDeltaMs": 0.246667,
+      "rawElapsedMs": 55000.082317,
+      "adjustedToRawRatio": 1.071687471289135,
+      "realtimeToRawRatio": 0.9994061971978194
+    },
+    "after": {
+      "nativeExit": 0,
+      "stderrBytes": 0,
+      "values": {
+        "MainPID": "2457",
+        "Id": "systemd-timesyncd.service",
+        "LoadState": "loaded",
+        "ActiveState": "active",
+        "SubState": "running",
+        "FragmentPath": "/usr/lib/systemd/system/systemd-timesyncd.service",
+        "UnitFileState": "enabled"
+      }
+    },
+    "currentClockStable": false
+  },
+  "nextOwnerAction": {
+    "alreadyAuthorized": true,
+    "agentCannotAdoptOrStopUserOwnedService": true,
+    "command": "wsl.exe --distribution Ubuntu-24.04 --user root --exec timeout --kill-after=1s 5s systemctl disable --now systemd-timesyncd.service",
+    "freshUbuntuRunningGuardRequired": true,
+    "readbackRequired": "exact unit disabled/inactive/dead/MainPID0",
+    "rollback": "wsl.exe --distribution Ubuntu-24.04 --user root --exec timeout --kill-after=1s 5s systemctl enable --now systemd-timesyncd.service",
+    "rollbackReadback": "enabled/active/running",
+    "performedByAuthor": false,
+    "performedByOwner": true,
+    "ownerNativeExit": null,
+    "ownerNativeExitSupplied": false
+  },
+  "harnessCorrection": {
+    "issue": "earlier invocation mixedPowerShell/WSLsyntax and wasnotdirectlyrunnable",
+    "savedPython": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-stability-sampler.py",
+    "nativeArgvRunner": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-stability-runner.cjs",
+    "stdinSourceWithoutShellInterpolation": true,
+    "pythonParsedExecutedNativeExit": 0,
+    "nodeSyntaxCheckNativeExit": 0,
+    "samplerRuns": 1,
+    "currentMode": "disabled",
+    "historicalActiveOutputPreserved": true,
+    "currentSamplerRuns": 1
+  },
+  "fullGateReady": false,
+  "specRestored": false,
+  "routing": {
+    "model": "gpt-6.1-sol",
+    "effort": "High",
+    "reason": "signed-proof/time-integrity diagnosis"
+  },
+  "wslScopeAuthorization": {
+    "broaderUserWslAuthorizationValid": true,
+    "trustedGuardStillApplies": true,
+    "noManagedResourceLaunchOrDbUse": false,
+    "noManagedResourceLaunch": true,
+    "onlyAuthorizedReadOnlyDbReadiness": true
+  },
+  "ownerPersistentDisableReceipt": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-owner-persistent-disable-receipt.json",
+  "postDisableCheck": {
+    "artifact": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-after-disable-stability.json",
+    "runnerNativeExit": 0,
+    "readOnly": true,
+    "serviceClockMutations": false,
+    "samplerRuns": 1,
+    "expectedUnitMode": "disabled",
+    "runningGuardNativeExit": 0,
+    "ubuntuAlreadyRunningWsl2": true,
+    "gnuTimeoutVerified": true,
+    "before": {
+      "nativeExit": 0,
+      "stderrBytes": 0,
+      "values": {
+        "MainPID": "0",
+        "Id": "systemd-timesyncd.service",
+        "LoadState": "loaded",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "FragmentPath": "/usr/lib/systemd/system/systemd-timesyncd.service",
+        "UnitFileState": "disabled"
+      }
+    },
+    "samplerNativeExit": 0,
+    "samplerTransportError": null,
+    "samplerStderrBytes": 0,
+    "metrics": {
+      "readOnly": true,
+      "rawDeadlineSeconds": 55,
+      "samples": 2734,
+      "backwardSteps": 0,
+      "minimumRealtimeDeltaMs": 11.932203,
+      "minimumAdjustedDeltaMs": 11.93219,
+      "rawElapsedMs": 55000.092697,
+      "adjustedToRawRatio": 1.0001272306764746,
+      "realtimeToRawRatio": 0.999944761838553
+    },
+    "after": {
+      "nativeExit": 0,
+      "stderrBytes": 0,
+      "values": {
+        "MainPID": "0",
+        "Id": "systemd-timesyncd.service",
+        "LoadState": "loaded",
+        "ActiveState": "inactive",
+        "SubState": "dead",
+        "FragmentPath": "/usr/lib/systemd/system/systemd-timesyncd.service",
+        "UnitFileState": "disabled"
+      }
+    },
+    "currentClockObservedStable": true
+  },
+  "nextAction": "Await root explicit clean checkpoint/restoration authorization; no product/spec edits or tests before that handoff.",
+  "clockServicePolicyChangedByOwner": true,
+  "currentClockObservedStable": true,
+  "rootCleanGateAndGuardedStackRequired": true,
+  "currentStackReadiness": {
+    "artifact": "C:/DEV/ElproSaas/_bmad-output/test-artifacts/story14-3-time-current-stack-readiness.json",
+    "nativeExit": 0,
+    "targetApi": "http://127.0.0.1:55421",
+    "targetDb": "127.0.0.1:55422/postgres",
+    "lifecycle": "48fc14f8-3810-46f8-ab4f-8c416abc7d57",
+    "resourceState": "ACTIVE/outcomeVerified=true supplied by root",
+    "readOnly": true,
+    "testsRun": false,
+    "health": [
+      {
+        "endpoint": "/auth/v1/health",
+        "httpStatus": 200,
+        "elapsedMs": 4009
+      },
+      {
+        "endpoint": "/rest/v1/",
+        "httpStatus": 200,
+        "elapsedMs": 4028
+      },
+      {
+        "endpoint": "/storage/v1/status",
+        "httpStatus": 200,
+        "elapsedMs": 3990
+      }
+    ],
+    "db": {
+      "db": "postgres",
+      "db_user": "postgres",
+      "version_num": "170006",
+      "timezone": "UTC",
+      "recovery": false,
+      "is_bookings": "bookings",
+      "is_auth": "auth.users",
+      "is_storage": "storage.objects",
+      "is_ledger": "supabase_migrations.schema_migrations"
+    },
+    "ledger": {
+      "count": 95,
+      "lastVersion": "20261006144057",
+      "allRepoVersionsPresent": true,
+      "noUnexpectedVersions": true,
+      "repoVersionCount": 95,
+      "prior94Sha256": "4ee8170645ea6bf45d11d79dfcda08fa83fe1b32e920905650bbd0e1c47e3d00",
+      "prior94KnownHashMatches": true
+    },
+    "clock": {
+      "sameConnection": true,
+      "samples": 21,
+      "backwardSteps": 0,
+      "minimumDeltaMs": 50.947998046875,
+      "positiveDeltas": 20,
+      "dbElapsedMs": 1029.931884765625,
+      "hostMonotonicElapsedMs": 1031.3372,
+      "absoluteTimesLogged": false
+    },
+    "ready": true
+  },
+  "rootActiveLifecycle": {
+    "resourceId": "48fc14f8-3810-46f8-ab4f-8c416abc7d57",
+    "state": "ACTIVE",
+    "outcomeVerified": true,
+    "rootOwnsStop": true,
+    "authorReadOnlyReadinessUsed": true
+  },
+  "guardedStackReady": true
+}

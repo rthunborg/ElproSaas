@@ -1,0 +1,29 @@
+{
+  "readOnly": true,
+  "nativeExit": 0,
+  "stderrBytes": 0,
+  "existingVmProvenActive": true,
+  "systemOptionDocumented": true,
+  "scope": "exact captured kernel PIDs241/729/450; time-name guard before metadata; self namespace/WSLg active marker only; no namespace entry or argv/env",
+  "identityLines": [
+    "INSPECTION_SELF_PIDNS|pid:[4026532355]",
+    "EXISTING_WSLG_SOCKET|true",
+    "TARGET_COMM_NOT_MATCHED|241",
+    "TARGET_COMM_NOT_MATCHED|729",
+    "TARGET_COMM_NOT_MATCHED|450"
+  ],
+  "priorIdentityPasses": [
+    {
+      "readOnly": true,
+      "nativeExit": 0,
+      "stderrBytes": 0,
+      "existingVmProvenActive": true,
+      "systemOptionDocumented": true,
+      "scope": "exact captured kernel PIDs241/729; comm guard before metadata; no namespace entry or argv/env",
+      "identityLines": [
+        "TARGET_COMM_NOT_MATCHED|241",
+        "TARGET_COMM_NOT_MATCHED|729"
+      ]
+    }
+  ]
+}

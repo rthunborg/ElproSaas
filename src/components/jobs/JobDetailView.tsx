@@ -42,10 +42,12 @@ const EVENT_LABELS: Record<string, string> = {
 export function JobDetailView({
   detail,
   filesPanel,
+  bookingPanel,
 }: {
   readonly detail: JobDetail;
   /** The Story 8.2 entity file panel (job_evidence upload + list), rendered when provided. */
   readonly filesPanel?: ReactNode;
+  readonly bookingPanel?: ReactNode;
 }) {
   const versionHref =
     detail.quoteId && detail.quoteVersionId
@@ -91,6 +93,8 @@ export function JobDetailView({
           </div>
         </dl>
       </header>
+
+      {bookingPanel}
 
       {/* ── SOURCE TRACEABILITY (AC1, read-only immutable refs) ────────────────── */}
       {/* A STANDALONE job has NO acceptance/commitment — render an origin note instead of the

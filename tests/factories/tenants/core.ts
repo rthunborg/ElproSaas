@@ -23,6 +23,7 @@
  *   `quoteA` handles ALONGSIDE these without renaming or reshaping the existing
  *   five — the forward-compat smoke in factory-isolation.int.test.ts pins that.
  */
+import { observeQuoteSendRpcs } from "../../support/quote-send-diagnostics";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { TenantRole } from "@/server/authz/roles";
 import {
@@ -350,7 +351,9 @@ export async function makeAuthedServerClient(
       `factory: failed to sign in fixture user ${user.email}: ${error.message}`,
     );
   }
-  return client;
+  return observeQuoteSendRpcs(client, (diagnostic) => {
+    console.error("[quote-send-diagnostic]", JSON.stringify(diagnostic));
+  }).client;
 }
 
 /**

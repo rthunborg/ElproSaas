@@ -1,0 +1,681 @@
+{
+  "config": {
+    "argv": [
+      "C:\\nvm4w\\nodejs\\node.exe",
+      "C:\\DEV\\ElproSaas\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "tests/e2e/booking-editor.e2e.spec.ts",
+      "--reporter=list,json"
+    ],
+    "configFile": "C:\\DEV\\ElproSaas\\playwright.config.ts",
+    "rootDir": "C:/DEV/ElproSaas/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "C:\\DEV\\ElproSaas\\tests\\e2e\\global-setup.ts",
+    "globalTeardown": "C:\\DEV\\ElproSaas\\tests\\e2e\\global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/DEV/ElproSaas/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "C:/DEV/ElproSaas/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.e2e.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list"
+      ],
+      [
+        "json"
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 1,
+    "webServer": {
+      "command": "node node_modules/next/dist/bin/next build && node node_modules/next/dist/bin/next start --port 3100",
+      "url": "http://127.0.0.1:3100",
+      "timeout": 240000,
+      "reuseExistingServer": true,
+      "env": {
+        "NEXT_PUBLIC_SUPABASE_URL": "http://127.0.0.1:55421",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0",
+        "NEXT_PUBLIC_APP_URL": "http://127.0.0.1:3100",
+        "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU",
+        "QUOTE_PDF_ATTESTATION_KEY_ID": "test_v1",
+        "QUOTE_PDF_ATTESTATION_HMAC_SECRET": "local-test-only-quote-pdf-attestation-secret-v1",
+        "BOOKING_CONFLICT_ATTESTATION_KEY_ID": "test_v1",
+        "BOOKING_CONFLICT_ATTESTATION_HMAC_SECRET": "local-test-only-booking-conflict-attestation-secret-v1",
+        "TENANT_PROVISIONING_ATTESTATION_KEY_ID": "test_v1",
+        "TENANT_PROVISIONING_ATTESTATION_HMAC_SECRET": "local-test-only-provisioning-attestation-secret-v1",
+        "TENANT_PROVISIONING_ENABLED": "true",
+        "E2E_RESOURCE_SAVE_FAILURE_ENABLED": "true"
+      }
+    }
+  },
+  "suites": [
+    {
+      "title": "booking-editor.e2e.spec.ts",
+      "file": "booking-editor.e2e.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Story 14.4 booking editor retained browser acceptance",
+          "file": "booking-editor.e2e.spec.ts",
+          "line": 81,
+          "column": 6,
+          "specs": [
+            {
+              "title": "Round1 endpoint-only mounted edits preserve the other PostgreSQL instant exactly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 6893,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-07T13:26:13.996Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5cbc46a2219367c6da4a-bea8e8b4aec9cc55f894",
+              "file": "booking-editor.e2e.spec.ts",
+              "line": 82,
+              "column": 7
+            },
+            {
+              "title": "Round1 compatible customer contact retains facility; archived current links remain visible and deliberately clearable",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5702,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-07T13:26:20.927Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5cbc46a2219367c6da4a-0164963fb3e5a3c1c91c",
+              "file": "booking-editor.e2e.spec.ts",
+              "line": 100,
+              "column": 7
+            },
+            {
+              "title": "[P0] E2E-006 toolbar creates a standalone booking through the desktop sheet",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2970,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-07T13:26:26.636Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5cbc46a2219367c6da4a-8409880200be4d1a92b1",
+              "file": "booking-editor.e2e.spec.ts",
+              "line": 134,
+              "column": 7
+            },
+            {
+              "title": "[P0] E2E-006 job entry persists preconnection then reopens and edits",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 6862,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-07T13:26:29.619Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5cbc46a2219367c6da4a-26d342c19e4f5503f029",
+              "file": "booking-editor.e2e.spec.ts",
+              "line": 162,
+              "column": 9
+            },
+            {
+              "title": "[P0] E2E-006 customer entry persists preconnection then reopens and edits",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 6807,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-07T13:26:36.495Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5cbc46a2219367c6da4a-0b491b7b1bdef733b302",
+              "file": "booking-editor.e2e.spec.ts",
+              "line": 162,
+              "column": 9
+            },
+            {
+              "title": "[P1] E2E-001/007 360x640 fullscreen editor scrolls without overflow and keeps actions reachable",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2640,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-07T13:26:43.318Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5cbc46a2219367c6da4a-3491d9838b3e93d4563f",
+              "file": "booking-editor.e2e.spec.ts",
+              "line": 214,
+              "column": 7
+            },
+            {
+              "title": "[P1] E2E-002 reload chip counts persisted OPEN logical conflicts only",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2261,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-07T13:26:45.971Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5cbc46a2219367c6da4a-1bec7eb51a30dbba247a",
+              "file": "booking-editor.e2e.spec.ts",
+              "line": 241,
+              "column": 7
+            },
+            {
+              "title": "[P1] E2E-003/007 dirty Escape cancel retains draft and discard restores entry focus",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2007,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-07T13:26:48.245Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5cbc46a2219367c6da4a-d2c7e2e829cc0018018d",
+              "file": "booking-editor.e2e.spec.ts",
+              "line": 259,
+              "column": 9
+            },
+            {
+              "title": "[P1] E2E-003/007 dirty close cancel retains draft and discard restores entry focus",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2163,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-07T13:26:50.269Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5cbc46a2219367c6da4a-3cd647ff6e46cbf11235",
+              "file": "booking-editor.e2e.spec.ts",
+              "line": 259,
+              "column": 9
+            },
+            {
+              "title": "[P1] E2E-003/007 dirty back cancel retains draft and discard restores entry focus",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2033,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-07T13:26:52.448Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5cbc46a2219367c6da4a-279268a1d64101cb42d0",
+              "file": "booking-editor.e2e.spec.ts",
+              "line": 259,
+              "column": 9
+            },
+            {
+              "title": "[P1] E2E-003 in-flight save blocks Escape close and back until confirmed",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3337,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-07T13:26:54.496Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5cbc46a2219367c6da4a-8bf22b7d4ebc2d773e94",
+              "file": "booking-editor.e2e.spec.ts",
+              "line": 286,
+              "column": 7
+            },
+            {
+              "title": "[P0] E2E-004/005 phone failure keeps unsent draft and explicit retry confirms one durable save",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [
+                    {
+                      "type": "skipNetworkMonitoring",
+                      "description": "Expected transient save failure is the subject of the test",
+                      "location": {
+                        "file": "C:\\DEV\\ElproSaas\\tests\\e2e\\booking-editor.e2e.spec.ts",
+                        "line": 320,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3291,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-07T13:26:57.848Z",
+                      "annotations": [
+                        {
+                          "type": "skipNetworkMonitoring",
+                          "description": "Expected transient save failure is the subject of the test",
+                          "location": {
+                            "file": "C:\\DEV\\ElproSaas\\tests\\e2e\\booking-editor.e2e.spec.ts",
+                            "line": 320,
+                            "column": 7
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5cbc46a2219367c6da4a-a8b0fc704b7acbe96f98",
+              "file": "booking-editor.e2e.spec.ts",
+              "line": 320,
+              "column": 7
+            },
+            {
+              "title": "[P0] E2E-005 phone lost committed response replays one booking assignments conflicts and attributable audit",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [
+                    {
+                      "type": "skipNetworkMonitoring",
+                      "description": "Lose only the response after real atomic commit",
+                      "location": {
+                        "file": "C:\\DEV\\ElproSaas\\tests\\e2e\\booking-editor.e2e.spec.ts",
+                        "line": 349,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4406,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-07T13:27:01.152Z",
+                      "annotations": [
+                        {
+                          "type": "skipNetworkMonitoring",
+                          "description": "Lose only the response after real atomic commit",
+                          "location": {
+                            "file": "C:\\DEV\\ElproSaas\\tests\\e2e\\booking-editor.e2e.spec.ts",
+                            "line": 349,
+                            "column": 7
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5cbc46a2219367c6da4a-ee7d6040d512710a38cd",
+              "file": "booking-editor.e2e.spec.ts",
+              "line": 349,
+              "column": 7
+            },
+            {
+              "title": "[P1] AC2/ E2E-007 latest warning wins and preview failure remains visibly unknown",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [
+                    {
+                      "type": "skipNetworkMonitoring",
+                      "description": "Expected preview failure is the subject of the test",
+                      "location": {
+                        "file": "C:\\DEV\\ElproSaas\\tests\\e2e\\booking-editor.e2e.spec.ts",
+                        "line": 402,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3550,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-07T13:27:05.574Z",
+                      "annotations": [
+                        {
+                          "type": "skipNetworkMonitoring",
+                          "description": "Expected preview failure is the subject of the test",
+                          "location": {
+                            "file": "C:\\DEV\\ElproSaas\\tests\\e2e\\booking-editor.e2e.spec.ts",
+                            "line": 402,
+                            "column": 7
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5cbc46a2219367c6da4a-a9c5c83cbd52691797f8",
+              "file": "booking-editor.e2e.spec.ts",
+              "line": 402,
+              "column": 7
+            },
+            {
+              "title": "[P1] E2E-007 keyboard focus remains in sheet and warnings announce explanatory timeline",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3587,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-07T13:27:09.145Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "5cbc46a2219367c6da4a-c7b8e17793150c7356c4",
+              "file": "booking-editor.e2e.spec.ts",
+              "line": 440,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-07T13:26:11.976Z",
+    "duration": 61313.278,
+    "expected": 15,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

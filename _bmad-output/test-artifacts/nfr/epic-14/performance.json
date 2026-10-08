@@ -1,0 +1,16 @@
+{
+  "domain": "performance",
+  "status": "CONCERNS",
+  "risk_level": "MEDIUM",
+  "execution_mode": "sequential",
+  "new_product_executions": 0,
+  "findings": [
+    { "category": "Response times and perceived speed", "status": "CONCERNS", "threshold": "UNKNOWN p95/p99 HTTP, engine/save, page-load and TTI targets", "description": "No eligible latency/load/TTI measurement exists. 40.545 seconds is targeted runner/fixture elapsed, not HTTP response duration; 90 seconds is a bounded interceptor wait, not an SLO.", "evidence": ["test-design-epic-14.md", "story14-4-r2-browser-evidence.json", "traceability/epic-14/gate-decision.json"], "recommendations": ["Product/architecture and test owner should approve endpoint/engine/save latency thresholds and a representative volume matrix, then capture benchmark distributions with declared setup and timing boundaries."] },
+    { "category": "Throughput and representative scale", "status": "CONCERNS", "threshold": "UNKNOWN requests/s, concurrent users, persons, horizon bookings, assignees and exceptions", "description": "Actual 1000-group/select-one HTTP200 durable success proves functional transport for that synthetic fixture only; it does not establish representative tenant volume, throughput or concurrency capacity.", "evidence": ["test-design-epic-14.md", "story14-4-r2-browser-evidence.json"], "recommendations": ["Approve representative tenant/horizon/assignee/exception loads and concurrent workload shape; retain per-stage throughput/error measurements and exact fixture description."] },
+    { "category": "Resource usage", "status": "CONCERNS", "threshold": "UNKNOWN CPU, memory, connection pool and query budget", "description": "No current accepted CPU/memory/pool profiling evidence exists. Historical 44-client diagnostic cannot be converted into a capacity guarantee or failure attribution.", "evidence": ["test-design-epic-14.md", "nfr-assessment-epic-14.md"], "recommendations": ["Test/operations owner should attach resource and query-plan measurements to the approved workload, with declared warm/cold cache and environment limits."] },
+    { "category": "Optimization and bottlenecks", "status": "CONCERNS", "threshold": "UNKNOWN measured optimization target", "description": "Shared pure engine, configured rules and bounded transport are architecture facts; no workload bottleneck/optimization impact is measured. Earlier different-build 900/select300 HTTP500 has unknown cause, not a controlled counterfactual.", "evidence": ["test-design-epic-14.md", "story14-4-r2-browser-evidence.json", "story14-4-verification.md"], "recommendations": ["Collect benchmark/query-plan baseline after target approval, then propose only changes justified by the measured bottleneck; do not invent caching/indexing/CDN requirements."] }
+  ],
+  "compliance": { "14.NFR-PERF-001": "CONCERNS", "approved_latency_target": "CONCERNS", "approved_scale_target": "CONCERNS" },
+  "priority_actions": ["Approve representative volumes and latency/resource/throughput thresholds before performance PASS or scalability claims.", "Measure engine/HTTP/save duration separately from fixture/test elapsed under the approved profile."],
+  "summary": "4 CONCERNS, 0 PASS, 0 FAIL. Performance/scalability remain UNKNOWN as required by the test design; no measured threshold breach or performance certification is invented."
+}

@@ -1,0 +1,12 @@
+{
+  "target": "127.0.0.1:55422/postgres",
+  "lifecycle": "730ffa3c-8fe8-4b93-b5b8-4da0f9e61cee",
+  "count": 95,
+  "priorCount": 94,
+  "priorSha256": "4ee8170645ea6bf45d11d79dfcda08fa83fe1b32e920905650bbd0e1c47e3d00",
+  "priorRecordsUnchanged": true,
+  "newVersions": [
+    "20261006144057"
+  ],
+  "emptyChainProven": false
+}

@@ -1,0 +1,35 @@
+{
+  "source": "Completed owner experiment supplied by root; author performed no service mutation",
+  "baseline": {
+    "MainPID": 155,
+    "cgroup": "/system.slice/systemd-timesyncd.service",
+    "Id": "systemd-timesyncd.service",
+    "LoadState": "loaded",
+    "ActiveState": "active",
+    "SubState": "running",
+    "FragmentPath": "/usr/lib/systemd/system/systemd-timesyncd.service",
+    "UnitFileState": "enabled"
+  },
+  "afterOwnerStop": {
+    "MainPID": 0,
+    "ActiveState": "inactive",
+    "SubState": "dead",
+    "UnitFileState": "enabled"
+  },
+  "owner55SecondObservation": {
+    "samples": 2733,
+    "backwardSteps": 0,
+    "minimumRealtimeDeltaMs": 0.0,
+    "rawElapsedMs": 55009.092438,
+    "adjustedToRawRatio": 0.999998374377834,
+    "realtimeToRawRatio": 0.9999919157364666,
+    "nativeExit": null
+  },
+  "afterOwnerRollback": {
+    "MainPID": 2457,
+    "ActiveState": "active",
+    "SubState": "running",
+    "UnitFileState": "enabled"
+  },
+  "limits": "Owner supplied JSON metrics without a native exit code. This supports co-discipline conflict but does not prove every historical failure or a durable repair. Service was already restored. Prior automatic guest completion/exit remains unknown."
+}

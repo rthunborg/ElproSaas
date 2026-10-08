@@ -1,0 +1,19 @@
+{
+  "source": "owner output supplied by root on 2026-10-07",
+  "executor": "owner; author performed no service or clock mutation",
+  "command": "systemctl disable --now systemd-timesyncd.service",
+  "nativeExit": null,
+  "nativeExitSupplied": false,
+  "readback": {
+    "MainPID": "0",
+    "ActiveState": "inactive",
+    "SubState": "dead",
+    "UnitFileState": "disabled"
+  },
+  "historicalTemporaryExperimentAndRollbackUnchanged": true,
+  "causeLimits": "Owner configuration change is recorded; bounded read-only observation is distinct from durable stability or attribution of every historical test failure.",
+  "removedSymlinkLabels": [
+    "dbus-org.freedesktop.timesync1.service",
+    "sysinit.target.wants"
+  ]
+}

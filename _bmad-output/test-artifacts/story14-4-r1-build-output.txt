@@ -1,0 +1,58 @@
+▲ Next.js 16.3.6 (Turbopack)
+
+✓ Running next.config.ts took 28ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 1670ms
+  Running TypeScript ...
+  Finished TypeScript in 5.5s ...
+  Collecting page data using 31 workers ...
+  Generating static pages using 31 workers (0/12) ...
+  Generating static pages using 31 workers (3/12)
+  Generating static pages using 31 workers (6/12)
+  Generating static pages using 31 workers (9/12)
+✓ Generating static pages using 31 workers (12/12) in 383ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /admin/users
+├ ƒ /admin/users/[membershipId]
+├ ƒ /api/jobs/run
+├ ƒ /api/notifications
+├ ƒ /api/notifications/[id]/read
+├ ƒ /api/notifications/preferences
+├ ƒ /api/notifications/read-all
+├ ƒ /api/quotes/[quoteVersionId]/delivery-recipients
+├ ○ /auth/invite/complete
+├ ƒ /auth/invite/confirm
+├ ƒ /calculations
+├ ƒ /calculations/[calculationId]
+├ ƒ /customers
+├ ƒ /customers/[customerId]
+├ ƒ /dashboard
+├ ƒ /files
+├ ƒ /invite/accept
+├ ƒ /jobs
+├ ƒ /jobs/[jobId]
+├ ○ /login
+├ ƒ /notifications
+├ ƒ /operator
+├ ƒ /operator/[tenantId]
+├ ○ /password/update
+├ ƒ /quotes
+├ ƒ /quotes/[quoteId]
+├ ƒ /quotes/[quoteId]/versions/[versionId]
+├ ƒ /settings
+├ ƒ /settings/company
+├ ƒ /settings/notifications
+├ ƒ /settings/pricing
+├ ƒ /settings/quote-terms
+└ ƒ /unsubscribe/[token]
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand

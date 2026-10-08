@@ -282,6 +282,8 @@ The root owns the resource guard lifecycle and uses its exact latest trusted con
 Author: original Story 19.1 implementation delegate (gpt-6.1-sol / High), with the verification/fix delegate (gpt-6.1-sol / High) owning the guarded-browser, payload-capture, query-fault, responsive-header and Round 1 corrections. Phase 6 test author (gpt-6.1-sol / High) owns the appended overlap and successive-retry rationale below.
 Reconciled against final implementation commit `7ee80eeda329bc84e99c860c22a1670b1cd8f58c`, including the narrow Round 2 responsive patch, plus this spec-only provenance refresh, 2026-10-07. Review the full original implementation from `b8ccf1575ae94b33487470a08899f10022a8c3dc`; original recorded rationale is retained. Historical Round 1 evidence is preserved; Phase 6 and Round 2 evidence are recorded below. CI-specific stops are refreshed against reviewed scheduling commit `1ecb193ad065332c5b48aa59717b67bc20a57c50`, retaining the earlier dashboard cwd repair `4bb0b3f76f240f748b44e249c192e88d25064d53` and widget-inventory repair `f997370d41238b89dca68b122d022ddcbf352a25`, plus this spec-only evidence reconciliation, 2026-10-08.
 
+Bounded main-integration query-batch test fix author: `/root/kernel_fix`, explicitly `gpt-6.1-sol` High, over `b7ac3504e357d16f3bc120ce317f164db4285429`, 2026-10-08. Its fixture/query-contract rationale and actual focused evidence are added below; original author attribution, frozen intent, completed status and two broad rounds remain unchanged.
+
 ### Operational entry and usable explanations
 
 The original author retained the heading/copy and onboarding branches, placing the full-width card beneath them; live verification required a reserved phone header correction retaining controls and tenant identity. Round 1 anchors the profile menu left on phones and right on desktop, treats mask trigger/explanation as one hover region, and listens for Escape while open because hover need not move keyboard focus.
@@ -315,8 +317,8 @@ The spec required a result-bearing entry because the old empty fallback cannot i
 
 Round 1 separates the newly enabled dashboard cases from the ordinary suite because they require their own seeded fixture and actual server-read proxy; the new unconditional CI job owns an isolated stack and both servers. The proxy rejects non-origin-form targets before forwarding; its HTTP400 faults avoid SDK retries consuming multiple planned steps, and page-owned response-stage capture reads actual server bytes then resumes unchanged, failing closed on missing bodies.
 
-- `playwright.config.ts:33` — `testIgnore`: excludes exactly the dashboard spec from ordinary collection.
-- `.github/workflows/ci.yml:447` — `dashboard-e2e`: adds the required isolated CI gate.
+- `playwright.config.ts:35` — `testIgnore`: excludes exactly the dashboard spec from ordinary collection.
+- `.github/workflows/ci.yml:452` — `dashboard-e2e`: adds the required isolated CI gate.
 - `tests/e2e/dashboard/playwright.ci.config.ts:27` — `webServer`: supplies proxy and production app startup for CI.
 - `tests/e2e/dashboard/server-read-proxy.mjs:58` — `resolveProxyTarget`: denies invalid targets before plans or upstream requests.
 - `tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts:84` — `Fetch.getResponseBody`: observes actual bytes before unchanged continuation.
@@ -328,7 +330,7 @@ Registry negatives cover AC1; DTO/RLS/revocation assertions cover AC2/4/5/7. Rea
 - `tests/unit/scope/widget-registry.test.ts:50` — `19.1-UNIT-001`: checks actual registration against the active manifest.
 - `tests/unit/server/read-models/dashboard.test.ts:216` — `19.1-UNIT-004`: asserts DTO allowlist and withheld amount absence.
 - `tests/integration/rls/dashboard-pipeline.rls.test.ts:185` — `19.1-INT-004`: exercises seller authority against forged caller properties.
-- `tests/unit/server/read-models/quote-pipeline-result.test.ts:360` — `19.1-UNIT-012`: distinguishes explicit failure from compatible fallback.
+- `tests/unit/server/read-models/quote-pipeline-result.test.ts:361` — `19.1-UNIT-012`: distinguishes explicit failure from compatible fallback.
 - `tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts:165` — `19.1-E2E-003`: checks observed HTML/RSC/DOM for withheld values.
 - `tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts:387` — `steps: 12`: exercises actual pointer passage into the explanation.
 - `tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts:392` — `hover tooltip dismisses Escape`: proves dismissal while focus remains elsewhere.
@@ -384,6 +386,17 @@ The High scheduling author isolates the existing job-run rollback suite because 
 Evidence reported by the scheduling author and independently checked by a High narrow reviewer: code commit `1ecb193ad065332c5b48aa59717b67bc20a57c50` resolves all 123 integration files exactly once (122 parallel, one audit-DDL). The focused Node suite passed 3/0/0; its installed-Vitest synthetic scheduler probe passed all three cases in the intended order, then asserted the one intentional failure and interference message with reversed nonzero groups. Required globalSetup, alias, 30-second test/hook timeouts and failure handling remain unchanged; no retry, skip or assertion changes were introduced. Typecheck, focused ESLint and diff checks passed; independent High review returned No findings.
 
 Limits: the synthetic scheduler proves suite afterAll completion before the next group begins, without proving worker-process termination or executing the real database suites. It adds no local DB/RLS, browser or full-unit evidence. Fresh required CI must validate the real database schedule and the chained pilot-performance command; the failed run below did not execute that pilot. Two completed broad review rounds and the frozen intent remain unchanged; this continuation receives only a narrow independent trail check.
+
+### Merged request-batch tests preserve fixture completeness
+
+The bounded fix author reconciles the incoming100-ID test assumption with ADR-B012's already approved shared50-ID request limit. The original101-ID fault/positive fixtures and501-row page fixtures remain intact; fixed three/eleven/twenty-one chunk matrices verify complete101/501/1001-ID results, exact money/counts and no extra health queries. Production pagination, authority, money arithmetic and DTO behavior are unchanged.
+
+- `tests/unit/server/read-models/quote-pipeline-result.test.ts:39` — `ID_BATCH_SIZE = 50`: independent approved request-bound oracle.
+- `tests/unit/server/read-models/quote-pipeline-result.test.ts:40` — `MULTI_BATCH_FIXTURE_IDS = 101`: original fixture cardinality retained.
+- `tests/unit/server/read-models/quote-pipeline-result.test.ts:379` — `distinctAccepted`: exact complete-result boundary matrix.
+- `tests/unit/server/read-models/quote-pipeline-result.test.ts:405` — `every accepted ID appears exactly once`: rejects missing or duplicated accepted IDs.
+
+Actual focused whole-file execution passes46/0failed/0skipped,native0,496.8875ms; focused ESLint and TypeScript passnative0. [Bounded fix-author evidence and limits](../../docs/quality/epic14-main-query-batch-closeout-2026-10-08.md) preserves the failed `b7ac` CI37777002683 result:2151total/2150passed/1failed/0skipped, actual3versusexpected2acceptance reads, with four downstream jobs skipped. These pure injected-transport results add no live RLS/browser evidence; fresh whole-unit/CI and independent High narrow review remain parent-owned. No additional broad round or completion/status change is inferred.
 
 ## Historical Auto Run Result
 

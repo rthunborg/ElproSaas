@@ -1,0 +1,845 @@
+{
+  "readOnly": true,
+  "target": "127.0.0.1:55422/postgres",
+  "sourceChecks": [
+    {
+      "function": "quote_pdf_attestation_iso",
+      "epochExtractionCount": 0,
+      "numericIntegerCastCount": 0,
+      "bookingClockAssignment": false,
+      "bookingMicrosecondFormatting": false,
+      "quoteMillisecondFormatting": true,
+      "statementAssignment": false
+    },
+    {
+      "function": "prepare_quote_pdf_send_attestation",
+      "epochExtractionCount": 0,
+      "numericIntegerCastCount": 0,
+      "bookingClockAssignment": false,
+      "bookingMicrosecondFormatting": false,
+      "quoteMillisecondFormatting": false,
+      "statementAssignment": true
+    },
+    {
+      "function": "snapshot_booking_conflicts",
+      "epochExtractionCount": 0,
+      "numericIntegerCastCount": 0,
+      "bookingClockAssignment": true,
+      "bookingMicrosecondFormatting": true,
+      "quoteMillisecondFormatting": false,
+      "statementAssignment": false
+    },
+    {
+      "function": "finalize_booking_conflicts",
+      "epochExtractionCount": 0,
+      "numericIntegerCastCount": 0,
+      "bookingClockAssignment": false,
+      "bookingMicrosecondFormatting": false,
+      "quoteMillisecondFormatting": false,
+      "statementAssignment": false
+    }
+  ],
+  "sampleCount": 100,
+  "samples": [
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.311,
+      "same_call_elapsed_ms": 0.081,
+      "statement_age_ms": 0.494,
+      "unused_bigint_rounding_delta_ms": "306.689000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.029,
+      "same_call_elapsed_ms": 0.034,
+      "statement_age_ms": 0.144,
+      "unused_bigint_rounding_delta_ms": "305.971000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.744,
+      "same_call_elapsed_ms": 0.045,
+      "statement_age_ms": 0.139,
+      "unused_bigint_rounding_delta_ms": "305.256000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.445,
+      "same_call_elapsed_ms": 0.036,
+      "statement_age_ms": 0.144,
+      "unused_bigint_rounding_delta_ms": "304.555000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.174,
+      "same_call_elapsed_ms": 0.029,
+      "statement_age_ms": 0.136,
+      "unused_bigint_rounding_delta_ms": "303.826000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.819,
+      "same_call_elapsed_ms": 0.025,
+      "statement_age_ms": 0.113,
+      "unused_bigint_rounding_delta_ms": "303.181000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.5,
+      "same_call_elapsed_ms": 0.032,
+      "statement_age_ms": 0.121,
+      "unused_bigint_rounding_delta_ms": "302.500000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.118,
+      "same_call_elapsed_ms": 0.027,
+      "statement_age_ms": 0.12,
+      "unused_bigint_rounding_delta_ms": "301.882000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.875,
+      "same_call_elapsed_ms": 0.025,
+      "statement_age_ms": 0.117,
+      "unused_bigint_rounding_delta_ms": "301.125000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.553,
+      "same_call_elapsed_ms": 0.029,
+      "statement_age_ms": 0.126,
+      "unused_bigint_rounding_delta_ms": "300.447000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.14,
+      "same_call_elapsed_ms": 0.023,
+      "statement_age_ms": 0.1,
+      "unused_bigint_rounding_delta_ms": "299.860000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.692,
+      "same_call_elapsed_ms": 0.029,
+      "statement_age_ms": 0.13,
+      "unused_bigint_rounding_delta_ms": "299.308000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.505,
+      "same_call_elapsed_ms": 0.026,
+      "statement_age_ms": 0.117,
+      "unused_bigint_rounding_delta_ms": "298.495000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.054,
+      "same_call_elapsed_ms": 0.026,
+      "statement_age_ms": 0.117,
+      "unused_bigint_rounding_delta_ms": "297.946000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.603,
+      "same_call_elapsed_ms": 0.027,
+      "statement_age_ms": 0.124,
+      "unused_bigint_rounding_delta_ms": "297.397000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.104,
+      "same_call_elapsed_ms": 0.027,
+      "statement_age_ms": 0.123,
+      "unused_bigint_rounding_delta_ms": "296.896000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.597,
+      "same_call_elapsed_ms": 0.025,
+      "statement_age_ms": 0.116,
+      "unused_bigint_rounding_delta_ms": "296.403000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.078,
+      "same_call_elapsed_ms": 0.025,
+      "statement_age_ms": 0.115,
+      "unused_bigint_rounding_delta_ms": "295.922000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.602,
+      "same_call_elapsed_ms": 0.025,
+      "statement_age_ms": 0.113,
+      "unused_bigint_rounding_delta_ms": "295.398000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.072,
+      "same_call_elapsed_ms": 0.018,
+      "statement_age_ms": 0.082,
+      "unused_bigint_rounding_delta_ms": "294.928000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.504,
+      "same_call_elapsed_ms": 0.018,
+      "statement_age_ms": 0.084,
+      "unused_bigint_rounding_delta_ms": "294.496000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.929,
+      "same_call_elapsed_ms": 0.035,
+      "statement_age_ms": 0.104,
+      "unused_bigint_rounding_delta_ms": "294.071000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.424,
+      "same_call_elapsed_ms": 0.016,
+      "statement_age_ms": 0.077,
+      "unused_bigint_rounding_delta_ms": "293.576000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.961,
+      "same_call_elapsed_ms": 0.027,
+      "statement_age_ms": 0.126,
+      "unused_bigint_rounding_delta_ms": "293.039000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.541,
+      "same_call_elapsed_ms": 0.026,
+      "statement_age_ms": 0.118,
+      "unused_bigint_rounding_delta_ms": "292.459000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.185,
+      "same_call_elapsed_ms": 0.026,
+      "statement_age_ms": 0.114,
+      "unused_bigint_rounding_delta_ms": "291.815000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.734,
+      "same_call_elapsed_ms": 0.026,
+      "statement_age_ms": 0.128,
+      "unused_bigint_rounding_delta_ms": "291.266000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.268,
+      "same_call_elapsed_ms": 0.028,
+      "statement_age_ms": 0.123,
+      "unused_bigint_rounding_delta_ms": "290.732000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.786,
+      "same_call_elapsed_ms": 0.027,
+      "statement_age_ms": 0.122,
+      "unused_bigint_rounding_delta_ms": "290.214000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.332,
+      "same_call_elapsed_ms": 0.041,
+      "statement_age_ms": 0.126,
+      "unused_bigint_rounding_delta_ms": "289.668000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.905,
+      "same_call_elapsed_ms": 0.022,
+      "statement_age_ms": 0.096,
+      "unused_bigint_rounding_delta_ms": "289.095000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.403,
+      "same_call_elapsed_ms": 0.027,
+      "statement_age_ms": 0.124,
+      "unused_bigint_rounding_delta_ms": "288.597000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.951,
+      "same_call_elapsed_ms": 0.028,
+      "statement_age_ms": 0.126,
+      "unused_bigint_rounding_delta_ms": "288.049000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.691,
+      "same_call_elapsed_ms": 0.026,
+      "statement_age_ms": 0.12,
+      "unused_bigint_rounding_delta_ms": "287.309000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.247,
+      "same_call_elapsed_ms": 0.027,
+      "statement_age_ms": 0.119,
+      "unused_bigint_rounding_delta_ms": "286.753000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.867,
+      "same_call_elapsed_ms": 0.028,
+      "statement_age_ms": 0.123,
+      "unused_bigint_rounding_delta_ms": "286.133000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.68,
+      "same_call_elapsed_ms": 0.048,
+      "statement_age_ms": 0.212,
+      "unused_bigint_rounding_delta_ms": "285.320000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.525,
+      "same_call_elapsed_ms": 0.03,
+      "statement_age_ms": 0.133,
+      "unused_bigint_rounding_delta_ms": "284.475000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.189,
+      "same_call_elapsed_ms": 0.03,
+      "statement_age_ms": 0.132,
+      "unused_bigint_rounding_delta_ms": "283.811000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.812,
+      "same_call_elapsed_ms": 0.028,
+      "statement_age_ms": 0.126,
+      "unused_bigint_rounding_delta_ms": "283.188000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.42,
+      "same_call_elapsed_ms": 0.03,
+      "statement_age_ms": 0.135,
+      "unused_bigint_rounding_delta_ms": "282.580000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.219,
+      "same_call_elapsed_ms": 0.033,
+      "statement_age_ms": 0.131,
+      "unused_bigint_rounding_delta_ms": "281.781000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.842,
+      "same_call_elapsed_ms": 0.027,
+      "statement_age_ms": 0.123,
+      "unused_bigint_rounding_delta_ms": "281.158000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.369,
+      "same_call_elapsed_ms": 0.042,
+      "statement_age_ms": 0.133,
+      "unused_bigint_rounding_delta_ms": "280.631000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.941,
+      "same_call_elapsed_ms": 0.028,
+      "statement_age_ms": 0.123,
+      "unused_bigint_rounding_delta_ms": "280.059000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.481,
+      "same_call_elapsed_ms": 0.03,
+      "statement_age_ms": 0.14,
+      "unused_bigint_rounding_delta_ms": "279.519000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.984,
+      "same_call_elapsed_ms": 0.022,
+      "statement_age_ms": 0.098,
+      "unused_bigint_rounding_delta_ms": "279.016000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.46,
+      "same_call_elapsed_ms": 0.018,
+      "statement_age_ms": 0.083,
+      "unused_bigint_rounding_delta_ms": "278.540000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.91,
+      "same_call_elapsed_ms": 0.016,
+      "statement_age_ms": 0.078,
+      "unused_bigint_rounding_delta_ms": "278.090000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.334,
+      "same_call_elapsed_ms": 0.015,
+      "statement_age_ms": 0.073,
+      "unused_bigint_rounding_delta_ms": "277.666000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.817,
+      "same_call_elapsed_ms": 0.028,
+      "statement_age_ms": 0.124,
+      "unused_bigint_rounding_delta_ms": "277.183000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.316,
+      "same_call_elapsed_ms": 0.025,
+      "statement_age_ms": 0.122,
+      "unused_bigint_rounding_delta_ms": "276.684000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.765,
+      "same_call_elapsed_ms": 0.02,
+      "statement_age_ms": 0.091,
+      "unused_bigint_rounding_delta_ms": "276.235000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.25,
+      "same_call_elapsed_ms": 0.027,
+      "statement_age_ms": 0.123,
+      "unused_bigint_rounding_delta_ms": "275.750000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.75,
+      "same_call_elapsed_ms": 0.025,
+      "statement_age_ms": 0.116,
+      "unused_bigint_rounding_delta_ms": "275.250000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.242,
+      "same_call_elapsed_ms": 0.025,
+      "statement_age_ms": 0.114,
+      "unused_bigint_rounding_delta_ms": "274.758000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.846,
+      "same_call_elapsed_ms": 0.028,
+      "statement_age_ms": 0.123,
+      "unused_bigint_rounding_delta_ms": "274.154000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.388,
+      "same_call_elapsed_ms": 0.028,
+      "statement_age_ms": 0.124,
+      "unused_bigint_rounding_delta_ms": "273.612000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.006,
+      "same_call_elapsed_ms": 0.027,
+      "statement_age_ms": 0.118,
+      "unused_bigint_rounding_delta_ms": "272.994000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.712,
+      "same_call_elapsed_ms": 0.028,
+      "statement_age_ms": 0.126,
+      "unused_bigint_rounding_delta_ms": "272.288000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.465,
+      "same_call_elapsed_ms": 0.026,
+      "statement_age_ms": 0.126,
+      "unused_bigint_rounding_delta_ms": "271.535000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.109,
+      "same_call_elapsed_ms": 0.028,
+      "statement_age_ms": 0.128,
+      "unused_bigint_rounding_delta_ms": "270.891000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.692,
+      "same_call_elapsed_ms": 0.026,
+      "statement_age_ms": 0.121,
+      "unused_bigint_rounding_delta_ms": "270.308000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.26,
+      "same_call_elapsed_ms": 0.025,
+      "statement_age_ms": 0.119,
+      "unused_bigint_rounding_delta_ms": "269.740000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.935,
+      "same_call_elapsed_ms": 0.026,
+      "statement_age_ms": 0.115,
+      "unused_bigint_rounding_delta_ms": "269.065000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.568,
+      "same_call_elapsed_ms": 0.024,
+      "statement_age_ms": 0.114,
+      "unused_bigint_rounding_delta_ms": "268.432000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.202,
+      "same_call_elapsed_ms": 0.029,
+      "statement_age_ms": 0.131,
+      "unused_bigint_rounding_delta_ms": "267.798000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.904,
+      "same_call_elapsed_ms": 0.028,
+      "statement_age_ms": 0.128,
+      "unused_bigint_rounding_delta_ms": "267.096000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.499,
+      "same_call_elapsed_ms": 0.029,
+      "statement_age_ms": 0.127,
+      "unused_bigint_rounding_delta_ms": "266.501000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.138,
+      "same_call_elapsed_ms": 0.027,
+      "statement_age_ms": 0.124,
+      "unused_bigint_rounding_delta_ms": "265.862000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.731,
+      "same_call_elapsed_ms": 0.027,
+      "statement_age_ms": 0.122,
+      "unused_bigint_rounding_delta_ms": "265.269000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.234,
+      "same_call_elapsed_ms": 0.026,
+      "statement_age_ms": 0.118,
+      "unused_bigint_rounding_delta_ms": "264.766000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.734,
+      "same_call_elapsed_ms": 0.026,
+      "statement_age_ms": 0.119,
+      "unused_bigint_rounding_delta_ms": "264.266000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.238,
+      "same_call_elapsed_ms": 0.025,
+      "statement_age_ms": 0.115,
+      "unused_bigint_rounding_delta_ms": "263.762000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.711,
+      "same_call_elapsed_ms": 0.027,
+      "statement_age_ms": 0.123,
+      "unused_bigint_rounding_delta_ms": "263.289000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.213,
+      "same_call_elapsed_ms": 0.026,
+      "statement_age_ms": 0.137,
+      "unused_bigint_rounding_delta_ms": "262.787000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.727,
+      "same_call_elapsed_ms": 0.026,
+      "statement_age_ms": 0.151,
+      "unused_bigint_rounding_delta_ms": "262.273000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.193,
+      "same_call_elapsed_ms": 0.025,
+      "statement_age_ms": 0.122,
+      "unused_bigint_rounding_delta_ms": "261.807000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.727,
+      "same_call_elapsed_ms": 0.026,
+      "statement_age_ms": 0.138,
+      "unused_bigint_rounding_delta_ms": "261.273000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.349,
+      "same_call_elapsed_ms": 0.028,
+      "statement_age_ms": 0.124,
+      "unused_bigint_rounding_delta_ms": "260.651000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.864,
+      "same_call_elapsed_ms": 0.028,
+      "statement_age_ms": 0.124,
+      "unused_bigint_rounding_delta_ms": "260.136000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.404,
+      "same_call_elapsed_ms": 0.044,
+      "statement_age_ms": 0.139,
+      "unused_bigint_rounding_delta_ms": "259.596000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.935,
+      "same_call_elapsed_ms": 0.027,
+      "statement_age_ms": 0.122,
+      "unused_bigint_rounding_delta_ms": "259.065000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.459,
+      "same_call_elapsed_ms": 0.026,
+      "statement_age_ms": 0.115,
+      "unused_bigint_rounding_delta_ms": "258.541000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.918,
+      "same_call_elapsed_ms": 0.025,
+      "statement_age_ms": 0.114,
+      "unused_bigint_rounding_delta_ms": "258.082000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.416,
+      "same_call_elapsed_ms": 0.026,
+      "statement_age_ms": 0.12,
+      "unused_bigint_rounding_delta_ms": "257.584000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.881,
+      "same_call_elapsed_ms": 0.025,
+      "statement_age_ms": 0.112,
+      "unused_bigint_rounding_delta_ms": "257.119000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.498,
+      "same_call_elapsed_ms": 0.027,
+      "statement_age_ms": 0.124,
+      "unused_bigint_rounding_delta_ms": "256.502000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.156,
+      "same_call_elapsed_ms": 0.028,
+      "statement_age_ms": 0.124,
+      "unused_bigint_rounding_delta_ms": "255.844000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.696,
+      "same_call_elapsed_ms": 0.027,
+      "statement_age_ms": 0.123,
+      "unused_bigint_rounding_delta_ms": "255.304000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.256,
+      "same_call_elapsed_ms": 0.025,
+      "statement_age_ms": 0.117,
+      "unused_bigint_rounding_delta_ms": "254.744000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.839,
+      "same_call_elapsed_ms": 0.028,
+      "statement_age_ms": 0.124,
+      "unused_bigint_rounding_delta_ms": "254.161000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.408,
+      "same_call_elapsed_ms": 0.026,
+      "statement_age_ms": 0.117,
+      "unused_bigint_rounding_delta_ms": "253.592000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.201,
+      "same_call_elapsed_ms": 0.027,
+      "statement_age_ms": 0.122,
+      "unused_bigint_rounding_delta_ms": "252.799000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.822,
+      "same_call_elapsed_ms": 0.026,
+      "statement_age_ms": 0.117,
+      "unused_bigint_rounding_delta_ms": "252.178000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.472,
+      "same_call_elapsed_ms": 0.025,
+      "statement_age_ms": 0.114,
+      "unused_bigint_rounding_delta_ms": "251.528000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.101,
+      "same_call_elapsed_ms": 0.024,
+      "statement_age_ms": 0.117,
+      "unused_bigint_rounding_delta_ms": "250.899000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.632,
+      "same_call_elapsed_ms": 0.025,
+      "statement_age_ms": 0.106,
+      "unused_bigint_rounding_delta_ms": "250.368000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.105,
+      "same_call_elapsed_ms": 0.019,
+      "statement_age_ms": 0.09,
+      "unused_bigint_rounding_delta_ms": "249.895000"
+    },
+    {
+      "booking_serialization_delta_ms": 0,
+      "booking_expiry_serialization_delta_ms": 0,
+      "quote_serialization_delta_ms": -0.606,
+      "same_call_elapsed_ms": 0.025,
+      "statement_age_ms": 0.116,
+      "unused_bigint_rounding_delta_ms": "249.394000"
+    }
+  ]
+}

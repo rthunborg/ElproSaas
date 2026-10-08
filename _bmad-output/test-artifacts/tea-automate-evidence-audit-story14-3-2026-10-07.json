@@ -1,0 +1,478 @@
+{
+  "workflow": "testarch-automate",
+  "story": "14.3",
+  "audit": "existing executed reports, no product test rerun",
+  "success": true,
+  "newTests": 0,
+  "newFixtures": 0,
+  "acRows": 12,
+  "integrationAnchors": [
+    {
+      "anchor": "14.3-INT-001",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "14.3-INT-002",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "14.3-INT-003",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "14.3-INT-004",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "14.3-INT-005",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "14.3-INT-006",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "three real stale attempts",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "distinct-key concurrent bookings",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "AC10 schedule holds first gate",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "AC10 profile holds first gate",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "AC10 calendar holds first gate",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "AC10 combined_form holds first gate",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "AC10 work_role_upsert holds first gate",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "AC10 work_role_active holds first gate",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "AC10 membership holds first gate",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "AC10 invitation_acceptance holds first gate",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "every participant in four-booking",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "persisted dated absence",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "after the operation-row lock wait",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "otherwise valid expired proof",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "otherwise valid future proof",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "otherwise valid oversized proof",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "previous incomplete normalization version",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "refreshes 1 genuine signed expiries",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "refreshes 3 genuine signed expiries",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "operation-row wait: confirmation revoked",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "operation-row wait: confirmed email changed",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "replay rejects stale caller after",
+      "count": 3,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "revoked during lock wait",
+      "count": 6,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "canonical replay survives subsequent updates and assignee deactivation",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    },
+    {
+      "anchor": "changed canonical scoped key returns generic conflict",
+      "count": 1,
+      "statuses": [
+        "passed"
+      ]
+    }
+  ],
+  "namedIntegrationAnchorCount": 31,
+  "matrixRows": [
+    {
+      "scenario": "Shared assignee",
+      "unitIds": [
+        "14.3-UNIT-001",
+        "14.3-UNIT-002",
+        "14.3-UNIT-003"
+      ],
+      "integrationAnchors": [
+        "14.3-INT-001"
+      ],
+      "passed": true
+    },
+    {
+      "scenario": "Availability and capacity",
+      "unitIds": [
+        "14.3-UNIT-004",
+        "14.3-UNIT-005",
+        "14.3-UNIT-006",
+        "14.3-UNIT-012"
+      ],
+      "integrationAnchors": [
+        "persisted dated absence",
+        "every participant in four-booking"
+      ],
+      "passed": true
+    },
+    {
+      "scenario": "Optional job inputs",
+      "unitIds": [
+        "14.3-UNIT-007",
+        "14.3-UNIT-008",
+        "14.3-UNIT-013"
+      ],
+      "integrationAnchors": [],
+      "passed": true
+    },
+    {
+      "scenario": "Preview becomes stale",
+      "unitIds": [],
+      "integrationAnchors": [
+        "14.3-INT-002",
+        "14.3-INT-006",
+        "three real stale attempts"
+      ],
+      "passed": true
+    },
+    {
+      "scenario": "Fresh create/update",
+      "unitIds": [],
+      "integrationAnchors": [
+        "14.3-INT-003",
+        "14.3-INT-005",
+        "otherwise valid expired proof",
+        "otherwise valid future proof",
+        "otherwise valid oversized proof"
+      ],
+      "passed": true
+    },
+    {
+      "scenario": "Existing workflow",
+      "unitIds": [],
+      "integrationAnchors": [
+        "14.3-INT-004",
+        "every participant in four-booking"
+      ],
+      "passed": true
+    },
+    {
+      "scenario": "Retry/revocation",
+      "unitIds": [],
+      "integrationAnchors": [
+        "distinct-key concurrent bookings",
+        "AC10 schedule holds first gate",
+        "AC10 profile holds first gate",
+        "AC10 calendar holds first gate",
+        "AC10 combined_form holds first gate",
+        "AC10 work_role_upsert holds first gate",
+        "AC10 work_role_active holds first gate",
+        "AC10 membership holds first gate",
+        "AC10 invitation_acceptance holds first gate",
+        "replay rejects stale caller after",
+        "revoked during lock wait",
+        "canonical replay survives subsequent updates and assignee deactivation",
+        "changed canonical scoped key returns generic conflict",
+        "operation-row wait: confirmation revoked",
+        "operation-row wait: confirmed email changed"
+      ],
+      "passed": true
+    }
+  ],
+  "transferredChecks": [
+    {
+      "id": "14.3-INT-003",
+      "status": "passed"
+    },
+    {
+      "id": "14.3-INT-004",
+      "status": "passed"
+    },
+    {
+      "id": "14.3-INT-005",
+      "status": "passed"
+    },
+    {
+      "id": "14.3-INT-006",
+      "status": "passed"
+    }
+  ],
+  "namedUnitCount": 14,
+  "conflictSuite": {
+    "total": 62,
+    "passed": 62,
+    "failed": 0,
+    "skipped": 0,
+    "priorityCounts": {
+      "P1": 6,
+      "P0": 56
+    }
+  },
+  "full": {
+    "nativeExit": 0,
+    "total": 1368,
+    "passed": 1367,
+    "failed": 0,
+    "skipped": 1,
+    "success": true,
+    "durationSeconds": 119.68,
+    "required": true,
+    "diagnostic": true,
+    "workers": 8,
+    "fileParallelism": true
+  },
+  "focused": {
+    "nativeExit": 0,
+    "total": 145,
+    "passed": 145,
+    "failed": 0,
+    "skipped": 0,
+    "success": true,
+    "durationSeconds": 91.61
+  },
+  "unit": {
+    "nativeExit": 0,
+    "total": 1993,
+    "passed": 1992,
+    "failed": 0,
+    "skipped": 1,
+    "durationMs": 18975.9883,
+    "skip": "inherited Windows xattr; Linux CI required"
+  },
+  "timezones": [
+    {
+      "zone": "UTC",
+      "nativeExit": 0,
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "unitIds": [
+        "14.3-UNIT-001",
+        "14.3-UNIT-002",
+        "14.3-UNIT-003",
+        "14.3-UNIT-004",
+        "14.3-UNIT-005",
+        "14.3-UNIT-006",
+        "14.3-UNIT-007",
+        "14.3-UNIT-008",
+        "14.3-UNIT-009",
+        "14.3-UNIT-010",
+        "14.3-UNIT-011",
+        "14.3-UNIT-012",
+        "14.3-UNIT-013",
+        "14.3-UNIT-014"
+      ],
+      "nativeExitEvidence": "trusted exec_command completion"
+    },
+    {
+      "zone": "America/Los_Angeles",
+      "nativeExit": 0,
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "unitIds": [
+        "14.3-UNIT-001",
+        "14.3-UNIT-002",
+        "14.3-UNIT-003",
+        "14.3-UNIT-004",
+        "14.3-UNIT-005",
+        "14.3-UNIT-006",
+        "14.3-UNIT-007",
+        "14.3-UNIT-008",
+        "14.3-UNIT-009",
+        "14.3-UNIT-010",
+        "14.3-UNIT-011",
+        "14.3-UNIT-012",
+        "14.3-UNIT-013",
+        "14.3-UNIT-014"
+      ],
+      "nativeExitEvidence": "trusted exec_command completion"
+    },
+    {
+      "zone": "Asia/Tokyo",
+      "nativeExit": 0,
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "unitIds": [
+        "14.3-UNIT-001",
+        "14.3-UNIT-002",
+        "14.3-UNIT-003",
+        "14.3-UNIT-004",
+        "14.3-UNIT-005",
+        "14.3-UNIT-006",
+        "14.3-UNIT-007",
+        "14.3-UNIT-008",
+        "14.3-UNIT-009",
+        "14.3-UNIT-010",
+        "14.3-UNIT-011",
+        "14.3-UNIT-012",
+        "14.3-UNIT-013",
+        "14.3-UNIT-014"
+      ],
+      "nativeExitEvidence": "trusted exec_command completion"
+    }
+  ],
+  "skips": [
+    {
+      "file": "tests/integration/ops/recovery-storage-immutability.int.test.ts",
+      "name": "isolated recovery Storage physical-loader proof serves loader-materialized bytes without mutating logical rows and rejects generic plus quote-PDF overwrite attempts",
+      "status": "skipped"
+    }
+  ],
+  "nativeExitSource": "story14-3-r2-check-summary.json, trusted original command completions; JSON success not substitute for native exit",
+  "historicalATDD": "RED scaffolds not execution; current full report resolves all20 IDs",
+  "remainingStoryCoverageGaps": [],
+  "epicReleaseObligations": [
+    "exact empty-chain Epic CI before merge",
+    "Linux xattr/native execution",
+    "opt-in recovery physical-loader proof"
+  ],
+  "sourceReports": [
+    "story14-3-r2-full.json",
+    "story14-3-r2-focused.json",
+    "story14-3-r2-named-audit.json",
+    "story14-3-r2-check-summary.json"
+  ]
+}

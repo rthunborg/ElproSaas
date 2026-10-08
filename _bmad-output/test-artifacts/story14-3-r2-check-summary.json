@@ -1,0 +1,161 @@
+{
+  "testedHead": "3e8e337a8e7933b2c6af1930476690801a469477",
+  "resumeBaseline": "719ffb2dc74807b9d8c1242e4d383f3e34f665f9",
+  "reviewBaseline": "2a6c9e6d6859987590f2e875f695a75c16125af6",
+  "rootLifecycle": "48fc14f8-3810-46f8-ab4f-8c416abc7d57",
+  "api": "http://127.0.0.1:55421",
+  "db": "127.0.0.1:55422/postgres",
+  "focused": {
+    "nativeExit": 0,
+    "total": 145,
+    "passed": 145,
+    "failed": 0,
+    "skipped": 0,
+    "success": true,
+    "durationSeconds": 91.61
+  },
+  "full": {
+    "nativeExit": 0,
+    "total": 1368,
+    "passed": 1367,
+    "failed": 0,
+    "skipped": 1,
+    "success": true,
+    "durationSeconds": 119.68,
+    "required": true,
+    "diagnostic": true,
+    "workers": 8,
+    "fileParallelism": true
+  },
+  "identityFiltered": {
+    "nativeExit": 0,
+    "total": 62,
+    "passed": 2,
+    "failed": 0,
+    "skipped": 60,
+    "success": true,
+    "executed": 2,
+    "filteredNotCoverage": 60,
+    "durationSeconds": 4.22
+  },
+  "typecheck": {
+    "nativeExit": 0
+  },
+  "lint": {
+    "nativeExit": 0,
+    "errors": 0,
+    "inheritedWarnings": 13
+  },
+  "unit": {
+    "nativeExit": 0,
+    "total": 1993,
+    "passed": 1992,
+    "failed": 0,
+    "skipped": 1,
+    "durationMs": 18975.9883,
+    "skip": "inherited Windows xattr; Linux CI required"
+  },
+  "timezones": [
+    {
+      "zone": "UTC",
+      "nativeExit": 0,
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "unitIds": [
+        "14.3-UNIT-001",
+        "14.3-UNIT-002",
+        "14.3-UNIT-003",
+        "14.3-UNIT-004",
+        "14.3-UNIT-005",
+        "14.3-UNIT-006",
+        "14.3-UNIT-007",
+        "14.3-UNIT-008",
+        "14.3-UNIT-009",
+        "14.3-UNIT-010",
+        "14.3-UNIT-011",
+        "14.3-UNIT-012",
+        "14.3-UNIT-013",
+        "14.3-UNIT-014"
+      ],
+      "nativeExitEvidence": "trusted exec_command completion"
+    },
+    {
+      "zone": "America/Los_Angeles",
+      "nativeExit": 0,
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "unitIds": [
+        "14.3-UNIT-001",
+        "14.3-UNIT-002",
+        "14.3-UNIT-003",
+        "14.3-UNIT-004",
+        "14.3-UNIT-005",
+        "14.3-UNIT-006",
+        "14.3-UNIT-007",
+        "14.3-UNIT-008",
+        "14.3-UNIT-009",
+        "14.3-UNIT-010",
+        "14.3-UNIT-011",
+        "14.3-UNIT-012",
+        "14.3-UNIT-013",
+        "14.3-UNIT-014"
+      ],
+      "nativeExitEvidence": "trusted exec_command completion"
+    },
+    {
+      "zone": "Asia/Tokyo",
+      "nativeExit": 0,
+      "total": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "unitIds": [
+        "14.3-UNIT-001",
+        "14.3-UNIT-002",
+        "14.3-UNIT-003",
+        "14.3-UNIT-004",
+        "14.3-UNIT-005",
+        "14.3-UNIT-006",
+        "14.3-UNIT-007",
+        "14.3-UNIT-008",
+        "14.3-UNIT-009",
+        "14.3-UNIT-010",
+        "14.3-UNIT-011",
+        "14.3-UNIT-012",
+        "14.3-UNIT-013",
+        "14.3-UNIT-014"
+      ],
+      "nativeExitEvidence": "trusted exec_command completion"
+    }
+  ],
+  "lockfiles": {
+    "nativeExit": 0
+  },
+  "sourceContainment": {
+    "nativeExit": 0
+  },
+  "auditHigh": {
+    "nativeExit": 0,
+    "high": 0,
+    "moderate": 2
+  },
+  "build": {
+    "nativeExit": 0,
+    "framework": "Next16.3.6",
+    "noIntegrationOverlap": true
+  },
+  "bundleContainment": {
+    "nativeExit": 0
+  },
+  "migrationChanges": false,
+  "ledgerMutation": false,
+  "priorLedgerEvidence": "story14-3-r1-restabilized-ledger-final.json; no SQL/migration changed in R2",
+  "emptyChain": "pending Epic CI before merge; populated target is not proof",
+  "nativeExitEvidence": "trusted exec_command/write_stdin completions; ignored logs do not contain appended exit markers",
+  "historicalFailureCauses": "preserved; not retrospectively attributed or waived",
+  "testPatch": "real recipient operation-row wait, valid >30-minute expiry, independently changed confirmation or email, false result/full member and audit no-op, exact Auth restoration finally"
+}
