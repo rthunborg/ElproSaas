@@ -235,5 +235,14 @@
     "security_pr": 89,
     "verified": "git fetch origin main",
     "not_yet_integrated_into_preparation": true
+  },
+  "preparation_delivery": {
+    "status": "complete",
+    "independently_reviewed": true,
+    "implementation_admission": "blocked",
+    "merge_authority": "coordinator only after exact-head CI and preparation review gates",
+    "handoff_path": "_bmad-output/auto-bmad/preparation/story-20-1/preparation-merge-handoff.md",
+    "oracle_waived": false,
+    "registration_applied": false
   }
 }
