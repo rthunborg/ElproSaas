@@ -181,9 +181,12 @@ export async function actualConflictBindings(): Promise<ConflictBindings> {
     ], private: helpers },
     async prepareInvitationWriter(fx) {
       const operationId = crypto.randomUUID(); const tokenHash = createHash("sha256").update(crypto.randomUUID()).digest("hex");
+      const { adminQuery } = await import("../factories/admin-sql");
+      const [window] = await adminQuery<{ expiresAt: string }>(`select
+        to_char((clock_timestamp()+interval '1 hour') at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as "expiresAt"`);
       const prepared = await fx.adminClient.rpc("admin_prepare_membership_invitation", { p_tenant_id: fx.base.tenantA.id,
         p_email: fx.base.adminB.email, p_roles: ["montor"], p_operation_id: operationId,
-        p_token_hash: tokenHash, p_expiry: new Date(Date.now() + 3600_000).toISOString() });
+        p_token_hash: tokenHash, p_expiry: window.expiresAt });
       if (prepared.error) throw new Error("Invitation fixture prepare failed");
       const membershipId = (prepared.data as { membershipId: string }).membershipId;
       const completed = await fx.adminClient.rpc("admin_finalize_membership_operation", { p_operation_id: operationId, p_outcome: "succeeded" });

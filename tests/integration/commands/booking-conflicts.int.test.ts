@@ -287,16 +287,30 @@ for (const writer of ["schedule", "profile", "calendar", "combined_form", "work_
           expect(await h.bookingSnapshot(fx.tenantIds)).toEqual(before);
           await query("commit"); expect((await pendingWriter).error).toBeNull();
           const finalizeResult = await pendingFinalize;
-          if (writer === "work_role_upsert" && finalizeResult.kind === "committed") {
-            // A display-name-only catalog edit may be excluded from detector
-            // facts. The gate still must be first, and equal facts may commit.
-            expect(finalizeResult.bookingId).toBe(snapshot.bookingId);
+           if (writer === "work_role_upsert") {
+             // This fixed fixture changes only display text: neither that text
+             // nor rates are detector facts. Its predetermined result is commit.
+             expect(finalizeResult).toEqual({ kind: "committed", bookingId: snapshot.bookingId });
+             expect(JSON.parse(attempt.outputText)).toEqual([]);
+             const [unchanged] = await h.adminQuery<{ factDigest: string; role_name: string }>(`with facts as (
+               select public.booking_detection_facts_internal($1) as value
+             ), writer_facts as (
+               select jsonb_set(value,'{bookings}',(select coalesce(jsonb_agg(b order by b->>'id'),'[]'::jsonb)
+                 from jsonb_array_elements(value->'bookings') b where b->>'id'<>$2)) as value from facts
+             ) select encode(extensions.digest(value::text,'sha256'),'hex') as "factDigest",
+               (select display_name from public.work_roles where id=$3) as role_name from writer_facts`,
+               [snapshot.tenantId, snapshot.bookingId, prepared.lockParams[0]]);
+             // Remove only this command's known inserted booking from current
+             // SQL facts: all remaining content must equal the pre-writer digest.
+             expect(unchanged.role_name).toBe("Renamed current role");
+             expect(unchanged.factDigest).toBe(snapshot.factDigest);
             const committed = await h.bookingSnapshot(fx.tenantIds);
             expect(committed.bookings).toHaveLength(before.bookings.length + 1);
             expect(committed.assignees).toHaveLength(before.assignees.length + 1);
             expect(committed.bookings.find((row) => row.id === snapshot.bookingId)).toMatchObject({ create_command_id: input.commandId, create_result: { bookingId: snapshot.bookingId } });
             expect(committed.audit.filter((row) => row.correlation_id === snapshot.correlationId)).toEqual([expect.objectContaining({ target_id: snapshot.bookingId })]);
-            expect(b.normalizedRows(committed.conflicts)).toEqual(await b.detect(snapshot));
+             expect(b.normalizedRows(committed.conflicts)).toEqual(await b.detect(snapshot));
+             expect(h.foreignState(committed, fx.base.tenantB.id)).toEqual(h.foreignState(before, fx.base.tenantB.id));
             return;
           }
           expect(finalizeResult).toEqual({ kind: "stale" });
@@ -562,16 +576,19 @@ test("[P0] AC10 invitation expiry is checked after a gate/row wait at the curren
   await h.withConflictFixture(async (fx) => {
     const writer = await b.prepareInvitationWriter(fx);
     const membershipId = writer.lockParams[0];
-    await h.adminQuery("update public.tenant_memberships set invitation_expires_at=clock_timestamp()+interval '2 seconds' where id=$1", [membershipId]);
     const before = await h.bookingSnapshot(fx.tenantIds);
     await h.adminSession(async ({ query }) => {
       await query("begin"); let accept: ReturnType<typeof writer.invoke> | undefined;
       try {
         const [owner] = await query<{ pid: number }>("select pg_backend_pid() as pid");
         await query(writer.lockSql, writer.lockParams);
-        accept = writer.invoke(); await h.waitForBlocked(owner.pid, 1);
-        const [started] = await query<{ live_at_start: boolean }>(`select exists(select 1 from pg_stat_activity a,public.tenant_memberships m
-          where m.id=$1 and $2=any(pg_blocking_pids(a.pid)) and a.query_start<m.invitation_expires_at) as live_at_start`, [membershipId, owner.pid]);
+         accept = writer.invoke(); await h.waitForBlocked(owner.pid, 1);
+         // The one-hour DB-relative invitation has already reached the actual
+         // membership lock. Arm expiry only after that independently seen wait.
+         await query("update public.tenant_memberships set invitation_expires_at=clock_timestamp()+interval '2 seconds' where id=$1", [membershipId]);
+         const [started] = await query<{ live_at_start: boolean }>(`select exists(select 1 from pg_stat_activity a,public.tenant_memberships m
+           where m.id=$1 and $2=any(pg_blocking_pids(a.pid)) and a.query_start<m.invitation_expires_at
+             and clock_timestamp()<m.invitation_expires_at) as live_at_start`, [membershipId, owner.pid]);
         expect(started.live_at_start).toBe(true);
         let expired = false;
         for (let attempt = 0; attempt < 100 && !expired; attempt++) {
@@ -593,16 +610,32 @@ test("[P0] AC10 invitation expiry is checked after the operation-row lock wait b
   const { setTimeout: pause } = await import("node:timers/promises");
   await h.withConflictFixture(async (fx) => {
     const writer = await b.prepareInvitationWriter(fx); const membershipId = writer.lockParams[0];
-    await h.adminQuery("update public.tenant_memberships set invitation_expires_at=clock_timestamp()+interval '2 seconds' where id=$1", [membershipId]);
     const before = await h.bookingSnapshot(fx.tenantIds);
     await h.adminSession(async ({ query }) => {
       await query("begin"); let accept: ReturnType<typeof writer.invoke> | undefined;
       try {
         const [owner] = await query<{ pid: number }>("select pg_backend_pid() as pid");
         await query("select id from public.membership_admin_operations where membership_id=$1 and superseded_at is null for update", [membershipId]);
-        accept = writer.invoke(); await h.waitForBlocked(owner.pid, 1);
-        const [started] = await query<{ live_at_start: boolean }>(`select exists(select 1 from pg_stat_activity a,public.tenant_memberships m
-          where m.id=$1 and $2=any(pg_blocking_pids(a.pid)) and a.query_start<m.invitation_expires_at) as live_at_start`, [membershipId, owner.pid]);
+         // Acceptance caches the membership expiry before its operation lock;
+         // updating that locked membership after the operation wait would not
+         // exercise the cached lifetime. First witness a tenant-gate wait with
+         // a valid long-lived invitation, then arm expiry before its row read.
+         await h.adminSession(async ({ query: gateQuery }) => {
+           await gateQuery("begin");
+           try {
+             const [gateOwner] = await gateQuery<{ pid: number }>("select pg_backend_pid() as pid");
+             await gateQuery("select pg_advisory_xact_lock(hashtextextended($1::text,0))", [fx.base.tenantA.id]);
+             accept = writer.invoke(); await h.waitForBlocked(gateOwner.pid, 1);
+             const [valid] = await gateQuery<{ live: boolean }>("select invitation_expires_at>clock_timestamp() as live from public.tenant_memberships where id=$1", [membershipId]);
+             expect(valid.live).toBe(true);
+             await gateQuery("update public.tenant_memberships set invitation_expires_at=clock_timestamp()+interval '2 seconds' where id=$1", [membershipId]);
+             await gateQuery("commit");
+           } finally { await gateQuery("rollback"); }
+         });
+         await h.waitForBlocked(owner.pid, 1);
+         const [started] = await query<{ live_at_start: boolean }>(`select exists(select 1 from pg_stat_activity a,public.tenant_memberships m
+           where m.id=$1 and $2=any(pg_blocking_pids(a.pid)) and a.query_start<m.invitation_expires_at
+             and clock_timestamp()<m.invitation_expires_at) as live_at_start`, [membershipId, owner.pid]);
         expect(started.live_at_start).toBe(true);
         let expired = false;
         for (let attempt = 0; attempt < 100 && !expired; attempt++) {

@@ -2,8 +2,11 @@
 
 Author: closeout merge implementation/fix delegate, `gpt-6.1-sol` High.
 Scope: eight expected governance/workflow conflicts, resolved under the owner's
-explicit direct-closeout fallback. This is an uncommitted merge handoff, not a
-new broad review, product acceptance, retrospective sign-off, or release approval.
+explicit direct-closeout fallback. This was prepared as an uncommitted merge
+handoff. After independent inspection, the merge was committed as
+`612ea4e43c3138e3fe20a606aa5b790c79f65d4e` and fast-forward published to PR 86.
+It is not a new broad review, product acceptance, retrospective sign-off, or
+release approval.
 
 ## Merge identity and decisions
 
@@ -85,4 +88,5 @@ This verification concerns workflow/routing merge semantics. It supplies no new
 database, browser, hosted, performance, money/tax or product acceptance evidence.
 Fresh product verification and retained review/advisory closure belong to the
 separate closeout tasks; skipped historical tests are not coverage. The merge
-remains uncommitted pending independent inspection.
+was committed after independent inspection. Current execution and remaining
+gates are recorded in `docs/quality/epic14-direct-closeout-evidence-2026-10-08.md`.

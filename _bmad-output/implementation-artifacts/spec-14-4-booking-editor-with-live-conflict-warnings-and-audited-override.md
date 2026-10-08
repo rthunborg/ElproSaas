@@ -184,6 +184,7 @@ Validate the author trail with `node scripts/verify/check-review-order.mjs _bmad
 
 Author: `/root/build_14_4/implementation_14_4`, original implementation and fix author.
 Refreshed after all nine Round2 patches against baseline `b94be3d33b7161e31ff4e01da79dd36c5474fd73`, incoming HEAD `edb628465ec1ac5356721b8ccb617d8ab11cf5eb`, final53-file fingerprint `f34ee23dc52a0f92f6de0ea24b0328946c5dbe96d1c6a34986abcef20e94712a` and production build `ZtvjBbekFSgZQChOruaeT`.
+Closeout harness additions below are authored by `/root/merge_review`, `gpt-6.1-sol` High, on 2026-10-08. The Round2 fingerprint/build above remain historical; current closeout execution and limits are recorded in the narrow author Dev Record below. The separate kernel optimization has its own implementation author and independent High review.
 
 ### Current host entry and recoverable connected draft
 
@@ -221,6 +222,14 @@ An unknown attempt keeps its exact command/candidate/review/reason and blocks ed
 - `src/components/resources/BookingEditor.tsx:126` — `wasUnresolved`: preserves retry identity without treating fresh definitive denial as unknown.
 - `src/components/crm/Dialog.tsx:87` — `useLayoutEffect`: restores a valid focus target inside the modal after transitions.
 
+### Settle actual transport failures and retain owned cleanup
+
+The closeout harness fix aborts the intercepted request when actual response fetching fails, then rethrows the original failure; it fabricates no response or confirmation and changes no timeout. Route teardown now runs inside a `try/finally`, so a page-closure race cannot skip this fixture's SQL/Auth cleanup; private opt-in diagnostics emit only preview stages, counts and durations. AC5/6 failure/retry and the existing AC3/4 actual HTTP/durable-state assertions remain unchanged.
+
+- `tests/e2e/support/booking-editor-atdd.ts:191` — `routeHandler`: settles interception before rethrowing the genuine transport failure.
+- `tests/e2e/support/booking-editor-atdd.ts:291` — `dispose`: preserves owned fixture cleanup when route teardown fails.
+- `tests/e2e/support/booking-editor-atdd.ts:164` — `diagnose`: emits optional stage/count/duration diagnostics without payloads.
+
 ### Executed invariants and operational limits
 
 AC2/7 real preview regressions assert eligibility truth, existing-assignment exceptions, distinguishing labels and exact no-op state; AC3/4 real large HTTP save asserts complete selected/open groups and one attributable write. AC5/6 mounted focus, read retry, compatible links and denied-authority replay execute; the verification matrix maps all nine fixes and preserves R1 rollback/precision/group assertions and historical failures.
@@ -230,7 +239,7 @@ AC2/7 real preview regressions assert eligibility truth, existing-assignment exc
 - `tests/integration/commands/booking-editor.int.test.ts:361` — `after_acceptance`: proves create/update acceptance/outcome/audit rollback across fault boundaries.
 - `_bmad-output/test-artifacts/story14-4-verification.md:1` — `Story 14.4 implementation verification`: records commands, nine-fix/AC mapping, diagnostics and evidence limits.
 
-Evidence: required full integration1460 passed/0 failed/1 existing recovery skip, including actual affected172/0/0; browser18 successful bodies plus corrected affected1/1 in a separate run on the same final build (not a single19-pass run); unit2035/0/1 existing Windows xattr skip; final component/read27/0/0. Type/lint/build/containment pass; dependency audit/lockfile evidence is unchanged. No retained Story14.4 acceptance is skipped. Limits: synthetic fixtures and helper envelopes, structural/mocked probes, serialized action transport, different900/select300 red versus1000/select1 green payloads, original unidentified setup fixtures, pending15.1 calendar acceptance and mandatory empty-DB Epic CI. Post-build test-only90s interceptor wait passed type/lint and real HTTP; product source is unchanged. The checker validates references, not correctness; narrow inspection is separate from broad review and approval.
+Historical Round2 evidence: required full integration1460 passed/0 failed/1 existing recovery skip, including actual affected172/0/0; browser18 successful bodies plus corrected affected1/1 in a separate run on the same final build (not a single19-pass run); unit2035/0/1 existing Windows xattr skip; final component/read27/0/0. Type/lint/build/containment pass; dependency audit/lockfile evidence is unchanged. No retained Story14.4 acceptance is skipped. Limits: synthetic fixtures and helper envelopes, structural/mocked probes, serialized action transport, different900/select300 red versus1000/select1 green payloads, original unidentified setup fixtures, pending15.1 calendar acceptance and mandatory empty-DB Epic CI. Post-build test-only90s interceptor wait passed type/lint and real HTTP; product source was unchanged in that pass. The checker validates references, not correctness; narrow inspection is separate from broad review and approval. Current closeout browser evidence is recorded below and does not clear pending full integration, CI or calendar obligations.
 
 ## Planning Gate
 
@@ -435,3 +444,15 @@ The canonical Build Auto planning run halted before development. Both unanswered
 Baseline: `246c8402fec01fa5f4e46cfaf5466e78c0b9cd5c` on `codex/epic14-resume`; clean tree and writable Git metadata verified before planning. One canonical renderer invocation loaded the installed workflow; Step 01 loaded the valid Epic 14 cache and completed 14.3 continuity; official Step 02 used a fresh context-free `gpt-6.1-sol` High author and synchronous High authority exploration. Final workflow/spec reread confirmed the blocked intent-gap gate.
 
 Completion hook: planning/blocked result preserved per `docs/process/review-order.md`; no completed implementation trail or validation was manufactured. No product tests, implementation, resource lifecycle operations, hosted actions, or root bookkeeping changes occurred. ATDD and implementation remain deferred until the owner decisions resolve the intent gap.
+
+## Narrow author Dev Record — closeout harness 2026-10-08
+
+Author: `/root/merge_review`, `gpt-6.1-sol` High, for the transport-failure settlement, page-closure cleanup and optional private diagnostic changes in `tests/e2e/support/booking-editor-atdd.ts` only. Actual Playwright 1.61.1 source confirms that `route.fetch` obtains the response without settling interception; the harness now aborts on failure and rethrows the original error. Cleanup remains scoped to owned fixtures and executes even if route teardown races page closure. No business-command, proof, response or durable outcome is fabricated; all existing transport budgets and acceptance assertions are retained.
+
+The original and corrected failed browser runs remain retained counterevidence. Source inspection confirmed that the large-review peer intervals were already disjoint one-second windows in the approved baseline; no fixture interval correction was made. The current kernel optimization was implemented by a separate Sol High author and independently reviewed at High with no findings and bounded old/new byte-equivalence evidence. This record claims no kernel authorship or new broad-review credit.
+
+Parent-executed final browser evidence on Next 16.3.8 with the optimized kernel is native 0: 23 passed, 0 failed, 0 skipped, 0 flaky, 101.032 seconds. Safe readback of `tmp/epic14-closeout-stack/browser-final.json` confirms those counts and the actual large-save attachment: 1,120,245-byte request, HTTP 200, 1,000 genuine groups with one selected. The existing assertions pass for one booking, one attributable audit event, one accepted and 999 open candidate conflicts; parent transport diagnostics report 476 ms for the large preview. These are observed local executions, not representative performance targets or hosted-readiness evidence.
+
+Parent-reported whole-unit evidence is native 0: 2,042 total, 2,041 passed, 0 failed, one existing Windows xattr skip. Typecheck, production build, lint (0 errors, 13 inherited warnings) and source/bundle containment pass. The harness author's earlier typecheck/targeted lint and three in-memory callback checks passed; those checks used no services or database calls. No test or resource execution occurred during this documentation refresh.
+
+The fresh REQUIRED full integration run and GitHub CI remain pending at this author handoff; no pass or completion transition is inferred. Historical full-run failures and intentional skips remain distinct and preserved. Synthetic local fixtures, unresolved representative-performance and physical/daylight obligations, and Contract D's Story 15.1 calendar click/drag checks remain limits. Story 14.4's two completed broad rounds and Epic 14's existing 3/2/2 review history are unchanged; this is author-trail reconciliation only, with no AC, intent-contract, frontmatter or workflow-state change.
