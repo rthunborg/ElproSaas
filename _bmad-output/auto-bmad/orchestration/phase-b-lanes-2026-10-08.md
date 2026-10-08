@@ -34,3 +34,8 @@ Heartbeat: coordinate-phase-b-parallel-lanes, every30minutes. Quiet while unchan
 - Story19.1 human checkpoint continued by the owner; Phase7 complete, Phase8 inapplicable; pre-push report/PR/CI next.
 - Documents creation accepted but actual thread/worktree setup is pending.
 - Epic14 follow-up active; owner chat received lane boundaries and reservations.
+
+## Shared dependency repair admitted
+
+Story19.1 PR87 published and converted to draft. Required run37759212463 failed audit-high (Next.js GHSA-cjq9-62q9-8jv4); database/browser jobs skipped and receive no coverage credit. Dedicated High security repair session queued: client-new-thread:1b8f3141-769b-49cc-b06e-7ad5dd07c843, from integratedorigin/main. Sole package.json/pnpm-lock writer; reviewed maintenancePR and requiredCI, ownermergegate, then serialcarry-forward to both19.1 andEpic14. No auditwaiver. Epic14 follow-up was informed. Ordinary subprocess CI helper had authentication failure; authenticated direct gh snapshot plus deterministic classifier supplies failure evidence.
+

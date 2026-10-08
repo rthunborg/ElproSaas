@@ -8,12 +8,12 @@ story_source: sprint
 spec_folder: null
 story_id: null
 branch: codex/19-1-widget-registry-and-dashboard-framework
-status: in-progress
-updated_at: "2026-10-08T09:47:25Z"
+status: done
+updated_at: "2026-10-08T09:50:49Z"
 started_at: "2026-10-07T14:07:05Z"
-completed_at: null
-active_seconds: 9728
-timing_anchor: 1791452844
+completed_at: "2026-10-08T09:50:49Z"
+active_seconds: 9933
+timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
@@ -59,7 +59,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [e0fb33c5, 659139d4, a97c11bf, b8ccf157, 357d1db0, 798f1f60, 39b299c1, 0ceb02be, 27a21dad, 7ee80eed, 7954ff48]
+commits: [e0fb33c5, 659139d4, a97c11bf, b8ccf157, 357d1db0, 798f1f60, 39b299c1, 0ceb02be, 27a21dad, 7ee80eed, 7954ff48, e008a133]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -75,9 +75,9 @@ retro:
   verdict: null
   open_action_items: 0
 bmad_status_flipped_at: null
-pr_url: null
-ci_run_url: null
-ci_status: unknown
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/87"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/37759212463"
+ci_status: failed
 pr_merged: false
 merge_method: null
 merge_commit: null
