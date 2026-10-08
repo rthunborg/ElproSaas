@@ -1,0 +1,226 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "blocked-later-story-preparation-admission",
+  "base_sha": "8ba0150cc60ac17ac378edac5ad77405e907d3bf",
+  "branch": "codex/documents-later-story-preparation",
+  "status": "blocked",
+  "approved": false,
+  "implementation_authorized": false,
+  "executable_parallel_plan": false,
+  "specifications": [
+    {
+      "story": "20.1",
+      "key": "20-1-documents-activation-and-source-authorized-aggregation",
+      "path": "_bmad-output/implementation-artifacts/spec-20-1-documents-activation-and-source-authorized-aggregation.md",
+      "sha256_lf": "ad9ae965b3cadbe5def211a7e1adc2e2bd77ceab81986930444b05844f96bef0",
+      "changed": false
+    },
+    {
+      "story": "20.2",
+      "key": "20-2-search-filters-preview-and-archive-restore",
+      "path": "_bmad-output/implementation-artifacts/spec-20-2-search-filters-preview-and-archive-restore.md",
+      "sha256_lf": "69728205c3f45fa8c213c9cad13b8076e15d9c37afd56799cd824df0e830ab5e",
+      "changed": true
+    },
+    {
+      "story": "20.3",
+      "key": "20-3-entity-panel-links-and-contextual-navigation",
+      "path": "_bmad-output/implementation-artifacts/spec-20-3-entity-panel-links-and-contextual-navigation.md",
+      "sha256_lf": "2f5e34fa7522ec7d701cc5ba92b41fbcf78f59278b7d09b13e8f3db957fba584",
+      "changed": true
+    }
+  ],
+  "companions": [
+    {
+      "path": "_bmad-output/auto-bmad/preparation/story-20-1/cross-story-handoffs.md",
+      "sha256_lf": "2a96ead137349dee745080d1fcfc587a58f171600d34425755bbd24914976191"
+    },
+    {
+      "path": "_bmad-output/auto-bmad/preparation/story-20-1/later-story-preparation.md",
+      "sha256_lf": "a6c630ed46520023e6dd8da2a8b165ae13ef3ade2c41468c33e5548f88542a80"
+    },
+    {
+      "path": "_bmad-output/auto-bmad/preparation/story-20-1/checkpoint-reconciliation.md",
+      "sha256_lf": "b429e74d9bb86346aaf453304fffd740e987c2dce40fa1b43fe374e043ad7012"
+    }
+  ],
+  "independent_review": {
+    "status": "reviewed-preparation-complete",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "reviewer": "/root/documents_audit",
+    "report_path": "docs/quality/story-20-2-20-3-preparation-review-2026-10-08.md",
+    "report_sha256_lf": "640c15d81c7de2b63a6e0223f341b04a9b0400b129e10365c7edea8d9d0b6e51"
+  },
+  "ownership_kind": "provisional future design paths only; no run, assignment or write claim",
+  "stories": [
+    {
+      "story": "20.2",
+      "future_write_paths": [
+        "_bmad-output/implementation-artifacts/spec-20-2-search-filters-preview-and-archive-restore.md",
+        "src/features/documents/filters.ts",
+        "src/features/documents/date-bounds.ts",
+        "src/features/documents/actions.ts",
+        "src/server/read-models/documents.ts",
+        "src/server/read-models/document-sources.ts",
+        "src/server/commands/documents/lifecycle.ts",
+        "src/server/commands/documents/lifecycle-db.ts",
+        "src/server/commands/envelope.ts",
+        "src/components/documents/DocumentFilters.tsx",
+        "src/components/documents/DocumentPreviewPane.tsx",
+        "src/components/documents/DocumentLifecycleActions.tsx",
+        "src/app/(app)/files/page.tsx",
+        "tests/unit/features/documents/filters.test.ts",
+        "tests/unit/features/documents/date-bounds.test.ts",
+        "tests/unit/features/documents/preview-state.test.ts",
+        "tests/unit/server/commands/documents-lifecycle.test.ts",
+        "tests/integration/commands/documents-lifecycle.int.test.ts",
+        "tests/integration/commands/documents-lifecycle-lock-races.int.test.ts",
+        "tests/integration/rls/documents-filter-archive.rls.test.ts",
+        "tests/e2e/files/documents-search-preview-lifecycle.e2e.spec.ts"
+      ],
+      "migration_logical_basename": "story_20_2_documents_lifecycle_origin_and_restore.sql",
+      "physical_migration_path": "supabase/migrations/<CLI-allocated timestamp>_story_20_2_documents_lifecycle_origin_and_restore.sql",
+      "migration_directory_is_shared_reservation_only": true,
+      "required_checks": [
+        {
+          "name": "documents20-2-filter-unit",
+          "argv": [
+            "node",
+            "--experimental-strip-types",
+            "--import",
+            "./tests/support/register.mjs",
+            "--test",
+            "tests/unit/features/documents/filters.test.ts",
+            "tests/unit/features/documents/date-bounds.test.ts",
+            "tests/unit/features/documents/preview-state.test.ts",
+            "tests/unit/server/commands/documents-lifecycle.test.ts"
+          ]
+        },
+        {
+          "name": "documents20-2-lifecycle-integration",
+          "argv": [
+            "pnpm",
+            "exec",
+            "vitest",
+            "run",
+            "tests/integration/commands/documents-lifecycle.int.test.ts",
+            "tests/integration/commands/documents-lifecycle-lock-races.int.test.ts",
+            "tests/integration/rls/documents-filter-archive.rls.test.ts"
+          ],
+          "environment": {
+            "SUPABASE_TEST_REQUIRED": "1"
+          }
+        },
+        {
+          "name": "documents20-2-browser",
+          "argv": [
+            "pnpm",
+            "exec",
+            "playwright",
+            "test",
+            "tests/e2e/files/documents-search-preview-lifecycle.e2e.spec.ts"
+          ]
+        }
+      ],
+      "conflict_domains": [
+        "schema:migrations",
+        "files:lifecycle-provenance",
+        "auth:command-enrollment",
+        "documents:shared-read-page-actions",
+        "quotes:source-revision-proof-shape",
+        "tests:shared-fixtures-resources"
+      ],
+      "implementation_prerequisite": "Verified Story20.1 product integration; preparation merges do not satisfy it"
+    },
+    {
+      "story": "20.3",
+      "future_write_paths": [
+        "_bmad-output/implementation-artifacts/spec-20-3-entity-panel-links-and-contextual-navigation.md",
+        "src/features/documents/context-navigation.ts",
+        "src/server/read-models/document-context.ts",
+        "src/components/documents/EntityDocumentsLink.tsx",
+        "src/features/documents/filters.ts",
+        "src/server/read-models/documents.ts",
+        "src/components/documents/DocumentFilters.tsx",
+        "src/app/(app)/files/page.tsx",
+        "src/app/(app)/customers/[customerId]/page.tsx",
+        "src/app/(app)/calculations/[calculationId]/page.tsx",
+        "src/app/(app)/jobs/[jobId]/page.tsx",
+        "src/features/files/quote-files-panel.tsx",
+        "src/features/files/acceptance-panel.tsx",
+        "tests/unit/features/documents/context-navigation.test.ts",
+        "tests/unit/server/read-models/document-context.test.ts",
+        "tests/unit/components/documents/entity-documents-link.test.ts",
+        "tests/integration/rls/documents-context.rls.test.ts",
+        "tests/e2e/files/documents-context-navigation.e2e.spec.ts"
+      ],
+      "migration_logical_basename": null,
+      "required_checks": [
+        {
+          "name": "documents20-3-context-unit",
+          "argv": [
+            "node",
+            "--experimental-strip-types",
+            "--import",
+            "./tests/support/register.mjs",
+            "--test",
+            "tests/unit/features/documents/context-navigation.test.ts",
+            "tests/unit/server/read-models/document-context.test.ts",
+            "tests/unit/components/documents/entity-documents-link.test.ts"
+          ]
+        },
+        {
+          "name": "documents20-3-context-integration",
+          "argv": [
+            "pnpm",
+            "exec",
+            "vitest",
+            "run",
+            "tests/integration/rls/documents-context.rls.test.ts"
+          ],
+          "environment": {
+            "SUPABASE_TEST_REQUIRED": "1"
+          }
+        },
+        {
+          "name": "documents20-3-browser",
+          "argv": [
+            "pnpm",
+            "exec",
+            "playwright",
+            "test",
+            "tests/e2e/files/documents-context-navigation.e2e.spec.ts"
+          ]
+        }
+      ],
+      "conflict_domains": [
+        "documents:shared-read-page-filters",
+        "auth:source-context-navigation",
+        "entity-panels:crm-calculation-job-quotes",
+        "tests:shared-fixtures-resources"
+      ],
+      "implementation_prerequisite": "Verified Story20.1 and20.2 product integration; preparation merges do not satisfy it"
+    }
+  ],
+  "general_required_checks": [
+    "unit",
+    "typecheck",
+    "lint",
+    "production-build",
+    "service-role-containment",
+    "bundle-containment",
+    "lockfiles"
+  ],
+  "runtime_checks_executed": false,
+  "oracle_observations": 0,
+  "oracle_waived": false,
+  "remaining_gates": [
+    "Authorized oracle target and actual evidence or explicit owner disposition",
+    "Checkpoint closure on reviewed specs and oracle disposition",
+    "Physical migration timestamps and exact admitted write paths before claims",
+    "Current integrated-base and resource/ownership revalidation, validated coordinator plan and successful assignments",
+    "Implementation and combined-integration checks at exact product revisions"
+  ],
+  "bounded_preparation_status": "complete; all three full canonical specs independently reviewed and pinned, none admitted ready-for-dev"
+}
