@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: codex/19-1-widget-registry-and-dashboard-framework
 status: done
-updated_at: "2026-10-08T11:45:50Z"
+updated_at: "2026-10-08T12:16:00Z"
 started_at: "2026-10-07T14:07:05Z"
 completed_at: "2026-10-08T09:50:49Z"
 active_seconds: 9933
@@ -76,11 +76,11 @@ retro:
   open_action_items: 0
 bmad_status_flipped_at: 9
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/87"
-ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/37770869560"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/37772222858"
 ci_status: passed
-pr_merged: false
-merge_method: null
-merge_commit: null
+pr_merged: true
+merge_method: merge
+merge_commit: 7db3ded1e903131122eedbf9abd27548bc9c3375
 branch_deleted: false
 open_questions: []
 deferred_work: []
