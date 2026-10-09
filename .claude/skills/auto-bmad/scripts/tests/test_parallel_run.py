@@ -17,6 +17,33 @@ spec = importlib.util.spec_from_file_location('parallel_run',SCRIPT)
 engine = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(engine)
 
+class PathTokens(unittest.TestCase):
+    def test_nextjs_route_paths_are_literal_exact_tokens(self):
+        for token in ['src/app/(app)/customers/[customerId]/page.tsx',
+                      'src/app/(app)/calculations/[calculationId]/page.tsx',
+                      'src/app/(app)/jobs/[jobId]/page.tsx',
+                      'src/app/docs/[...slug]/page.tsx']:
+            with self.subTest(token=token):
+                self.assertEqual(engine.path_token(token),token)
+                self.assertTrue(engine.covers(token,token))
+                self.assertFalse(engine.covers(token,token.replace('[','').replace(']','')))
+                self.assertFalse(engine.overlap(token,token.replace('[','').replace(']','')))
+        token='src/[ab]/page.tsx'
+        self.assertFalse(engine.covers(token,'src/a/page.tsx'))
+        self.assertFalse(engine.overlap(token,'src/b/page.tsx'))
+        self.assertTrue(engine.overlap('src/[ab]/',token))
+
+    def test_unsafe_and_noncanonical_tokens_remain_rejected(self):
+        for token in ['', '/src/[id]/page.tsx', 'C:/src/[id]/page.tsx',
+                      '../src/[id]/page.tsx', 'src/[id]/../page.tsx',
+                      'src/./[id]/page.tsx', 'src//[id]/page.tsx',
+                      'src\\[id]\\page.tsx', '.git/[id]',
+                      'src/[id]/*.tsx', 'src/[id]/page?.tsx',
+                      'src/[id]/page.tsx\n', 'src/[id]/page.tsx\r',
+                      'src/[id]/page.tsx\x00']:
+            with self.subTest(token=token),self.assertRaises(engine.Refusal):
+                engine.path_token(token)
+
 class Pilot(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(prefix='parallel-bmad-')
@@ -208,6 +235,22 @@ class Pilot(unittest.TestCase):
         for path in ['_bmad-output/implementation-artifacts/deferred-work.md','_bmad-output/auto-bmad/state/epic/epic-99.yaml','.agents/skills/auto-bmad/SKILL.md']:
             p=copy.deepcopy(self.plan); p['stories'][0]['write_paths'].append(path)
             with self.assertRaisesRegex(engine.Refusal,'aggregate/shared'): engine.validate_plan(self.repo,p)
+
+    def test_literal_route_ownership_admits_only_declared_file(self):
+        route='src/app/(app)/customers/[customerId]/page.tsx'
+        self.plan['stories'][0]['write_paths'].append(route)
+        self.init(); self.claim('a')
+        self.write(self.a,route,'Authorized route\n')
+        e=self.evidence('a')
+        self.submit('a',e)
+        unauthorized=route.replace('[customerId]','customerId')
+        self.assertFalse(any(engine.covers(x,unauthorized) for x in self.plan['stories'][0]['write_paths']))
+
+    def test_literal_route_ownership_rejects_glob_like_sibling(self):
+        self.plan['stories'][0]['write_paths'].append('src/[cd]/page.tsx')
+        self.init(); self.claim('a')
+        e=self.evidence('a',extra='src/c/page.tsx')
+        with self.assertRaisesRegex(engine.Refusal,'outside assigned'): self.submit('a',e)
 
     def test_dirty_worktrees_and_wrong_owner_fail(self):
         self.init()
