@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { validateReviewOrderFile, validateSuggestedReviewOrder } from "../../../../scripts/verify/check-review-order.mjs";
 
 function withRepo(run: (root: string) => void): void {
-  const root = mkdtempSync(join(tmpdir(), "elpro-review-order-"));
+  const root = mkdtempSync(join(tmpdir(), "kopplas-review-order-"));
   try { run(root); } finally { rmSync(root, { recursive: true, force: true }); }
 }
 
@@ -81,7 +81,7 @@ test("reports a directory, unreadable document, and symlink outside the reposito
     const documentReport = validateReviewOrderFile(join(root, "src", "directory"), root);
     assert.deepEqual(documentReport.errors, ["document cannot be read"]);
 
-    const outside = mkdtempSync(join(tmpdir(), "elpro-review-order-outside-"));
+    const outside = mkdtempSync(join(tmpdir(), "kopplas-review-order-outside-"));
     try {
       writeFileSync(join(outside, "entry.ts"), "export const outside = true;\n");
       try {

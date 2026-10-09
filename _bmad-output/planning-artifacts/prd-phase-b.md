@@ -1,5 +1,5 @@
 ---
-title: "PRD: ElproSaas — Phase B (Legacy Parity Release)"
+title: "PRD: Kopplas — Phase B (Legacy Parity Release)"
 status: final
 created: 2026-07-18
 updated: 2026-09-03
@@ -21,14 +21,14 @@ inputs:
 numbering: "FRs continue from the Phase A PRD at FR62; the Phase A NFR spine (NFR1-NFR41) is carried forward by reference with named amendments; new Phase B NFRs start at NFR42. Acceptance criteria are wave-prefixed (AC-B1a-n / AC-B1b-n / AC-B2-n / AC-B3-n / AC-PH-n). Assumptions use PB-A#, decisions cite PB-D# from the party session."
 ---
 
-# PRD: ElproSaas — Phase B (Legacy Parity Release)
+# PRD: Kopplas — Phase B (Legacy Parity Release)
 
 **Author:** Rasmus
 **Date:** 2026-07-18
 
 ## 0. Document Purpose, Supersession, and Reading Order
 
-This PRD defines Phase B of the ElproSaas rebuild for the PM, the owner, and the downstream planning stages (UX spec, architecture extension, epics). **It supersedes the Phase A PRD (`_bmad-output/planning-artifacts/prd.md`) as the forward requirements baseline.** The Phase A PRD is frozen immutable as the pilot record: it is never edited, its FR1–FR61 and NFR1–NFR41 remain the delivered baseline this document extends, and its IDs stay citable. Phase B artifacts take the `-phase-b` filename suffix in this folder (layout established by the brief).
+This PRD defines Phase B of the Kopplas rebuild for the PM, the owner, and the downstream planning stages (UX spec, architecture extension, epics). **It supersedes the Phase A PRD (`_bmad-output/planning-artifacts/prd.md`) as the forward requirements baseline.** The Phase A PRD is frozen immutable as the pilot record: it is never edited, its FR1–FR61 and NFR1–NFR41 remain the delivered baseline this document extends, and its IDs stay citable. Phase B artifacts take the `-phase-b` filename suffix in this folder (layout established by the brief).
 
 Reading order for downstream consumers:
 
@@ -626,3 +626,7 @@ Continuing the Phase A pattern (A1–A29 frozen in the Phase A PRD). Every judgm
 | PB-A12 | Sizing/horizon (~21–25 epics, ~11–13 pipeline-weeks, October-ish) is restated from the session, not re-estimated; wave checkpoints own re-estimates. | accepted for PRD |
 | PB-A13 | Doc-standards polish (structure/prose) was applied inline by the authoring run rather than via separate editorial subagent passes — a headless single-run constraint. | accepted for PRD |
 | PB-A14 | Frontmatter `status: final` refers to this create-intent run's completeness as the forward baseline; owner gates remain open by design and are content, not draft-ness. The separate validate intent (per the process roadmap) may still be run against this file. | accepted for PRD |
+
+## Product naming amendment — 2026-10-09
+
+The application is now **Kopplas**, under [ADR-B013](../../docs/decisions/ADR-B013-kopplas-product-name-and-compatibility.md). Task `KOPPLAS-RENAME-2026-10-09` applies the cross-cutting rename; requirements, epic/story identities, scope-manifest activation, and historical Phase A records retain their meaning. Stable protocol and persisted-data names remain compatibility identifiers.

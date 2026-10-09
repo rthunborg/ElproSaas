@@ -20,7 +20,7 @@ import { provisioningCommandTestHooks } from "@/server/commands/provisioning/pro
 
 function validRequest() {
   return {
-    schema_version: 1, request_id: crypto.randomUUID(), legal_name: "Elpro AB",
+    schema_version: 1, request_id: crypto.randomUUID(), legal_name: "Kopplas AB",
     country_code: "SE", organization_number: "5561234567", first_admin_name: "Ada",
     first_admin_email: "ada@example.se", baseline_profile_id: "standard-se",
     baseline_profile_version: 1, subscription_plan_id: "pro", subscription_status: "active",

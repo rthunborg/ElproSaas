@@ -144,7 +144,7 @@ beforeAll(async () => {
   if (!stackUp) return;
   fixture = await createTwoTenantFixture();
   a = await makeAuthedServerClient(fixture.adminA);
-  await seedIdentity(fixture.tenantA.id, "Elpro Demo AB");
+  await seedIdentity(fixture.tenantA.id, "Kopplas Demo AB");
   await adminInsertQuoteTerms({
     tenant_id: fixture.tenantA.id,
     terms_text: "Villkor (platshållartext) — ej godkänd",
@@ -174,7 +174,7 @@ describe("generateQuotePdf — PDF source-of-truth (AC1, 6.3-INT-01)", () => {
     const textBefore = await extractPdfText(bytesBefore as Uint8Array);
     // Sanity: the baseline PDF carries the frozen customer identity + total.
     expect(textBefore).toContain("Kund Kundsson");
-    expect(textBefore).toContain("Elpro Demo AB");
+    expect(textBefore).toContain("Kopplas Demo AB");
 
     // 3. MUTATE every mutable source class AFTER the snapshot.
     await adminQuery(

@@ -200,7 +200,7 @@ export async function createStrictProvisioningRequest(): Promise<StrictProvision
   return {
     schema_version: 1,
     request_id: crypto.randomUUID(),
-    legal_name: `ATDD Elpro ${organizationNumber} AB`,
+    legal_name: `ATDD Kopplas ${organizationNumber} AB`,
     country_code: "SE",
     organization_number: organizationNumber,
     vat_registration_number: `SE${organizationNumber}01`,

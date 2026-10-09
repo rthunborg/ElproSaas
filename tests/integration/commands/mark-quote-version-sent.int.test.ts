@@ -512,10 +512,18 @@ describe("markQuoteVersionSent — send gated by the 5.4 readiness classifier (A
     expect(after?.status).toBe("draft");
   });
 
-  it("[P0] 6.4-INT-04: a draft with only WARNINGS (no blocker) IS sendable only on the explicit demo track", async (testCtx) => {
+  it.for([
+    ["canonical only", "demo", undefined],
+    ["legacy only", undefined, "demo"],
+    ["matching aliases", "demo", "demo"],
+  ])("[P0] 6.4-INT-04: warning-only draft is sendable on explicit demo track (%s)", async ([, current, legacy], testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const previousTrack = process.env.ELPRO_QUOTE_SEND_TRACK;
-    process.env.ELPRO_QUOTE_SEND_TRACK = "demo";
+    const previousCurrent = process.env.KOPPLAS_QUOTE_SEND_TRACK;
+    const previousLegacy = process.env.ELPRO_QUOTE_SEND_TRACK;
+    if (current === undefined) delete process.env.KOPPLAS_QUOTE_SEND_TRACK;
+    else process.env.KOPPLAS_QUOTE_SEND_TRACK = current;
+    if (legacy === undefined) delete process.env.ELPRO_QUOTE_SEND_TRACK;
+    else process.env.ELPRO_QUOTE_SEND_TRACK = legacy;
     try {
       const { versionId, customerId } = await seedQuoteVersion(fixture.tenantA.id, "draft", [
         { code: "TAX_SIGN_OFF_REQUIRED", severity: "warning", message: "…" },
@@ -534,17 +542,32 @@ describe("markQuoteVersionSent — send gated by the 5.4 readiness classifier (A
       const after = await adminSelectQuoteVersionRow(versionId);
       expect(after?.status).toBe("sent");
     } finally {
-      if (previousTrack === undefined) delete process.env.ELPRO_QUOTE_SEND_TRACK;
-      else process.env.ELPRO_QUOTE_SEND_TRACK = previousTrack;
+      if (previousCurrent === undefined) delete process.env.KOPPLAS_QUOTE_SEND_TRACK;
+      else process.env.KOPPLAS_QUOTE_SEND_TRACK = previousCurrent;
+      if (previousLegacy === undefined) delete process.env.ELPRO_QUOTE_SEND_TRACK;
+      else process.env.ELPRO_QUOTE_SEND_TRACK = previousLegacy;
     }
   });
 
-  it("[P0] Story 10.6: unresolved tax sign-off rejects the same warning-only draft on the real-customer track", async (testCtx) => {
+  it.for([
+    ["default", undefined, undefined],
+    ["canonical real customer", "real_customer", undefined],
+    ["legacy real customer", undefined, "real_customer"],
+    ["canonical demo conflicts with legacy real customer", "demo", "real_customer"],
+    ["canonical real customer conflicts with legacy demo", "real_customer", "demo"],
+    ["invalid canonical with legacy demo", "invalid", "demo"],
+    ["canonical demo with invalid legacy", "demo", "invalid"],
+    ["empty canonical with legacy demo", "", "demo"],
+  ])("[P0] Story 10.6: unresolved tax sign-off remains blocked (%s)", async ([, current, legacy], testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const previousTrack = process.env.ELPRO_QUOTE_SEND_TRACK;
-    process.env.ELPRO_QUOTE_SEND_TRACK = "real_customer";
+    const previousCurrent = process.env.KOPPLAS_QUOTE_SEND_TRACK;
+    const previousLegacy = process.env.ELPRO_QUOTE_SEND_TRACK;
+    if (current === undefined) delete process.env.KOPPLAS_QUOTE_SEND_TRACK;
+    else process.env.KOPPLAS_QUOTE_SEND_TRACK = current;
+    if (legacy === undefined) delete process.env.ELPRO_QUOTE_SEND_TRACK;
+    else process.env.ELPRO_QUOTE_SEND_TRACK = legacy;
     try {
-      const { versionId } = await seedQuoteVersion(fixture.tenantA.id, "draft", [
+      const { versionId, customerId } = await seedQuoteVersion(fixture.tenantA.id, "draft", [
         { code: "TAX_SIGN_OFF_REQUIRED", severity: "warning", message: "…" },
         { code: "MISSING_FACILITY", severity: "warning", message: "…" },
       ]);
@@ -552,7 +575,7 @@ describe("markQuoteVersionSent — send gated by the 5.4 readiness classifier (A
 
       const res = await runCommand(markQuoteVersionSent, {
         client: a as never,
-        input: { quote_version_id: versionId },
+        input: { quote_version_id: versionId, recipient_source_type: "customer", recipient_source_id: customerId },
         clock: fixedClock,
         correlationId: crypto.randomUUID(),
       });
@@ -563,8 +586,10 @@ describe("markQuoteVersionSent — send gated by the 5.4 readiness classifier (A
       const after = await adminSelectQuoteVersionRow(versionId);
       expect(after?.status).toBe("draft");
     } finally {
-      if (previousTrack === undefined) delete process.env.ELPRO_QUOTE_SEND_TRACK;
-      else process.env.ELPRO_QUOTE_SEND_TRACK = previousTrack;
+      if (previousCurrent === undefined) delete process.env.KOPPLAS_QUOTE_SEND_TRACK;
+      else process.env.KOPPLAS_QUOTE_SEND_TRACK = previousCurrent;
+      if (previousLegacy === undefined) delete process.env.ELPRO_QUOTE_SEND_TRACK;
+      else process.env.ELPRO_QUOTE_SEND_TRACK = previousLegacy;
     }
   });
 });

@@ -22,7 +22,7 @@ function fd(entries: Record<string, string>): FormData {
 test("company: a valid form converts the percent to integer basis points", () => {
   const parsed = parseCompanySettingsForm(
     fd({
-      company_name: "Elpro Pilot AB",
+      company_name: "Kopplas Pilot AB",
       default_vat_display: "company_togglable",
       vat_rate_percent: "25",
     }),
@@ -42,7 +42,7 @@ test("company: a missing company_name is a field error", () => {
 test("company: an out-of-range VAT rate is a field error AND no bp is attached", () => {
   const parsed = parseCompanySettingsForm(
     fd({
-      company_name: "Elpro Pilot AB",
+      company_name: "Kopplas Pilot AB",
       default_vat_display: "company_togglable",
       vat_rate_percent: "250", // 250 % — out of [0,100]
     }),
@@ -52,7 +52,7 @@ test("company: an out-of-range VAT rate is a field error AND no bp is attached",
   assert.equal("vat_rate_bp" in parsed.input, false);
   // Input is preserved for the form to re-render.
   assert.equal(parsed.values.vat_rate_percent, "250");
-  assert.equal(parsed.values.company_name, "Elpro Pilot AB");
+  assert.equal(parsed.values.company_name, "Kopplas Pilot AB");
 });
 
 test("terms: a non-empty terms_text parses; NO approval field is ever produced", () => {
@@ -92,7 +92,7 @@ test("company: an OMITTED optional field parses to undefined (not the empty stri
   // a coerced empty string that could clobber a stored value.
   const parsed = parseCompanySettingsForm(
     fd({
-      company_name: "Elpro Pilot AB",
+      company_name: "Kopplas Pilot AB",
       default_vat_display: "company_togglable",
       vat_rate_percent: "25",
     }),
@@ -117,7 +117,7 @@ test("company: a CLEARED optional field (blank / whitespace-only) parses to unde
   // so a blank submission does not become a spurious empty-string value on the input.
   const parsed = parseCompanySettingsForm(
     fd({
-      company_name: "Elpro Pilot AB",
+      company_name: "Kopplas Pilot AB",
       org_nr: "   ",
       city: "",
       email: "  ",
@@ -134,7 +134,7 @@ test("company: a CLEARED optional field (blank / whitespace-only) parses to unde
 test("company: a PRESENT optional field is forwarded trimmed", () => {
   const parsed = parseCompanySettingsForm(
     fd({
-      company_name: "Elpro Pilot AB",
+      company_name: "Kopplas Pilot AB",
       org_nr: "  556677-8899  ",
       default_vat_display: "company_togglable",
       vat_rate_percent: "25",
@@ -148,7 +148,7 @@ test("company: default_vat_display is forwarded VERBATIM (the server validates t
   // server's validateInput is the single authority. A bad value reaches the server as-is.
   const parsed = parseCompanySettingsForm(
     fd({
-      company_name: "Elpro Pilot AB",
+      company_name: "Kopplas Pilot AB",
       default_vat_display: "company_excl",
       vat_rate_percent: "25",
     }),
@@ -157,7 +157,7 @@ test("company: default_vat_display is forwarded VERBATIM (the server validates t
 
   const badEnum = parseCompanySettingsForm(
     fd({
-      company_name: "Elpro Pilot AB",
+      company_name: "Kopplas Pilot AB",
       default_vat_display: "totally-bogus",
       vat_rate_percent: "25",
     }),
@@ -169,7 +169,7 @@ test("company: default_vat_display is forwarded VERBATIM (the server validates t
 
 test("company: a missing default_vat_display forwards undefined (server rejects it)", () => {
   const parsed = parseCompanySettingsForm(
-    fd({ company_name: "Elpro Pilot AB", vat_rate_percent: "25" }),
+    fd({ company_name: "Kopplas Pilot AB", vat_rate_percent: "25" }),
   );
   assert.equal(parsed.input.default_vat_display, undefined);
 });
@@ -177,7 +177,7 @@ test("company: a missing default_vat_display forwards undefined (server rejects 
 test("company: a blank VAT rate is a field error AND no bp is attached", () => {
   const parsed = parseCompanySettingsForm(
     fd({
-      company_name: "Elpro Pilot AB",
+      company_name: "Kopplas Pilot AB",
       default_vat_display: "company_togglable",
       vat_rate_percent: "   ",
     }),

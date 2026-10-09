@@ -426,7 +426,7 @@ export default async function globalSetup() {
     version_number: 1,
     quote_number: 1001,
     status: "draft",
-    company_name: `Elpro Demo AB ${token()}`,
+    company_name: `Kopplas Demo AB ${token()}`,
     customer_display_name: companyName,
     intro_text: "Skickad version – introtext",
   });
@@ -449,7 +449,7 @@ export default async function globalSetup() {
     version_number: 2,
     quote_number: 1001,
     status: "draft",
-    company_name: `Elpro Demo AB ${token()}`,
+    company_name: `Kopplas Demo AB ${token()}`,
     customer_display_name: companyName,
     intro_text: "Utkast – introtext",
   });
@@ -484,7 +484,7 @@ export default async function globalSetup() {
     version_number: 1,
     quote_number: 1003,
     status: "draft",
-    company_name: `Elpro Demo AB ${token()}`,
+    company_name: `Kopplas Demo AB ${token()}`,
     customer_display_name: companyName,
     intro_text: "Utkast att skicka – introtext",
   });
@@ -513,7 +513,7 @@ export default async function globalSetup() {
     version_number: 1,
     quote_number: 1004,
     status: "draft",
-    company_name: `Elpro Demo AB ${token()}`,
+    company_name: `Kopplas Demo AB ${token()}`,
     customer_display_name: companyName,
     intro_text: "Skickad version för ny-version-flödet",
   });
@@ -553,7 +553,7 @@ export default async function globalSetup() {
     version_number: 1,
     quote_number: 1005,
     status: "draft",
-    company_name: `Elpro Demo AB ${token()}`,
+    company_name: `Kopplas Demo AB ${token()}`,
     customer_display_name: companyName,
     intro_text: "Skickad version för accept-och-skapa-jobb-flödet",
     accepted_price_ore: 125000,
@@ -588,7 +588,7 @@ export default async function globalSetup() {
     version_number: 1,
     quote_number: 1006,
     status: "draft",
-    company_name: `Elpro Demo AB ${token()}`,
+    company_name: `Kopplas Demo AB ${token()}`,
     customer_display_name: companyName,
     intro_text: "Accepterad version för jobb-traceability-flödet (7.3)",
     accepted_price_ore: 125000,
@@ -649,7 +649,7 @@ export default async function globalSetup() {
     version_number: 1,
     quote_number: 1009,
     status: "draft",
-    company_name: `Elpro Demo AB ${token()}`,
+    company_name: `Kopplas Demo AB ${token()}`,
     customer_display_name: companyName,
     intro_text: "Skickad version för förlorad/avböjd-flödet (10.2)",
   });
@@ -696,7 +696,7 @@ export default async function globalSetup() {
       version_number: 1,
       quote_number: quoteNumber,
       status: "draft",
-      company_name: `Elpro Demo AB ${token()}`,
+      company_name: `Kopplas Demo AB ${token()}`,
       customer_display_name: companyName,
       intro_text: intro,
     });

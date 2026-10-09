@@ -1,5 +1,5 @@
 ---
-title: "UX Design Specification: ElproSaas — Phase B (Legacy Parity Release)"
+title: "UX Design Specification: Kopplas — Phase B (Legacy Parity Release)"
 status: final
 created: 2026-07-18
 updated: 2026-09-03
@@ -20,7 +20,7 @@ classification:
   scope: multi_role_ux (Företagsadmin, Projektledare, Montör, Säljare, Ekonomi, per-job Arbetsledare — seed CONFIRMED by owner answer N-4, 2026-07-26)
 ---
 
-# UX Design Specification — ElproSaas Phase B (Legacy Parity Release)
+# UX Design Specification — Kopplas Phase B (Legacy Parity Release)
 
 **Author:** Rasmus
 **Date:** 2026-07-18
@@ -597,3 +597,7 @@ Two rules apply app-wide: browser/network hints may improve messaging but **only
 | UXB-A14 | All `[oracle-check]` labels (§9) must be resolved via the legacy-oracle terminology pass before the owning epic's first story — labels are cheap to change now, expensive after users learn them. | open item (§14.14) |
 
 — End of specification. Downstream: Phase B architecture extension (answers §14, records ADR-B001..B006), then Phase B epics.
+
+## Product naming amendment — 2026-10-09
+
+The application is now **Kopplas**, under [ADR-B013](../../docs/decisions/ADR-B013-kopplas-product-name-and-compatibility.md). Task `KOPPLAS-RENAME-2026-10-09` applies the cross-cutting rename; requirements, epic/story identities, scope-manifest activation, and historical Phase A records retain their meaning. Stable protocol and persisted-data names remain compatibility identifiers.

@@ -152,7 +152,7 @@ async function seedFullIdentity(tenantId: string): Promise<void> {
      values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
     [
       tenantId,
-      "Elpro Demo AB",
+      "Kopplas Demo AB",
       "556000-1234",
       "Testgatan 1",
       "Plan 2",
@@ -292,7 +292,7 @@ describe("createQuoteVersionFromCalculation — snapshot completeness (AC2, 6.1-
     expect((row.captured_at as Date).toISOString()).toBe(FIXED_ISO);
 
     // FULL company identity — NOT the identity-partial variant (org_nr/address/etc all set).
-    expect(row.company_name).toBe("Elpro Demo AB");
+    expect(row.company_name).toBe("Kopplas Demo AB");
     expect(row.company_org_nr).toBe("556000-1234");
     expect(row.company_address_line1).toBe("Testgatan 1");
     expect(row.company_postal_code).toBe("12345");
@@ -401,7 +401,7 @@ describe("createQuoteVersionFromCalculation — BEHAVIORAL FREEZE (AC2, 6.1-INT-
     const snapLabor = beforeLines.find((l) => l.row_type === "labor");
     expect(Number(snapLabor?.unit_sell_ore)).toBe(85000);
     // And the frozen company name is the capture-time value, not the mutated one.
-    expect(after.company_name).toBe("Elpro Demo AB");
+    expect(after.company_name).toBe("Kopplas Demo AB");
   });
 });
 

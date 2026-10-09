@@ -107,7 +107,7 @@ beforeAll(async () => {
   await adminQuery(
     `insert into public.company_settings
        (tenant_id, company_name, org_nr, address_line1, postal_code, city, email, phone, default_vat_display, vat_rate_bp)
-     values ($1,'Elpro Demo AB','556000-1234','Testgatan 1','12345','Teststad','info@example.test','070-0000000','company_togglable',2500)`,
+     values ($1,'Kopplas Demo AB','556000-1234','Testgatan 1','12345','Teststad','info@example.test','070-0000000','company_togglable',2500)`,
     [fixture.tenantA.id],
   );
   await adminInsertQuoteTerms({

@@ -94,7 +94,7 @@ test.describe("Settings UI — Company + Quote terms (Story 3.3 E2E)", () => {
 
     const name = page.getByLabel("Företagsnamn");
     await waitForHydrated(name);
-    await name.fill("Elpro Pilot AB");
+    await name.fill("Kopplas Pilot AB");
     const vat = page.getByLabel("Momssats");
     await vat.fill("250"); // 250 % — out of the [0,100] % range (> 10000 bp)
     await page.getByRole("button", { name: "Spara" }).click();
@@ -106,7 +106,7 @@ test.describe("Settings UI — Company + Quote terms (Story 3.3 E2E)", () => {
     await expect(page.locator(`#${describedBy}`)).toBeVisible();
     // The blocking summary is present and the previously-entered input is PRESERVED.
     await expect(page.getByTestId("form-error-summary")).toContainText(/.+/);
-    await expect(name).toHaveValue("Elpro Pilot AB");
+    await expect(name).toHaveValue("Kopplas Pilot AB");
     await expect(vat).toHaveValue("250");
   });
 
@@ -117,14 +117,14 @@ test.describe("Settings UI — Company + Quote terms (Story 3.3 E2E)", () => {
     await page.goto("/settings/company");
     const name = page.getByLabel("Företagsnamn");
     await waitForHydrated(name);
-    await name.fill("Elpro Pilot AB");
+    await name.fill("Kopplas Pilot AB");
     await page.getByLabel("Momssats").fill("25");
     await page.getByRole("button", { name: "Spara" }).click();
     await expect(page.getByTestId("settings-saved")).toBeVisible();
 
     // Reload reads the persisted value via the RLS client (force-dynamic).
     await page.reload();
-    await expect(page.getByLabel("Företagsnamn")).toHaveValue("Elpro Pilot AB");
+    await expect(page.getByLabel("Företagsnamn")).toHaveValue("Kopplas Pilot AB");
     await expect(page.getByLabel("Momssats")).toHaveValue("25");
   });
 

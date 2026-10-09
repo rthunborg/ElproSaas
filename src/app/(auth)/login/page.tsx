@@ -60,7 +60,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
         <h1 className="text-xl font-semibold text-zinc-900">Logga in</h1>
         <p className="mt-1 text-sm text-zinc-600">
-          Logga in med ditt konto för att fortsätta till Elpro.
+          Logga in med ditt konto för att fortsätta till Kopplas.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4" noValidate>

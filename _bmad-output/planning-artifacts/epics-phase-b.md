@@ -27,11 +27,11 @@ epicNumbering: "continues at 10 (Phase A froze at Epic 9); every epic wave-tagge
 depthModel: "PB-D10 wave-checkpoint calibration — B1a (Epics 10–13): FULL stories with complete acceptance criteria; B1b (Epics 14–19): story titles + AC sketches, finalized before B1b build (E16–E18 were gated on ADR-B006 — RECORDED 2026-07-26, gate lifted); B2 (Epics 20–26) and B3 (Epics 27–34): candidate story lists only, expanded to full stories at their wave-boundary checkpoint together with the PRD coarse-FR expansion"
 ---
 
-# ElproSaas — Phase B Epic Breakdown (Epics 10–34)
+# Kopplas — Phase B Epic Breakdown (Epics 10–34)
 
 ## Overview
 
-This document provides the Phase B (Legacy Parity Release) epic and story breakdown for ElproSaas, decomposing the Phase B PRD requirements (FR62–FR130, NFR42–NFR56 plus the carried NFR1–41 spine), the Phase B architecture decisions (ADR-B001..B009 and the wave-tagged schema delta), and the Phase B UX specification into wave-sequenced work. ADR-B007 is historical; ADR-B009 is the current field posture.
+This document provides the Phase B (Legacy Parity Release) epic and story breakdown for Kopplas, decomposing the Phase B PRD requirements (FR62–FR130, NFR42–NFR56 plus the carried NFR1–41 spine), the Phase B architecture decisions (ADR-B001..B009 and the wave-tagged schema delta), and the Phase B UX specification into wave-sequenced work. ADR-B007 is historical; ADR-B009 is the current field posture.
 
 Rules of this document:
 
@@ -829,7 +829,7 @@ As a tenant admin whose data integrity must not depend on clients using the app,
 I want the quote lifecycle tables to enforce their invariants in the DATABASE and the pipeline reads to stay correct at scale,
 so that a direct table-API call cannot forge or corrupt follow-up/lost state, and pipeline numbers do not silently truncate as a tenant grows.
 
-**Origin:** the independent Codex review rounds on [PR #38](https://github.com/rthunborg/ElproSaas/pull/38). The two **P1** findings from that review (source→destination transition validation on the sent-lock trigger; the manual-completion quote scope) were fixed **in** Epic 10. The 8 items below were **consciously ledgered** rather than bolted onto an already thrice-revised PR — see `deferred-work.md` → `## Deferred from: Codex review of epic-10 (2026-07-25)`. Each is **P2**; none is exploitable cross-tenant (RLS holds throughout — these are own-tenant integrity and scale issues).
+**Origin:** the independent Codex review rounds on [PR #38](https://github.com/rthunborg/Kopplas/pull/38). The two **P1** findings from that review (source→destination transition validation on the sent-lock trigger; the manual-completion quote scope) were fixed **in** Epic 10. The 8 items below were **consciously ledgered** rather than bolted onto an already thrice-revised PR — see `deferred-work.md` → `## Deferred from: Codex review of epic-10 (2026-07-25)`. Each is **P2**; none is exploitable cross-tenant (RLS holds throughout — these are own-tenant integrity and scale issues).
 
 **Acceptance Criteria**
 
@@ -1851,3 +1851,7 @@ Judgment calls made in this non-interactive run. None re-litigates a ratified de
 7. **Second-tenant proof scheduling:** AC-PH-3 (end-to-end second-tenant provisioning) should be scheduled as a verification run after Epic 12 completes and re-run at phase close.
 
 — End of Phase B epic breakdown. Downstream: sprint planning (`/bmad-sprint-planning`), then `/auto-bmad epic --epic 10`, per the ratified document plan (session §7).
+
+## Product naming amendment — 2026-10-09
+
+The application is now **Kopplas**, under [ADR-B013](../../docs/decisions/ADR-B013-kopplas-product-name-and-compatibility.md). Task `KOPPLAS-RENAME-2026-10-09` applies the cross-cutting rename; requirements, epic/story identities, scope-manifest activation, and historical Phase A records retain their meaning. Stable protocol and persisted-data names remain compatibility identifiers.

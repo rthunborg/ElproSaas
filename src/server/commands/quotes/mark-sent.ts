@@ -64,6 +64,7 @@ import {
 import { signValidatedQuotePdfForAccess } from "@/server/storage/quote-pdf-signer";
 import { validateSignedStorageUrl } from "@/server/storage/signed-access-attestation";
 import { recordQuoteDeliveryConfigurationRecovery } from "@/server/email/configuration-recovery";
+import { quoteSendCustomerDataTrack } from "./send-track";
 
 type StorageReadError = {
   readonly status?: number;
@@ -80,15 +81,6 @@ function isRequestBoundQuotePdfReadDenied(error: unknown): boolean {
   if (status === 401 || status === 403 || status === 404) return true;
   const code = (candidate.code ?? candidate.error ?? "").toLowerCase();
   return code === "accessdenied" || code === "unauthorized" || code === "forbidden";
-}
-
-/**
- * Sending a commitment defaults to the real-customer track. Disposable demo deployments must
- * opt in explicitly; an absent or malformed environment value therefore cannot accidentally
- * weaken the tax sign-off gate in production.
- */
-function quoteSendCustomerDataTrack(): "demo" | "real_customer" {
-  return process.env.ELPRO_QUOTE_SEND_TRACK === "demo" ? "demo" : "real_customer";
 }
 
 /** Result of the mark-sent command — the sent version id under `targetId`. */

@@ -1,3 +1,4 @@
+// Verified current deployment alias; update with hosted auth/app configuration (ADR-B013).
 export const CANONICAL_MONITOR_URL = 'https://elpro-saas.vercel.app/login';
 export const EXPECTED_STATUS = 200;
 export const CHECK_INTERVAL_MS = 5 * 60 * 1000;

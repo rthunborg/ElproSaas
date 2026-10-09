@@ -15,7 +15,7 @@ const { Linter } = require("eslint");
 
 /** Physical fixture verifies the installed patched helper and its actual rule consumer. */
 function withRoots(run: (directory: string) => void) {
-  const directory = mkdtempSync(join(tmpdir(), "elpro-next-lint-roots-"));
+  const directory = mkdtempSync(join(tmpdir(), "kopplas-next-lint-roots-"));
   const previous = process.cwd();
   for (const relative of ["apps/web/app/about", "apps/web/nested/app/hidden", "apps/admin/app/settings"]) {
     mkdirSync(join(directory, relative), { recursive: true });
@@ -27,7 +27,7 @@ function withRoots(run: (directory: string) => void) {
   finally {
     process.chdir(previous);
     assert.equal(dirname(resolve(directory)), resolve(tmpdir()));
-    assert.ok(basename(directory).startsWith("elpro-next-lint-roots-"));
+    assert.ok(basename(directory).startsWith("kopplas-next-lint-roots-"));
     rmSync(directory, { recursive: true, force: true });
   }
 }

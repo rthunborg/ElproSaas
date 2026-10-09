@@ -30,8 +30,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     env:
+      # Pass both raw aliases: the probe prefers Kopplas, supports legacy-only
+      # settings, and rejects conflicting values before making an HTTP request.
+      KOPPLAS_MONITOR_URL: ${{ vars.KOPPLAS_MONITOR_URL }}
       ELPRO_MONITOR_URL: ${{ vars.ELPRO_MONITOR_URL }}
-      ELPRO_MONITOR_EXPECTED_STATUS: '200'
+      KOPPLAS_MONITOR_EXPECTED_STATUS: ${{ vars.KOPPLAS_MONITOR_EXPECTED_STATUS }}
+      ELPRO_MONITOR_EXPECTED_STATUS: ${{ vars.ELPRO_MONITOR_EXPECTED_STATUS }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 

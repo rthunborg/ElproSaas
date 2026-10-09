@@ -93,12 +93,12 @@ jobs:
           test -n "$BACKUP_GPG_PASSPHRASE" || { echo 'Missing required repository secret: BACKUP_GPG_PASSPHRASE' >&2; exit 1; }
           backup_stamp="$(date -u +%Y%m%dT%H%M%SZ)"
           node scripts/ops/write-backup-checksums.mjs backup-workspace
-          tar --create --gzip --file "elpro-pilot-$backup_stamp.tar.gz" backup-workspace
+          tar --create --gzip --file "kopplas-pilot-$backup_stamp.tar.gz" backup-workspace
           gpg --batch --yes --pinentry-mode loopback --symmetric --cipher-algo AES256 \
             --s2k-mode 3 --s2k-digest-algo SHA512 --s2k-count 65011712 \
             --passphrase "$BACKUP_GPG_PASSPHRASE" \
-            --output "elpro-pilot-$backup_stamp.tar.gz.gpg" "elpro-pilot-$backup_stamp.tar.gz"
-          echo "archive=elpro-pilot-$backup_stamp.tar.gz.gpg" >> "$GITHUB_OUTPUT"
+            --output "kopplas-pilot-$backup_stamp.tar.gz.gpg" "kopplas-pilot-$backup_stamp.tar.gz"
+          echo "archive=kopplas-pilot-$backup_stamp.tar.gz.gpg" >> "$GITHUB_OUTPUT"
 
       - name: Upload encrypted archive and retain seven newest copies
         env:
@@ -110,4 +110,4 @@ jobs:
 
       - name: Remove runner-local plaintext and ciphertext
         if: always()
-        run: rm -rf backup-workspace elpro-pilot-*.tar.gz elpro-pilot-*.tar.gz.gpg
+        run: rm -rf backup-workspace kopplas-pilot-*.tar.gz kopplas-pilot-*.tar.gz.gpg

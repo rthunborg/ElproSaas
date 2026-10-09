@@ -42,7 +42,7 @@ const LOCAL_DEMO_SERVICE_ROLE_JWT =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU";
 
 function withTempRoot(run: (root: string) => void): void {
-  const root = mkdtempSync(join(tmpdir(), "elpro-bundle-guard-"));
+  const root = mkdtempSync(join(tmpdir(), "kopplas-bundle-guard-"));
   try {
     run(root);
   } finally {

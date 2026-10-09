@@ -7,7 +7,7 @@ import test from 'node:test';
 import { writeIsolatedRecoveryStorageFixture } from '../../../scripts/ops/write-isolated-recovery-storage-fixture.mjs';
 
 test('synthetic physical Storage recovery fixture supplies logical rows and version-addressed loader inputs', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'elpro-isolated-storage-fixture-'));
+  const root = await mkdtemp(join(tmpdir(), 'kopplas-isolated-storage-fixture-'));
   try {
     const result = await writeIsolatedRecoveryStorageFixture(root);
     assert.deepEqual(result, { root, objects: 2, bytes: 66 });

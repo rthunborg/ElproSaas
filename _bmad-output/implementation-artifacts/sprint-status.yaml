@@ -1,9 +1,9 @@
 # generated: 2026-06-12
 # last_updated: 2026-09-03  # ADR-B009 course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered
-# project: ElproSaas
+# project: Kopplas
 # project_key: NOKEY
 # tracking_system: file-system
-# story_location: C:/ElproSaas/_bmad-output/implementation-artifacts
+# story_location: _bmad-output/implementation-artifacts
 
 # STATUS DEFINITIONS:
 # ==================
@@ -61,10 +61,10 @@
 
 generated: 2026-06-12
 last_updated: 10-07-2026 18:12  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
-project: ElproSaas
+project: Kopplas
 project_key: NOKEY
 tracking_system: file-system
-story_location: C:/ElproSaas/_bmad-output/implementation-artifacts
+story_location: _bmad-output/implementation-artifacts
 
 development_status:
   epic-1: done

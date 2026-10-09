@@ -128,7 +128,7 @@ export function AppShell({
   const drawerRef = useRef<HTMLDivElement>(null);
 
   const activeItem = navigation.find((item) => isActive(pathname, item.href));
-  const pageTitle = activeItem?.label ?? "ElproSaas";
+  const pageTitle = activeItem?.label ?? "Kopplas";
 
   // Explicit close (Escape / overlay / close button): return focus to the toggle (UX-DR35).
   const closeDrawer = useCallback(() => {
@@ -223,9 +223,9 @@ export function AppShell({
           <div className="flex h-14 items-center border-b border-zinc-200 px-3">
             <span className="truncate font-semibold text-zinc-900">
               <span className="lg:hidden" aria-hidden="true">
-                EP
+                K
               </span>
-              <span className="hidden lg:inline">ElproSaas</span>
+              <span className="hidden lg:inline">Kopplas</span>
             </span>
           </div>
           {/* No `overflow-y-auto` below lg: the md icon-rail tooltip is positioned
@@ -337,7 +337,7 @@ export function AppShell({
             className="absolute inset-y-0 left-0 flex w-72 max-w-[80%] flex-col bg-white shadow-xl"
           >
             <div className="flex h-14 items-center justify-between border-b border-zinc-200 px-4">
-              <span className="font-semibold text-zinc-900">ElproSaas</span>
+              <span className="font-semibold text-zinc-900">Kopplas</span>
               <button
                 ref={closeButtonRef}
                 type="button"

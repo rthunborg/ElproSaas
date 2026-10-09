@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "supabase-elprosaas": {
+    "supabase-kopplas": {
       "command": "npx",
       "args": [
         "-y",
