@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/epic-15-scheduling-time-calendar
 status: in-progress
-updated_at: "2026-10-09T13:06:13Z"
+updated_at: "2026-10-09T13:17:26Z"
 started_at: "2026-10-09T13:06:12Z"
 completed_at: null
-active_seconds: 0
-timing_anchor: 1791551173
+active_seconds: 651
+timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
@@ -34,16 +34,16 @@ tea_selected: [atdd, automate, trace-advisory]
 tea_rationale: "Scheduling, synchronized projections, capacity and drag/keyboard/dialog behavior"
 epic_story_count: 6
 stories_after_in_epic: 5
-completed_phases: [0, 1, 2]
-spec_path: null
-spec_approved: false
+completed_phases: [0, 1, 2, 3]
+spec_path: "C:/Users/Rasmus/.codex/worktrees/epic-15-calendar/Kopplas/_bmad-output/implementation-artifacts/spec-15-1-the-five-scheduling-views.md"
+spec_approved: true
 build:
-  status: null
+  status: ready-for-dev
   blocking_condition: null
   followup_review_recommended: false
   review_loop_iteration: 0
   deferred_count: 0
-  warnings: []
+  warnings: [oversized]
 followup_passes: 0
 hitl_halt: null
 review_unverified: false
@@ -54,7 +54,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: []
+commits: [45a64853]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -86,3 +86,10 @@ overrides:
   oracle: "Owner removes Lovable prerequisite; recommended design; no verified parity"
   contract_d: Retain actual calendar-host browser obligations
 constraints: []
+spec_validation:
+  acceptance_criteria: 8
+  model: gpt-6.1-sol
+  verdict: ready-for-dev
+  blockers: []
+  effort: high
+  tasks: 9

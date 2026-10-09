@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 10-08-2026 15:59  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
+last_updated: 10-09-2026 15:17  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
 project: Kopplas
 project_key: NOKEY
 tracking_system: file-system
@@ -255,7 +255,7 @@ development_status:
   # suite green (AC-B1b-7). Phone-shape work follows ADR-B009 and requires
   # connectivity; N-9 capacity-view rules are answered.
   epic-15: backlog
-  15-1-the-five-scheduling-views: backlog
+  15-1-the-five-scheduling-views: ready-for-dev
   15-2-recurring-bookings-series-materialized-occurrences-exceptions: backlog
   15-3-conflict-resolver: backlog
   15-4-time-reporting-filing-timesheet-review: backlog
