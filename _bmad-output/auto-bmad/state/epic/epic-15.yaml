@@ -9,26 +9,27 @@ spec_folder: null
 story_id: null
 branch: codex/epic-15-scheduling-time-calendar
 status: in-progress
-updated_at: "2026-10-09T13:05:19Z"
+updated_at: "2026-10-09T13:06:13Z"
 started_at: "2026-10-09T12:57:49Z"
 completed_at: null
-active_seconds: 439
-timing_anchor: null
+active_seconds: 491
+timing_anchor: 1791551173
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: tea_epic
-selected_role: tea-delegate
-selected_profile: standard
+selected_phase: tea_triage
+selected_role: test-risk-triage
+selected_profile: light
 selected_model: gpt-6.1-sol
 selected_effort: low
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: "Ordinary epic test planning; sensitive implementation/review scope routed explicitly High"
+escalation_reason: Ordinary story test-risk classification
 routing_ledger:
   - "{\"effort\":\"low\",\"escalation_reason\":\"Ordinary epic test planning; sensitive implementation/review scope routed explicitly High\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_epic\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"low\",\"escalation_reason\":\"Ordinary story test-risk classification\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
@@ -54,7 +55,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [99e1274e]
+commits: [99e1274e, b7f19e2d]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -92,7 +93,7 @@ overrides:
 constraints: []
 stories_landed: []
 epic_slug: scheduling-time-calendar
-active_story: null
+active_story: 15-1-the-five-scheduling-views
 stories_skipped: []
 ownership_reservation:
   branch: codex/epic-15-scheduling-time-calendar
