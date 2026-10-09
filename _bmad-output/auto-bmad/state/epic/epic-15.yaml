@@ -9,31 +9,32 @@ spec_folder: null
 story_id: null
 branch: codex/epic-15-scheduling-time-calendar
 status: in-progress
-updated_at: "2026-10-09T12:57:49Z"
+updated_at: "2026-10-09T13:05:19Z"
 started_at: "2026-10-09T12:57:49Z"
 completed_at: null
-active_seconds: 0
+active_seconds: 439
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: null
-selected_role: null
-selected_profile: null
-selected_model: null
-selected_effort: null
-selected_host: null
-selected_tier: null
-selected_route: null
-escalation_reason: null
-routing_ledger: []
+selected_phase: tea_epic
+selected_role: tea-delegate
+selected_profile: standard
+selected_model: gpt-6.1-sol
+selected_effort: low
+selected_host: codex
+selected_tier: subagents
+selected_route: subagent
+escalation_reason: "Ordinary epic test planning; sensitive implementation/review scope routed explicitly High"
+routing_ledger:
+  - "{\"effort\":\"low\",\"escalation_reason\":\"Ordinary epic test planning; sensitive implementation/review scope routed explicitly High\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_epic\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
 epic_story_count: 6
 stories_after_in_epic: null
-completed_phases: [0, 1]
+completed_phases: [0, 1, 2]
 spec_path: null
 spec_approved: false
 build:
@@ -53,7 +54,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: []
+commits: [99e1274e]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -93,3 +94,33 @@ stories_landed: []
 epic_slug: scheduling-time-calendar
 active_story: null
 stories_skipped: []
+ownership_reservation:
+  branch: codex/epic-15-scheduling-time-calendar
+  checkout: "C:/Users/Rasmus/.codex/worktrees/epic-15-calendar/Kopplas"
+  coordinator: 01a1160d-b5b1-7623-a8e8-54ef3dc537ed
+  confirmed: 2026-10-09
+  resources: separate guard-owned DB/browser only
+  prospective_documents_migrations: ["20261009091120", "20261009091121"]
+  documents: "clean release; no concurrent worker admission without coordinated release"
+  shared_domains: [migrations, scope/nav registries, permission matrix, command enrollment, shared fixtures, sprint-status]
+ownership_temporary_release:
+  recipient: Documents via coordinator
+  retained: [Epic15 anchor, Epic15 report, Epic15 test-design]
+  resume_requirement: Fresh ownership reconciliation and integration before story build
+  reason: "UXB-A9 missing oracle target; only E2 test design active"
+  domains: [migrations, manifest/nav, permissions, command enrollment, shared fixtures, sprint-status]
+oracle_owner_disposition:
+  observations: 0
+  scope: "Epic15; approved Phase B inventory unchanged; Contract D acceptance retained"
+  uxb_a9: "Resolve explicitly as product decision in15.1 specification, without inferred parity"
+  legacy_behavior_verified: false
+  date: 2026-10-09
+  decision: User removes Lovable legacy observation prerequisite and authorizes recommended designs/best practices for Epic15
+test_design:
+  path: "_bmad-output/test-artifacts/test-design-epic-15.md"
+  scenario_families: 54
+  p0: 20
+  p1: 28
+  p2: 5
+  p3: 1
+  sensitive_delegate: gpt-6.1-sol High
