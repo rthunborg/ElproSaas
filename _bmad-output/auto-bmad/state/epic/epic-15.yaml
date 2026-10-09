@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: codex/epic-15-scheduling-time-calendar
 status: in-progress
-updated_at: "2026-10-09T13:27:03Z"
+updated_at: "2026-10-09T13:27:40Z"
 started_at: "2026-10-09T12:57:49Z"
 completed_at: null
 active_seconds: 1693
@@ -55,7 +55,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [99e1274e, b7f19e2d]
+commits: [99e1274e, b7f19e2d, 6f612a21]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -82,14 +82,15 @@ open_questions: []
 deferred_work: []
 blockers: []
 overrides:
-  oracle: "Resolve UXB-A9; no inference or waiver"
-  ownership: "Documents prep no active claims; shared writers requested through coordinator"
+  oracle: "Owner2026-10-09 removes observation prerequisite; recommended designs, zero observation/parity claim"
+  ownership: "Shared product domains released to Documents; verified20.1 integration and release required before build"
   spec_validation: Before every build
-  unattended: Owner explicitly requested full epic run
+  unattended: Full epic request
   calendar_host: Contract D transferred acceptance into15.1
   deploy: Forbidden
   merge: "Authorized after independent review and all required checks; merge commit; retain branch"
   retro: "October8 accepted-with-open-items; October7 historical"
+  checkpoint_push: User commit/push completed work authorization applies to reviewed preparation checkpoint while awaiting ownership
 constraints: []
 stories_landed: []
 epic_slug: scheduling-time-calendar
