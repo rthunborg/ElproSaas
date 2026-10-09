@@ -1,5 +1,7 @@
 # Git & PR conventions
 
+Parallel exception: parallel-epic.md gives each claimed worker a distinct branch/worktree and serializes integration onto the epic branch. One coordinator owns shared state and the epic PR. Never sweep another worker's files, merge unverified results or apply sequential branch switching inside a worker.
+
 - All git work is performed by the **orchestrator directly** — never delegated ("Ownership" below).
 - Nothing ever lands on the base branch.
 - **Never rewrite or discard work the orchestrator did not author** — no `git push --force`/`--force-with-lease`, `git reset --hard`, `git checkout -- .`/`git restore` on files it did not write, `git clean`, `--no-verify`: unfamiliar dirty files may be a human's in-progress work. The documented hard-stop is the recovery — stop and report, and let the human decide.

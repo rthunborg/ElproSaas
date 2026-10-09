@@ -1,0 +1,280 @@
+{
+  "tdd_phase": "RED",
+  "workflow_status": "completed",
+  "total_tests": 146,
+  "node_tests": 87,
+  "rls_tests": 11,
+  "e2e_tests": 48,
+  "all_tests_skipped": true,
+  "execution": "native-subagent, explicitly Sol6.1 High for both workers",
+  "performance_gain": "not measured",
+  "files": [
+    {
+      "file": "tests/unit/scope/widget-registry.test.ts",
+      "description": "Actual production widget registration equality/coherence with ten registry-specific biting negatives; existing manifest duplicate declarations reused as regression",
+      "expected_to_fail": true,
+      "acceptance_criteria_covered": [
+        "AC19.1-1"
+      ],
+      "priority_coverage": {
+        "P0": 0,
+        "P1": 11,
+        "P2": 0,
+        "P3": 0
+      },
+      "test_count": 11,
+      "physical_line_count": 107,
+      "expected_red_failure": "Missing widget-registry module/actual registry export; after present, new registry options must reject each mutated fixture.",
+      "runner": "Node --test"
+    },
+    {
+      "file": "tests/unit/server/read-models/quote-pipeline-result.test.ts",
+      "description": "Real result-entry query/page/batch errors, throw/date/ore boundaries, source consistency, empty success, compatibility and completion freshness",
+      "expected_to_fail": true,
+      "acceptance_criteria_covered": [
+        "AC19.1-3",
+        "AC19.1-4",
+        "AC19.1-5",
+        "AC19.1-6",
+        "AC19.1-9"
+      ],
+      "priority_coverage": {
+        "P0": 34,
+        "P1": 9,
+        "P2": 0,
+        "P3": 0
+      },
+      "test_count": 43,
+      "physical_line_count": 414,
+      "expected_red_failure": "Existing quote-pipeline module lacks readQuotePipelineResult; local headers resolution keeps failure focused on the target seam.",
+      "runner": "Node --test"
+    },
+    {
+      "file": "tests/unit/server/read-models/dashboard.test.ts",
+      "description": "Current server authority/role union, eligible loader invocation, browser allowlist/projection, malformed descriptors and retry reauthorization",
+      "expected_to_fail": true,
+      "acceptance_criteria_covered": [
+        "AC19.1-2",
+        "AC19.1-4",
+        "AC19.1-6",
+        "AC19.1-7"
+      ],
+      "priority_coverage": {
+        "P0": 24,
+        "P1": 1,
+        "P2": 0,
+        "P3": 0
+      },
+      "test_count": 25,
+      "physical_line_count": 384,
+      "expected_red_failure": "Missing dashboard module/readDashboard export; later failures target current authority and actual filtered DTO behavior.",
+      "runner": "Node --test"
+    },
+    {
+      "file": "tests/integration/rls/dashboard-pipeline.rls.test.ts",
+      "description": "New result-entry/default adapter composition through real authed isolated A/B tenant and role fixtures, revocation and later pages/chunks",
+      "expected_to_fail": true,
+      "acceptance_criteria_covered": [
+        "AC19.1-2",
+        "AC19.1-3",
+        "AC19.1-4",
+        "AC19.1-5",
+        "AC19.1-7"
+      ],
+      "priority_coverage": {
+        "P0": 10,
+        "P1": 1,
+        "P2": 0,
+        "P3": 0
+      },
+      "test_count": 11,
+      "physical_line_count": 289,
+      "expected_red_failure": "When required local stack is provided, missing new result-entry/dashboard module is the intended red; unavailable DB is an explicit skip/hard-fail, not coverage.",
+      "runner": "Vitest"
+    },
+    {
+      "file": "tests/unit/components/dashboard/widget-state.test.ts",
+      "description": "8 skipped Node SSR assertions rendering actual absent product widget/card/grid through a callback-installed installed-TypeScript TSX loader.",
+      "expected_to_fail": true,
+      "test_count": 8,
+      "acceptance_criteria_covered": [
+        "AC19.1-3",
+        "AC19.1-4",
+        "AC19.1-5",
+        "AC19.1-6",
+        "AC19.1-9"
+      ],
+      "test_design_ids": [
+        "19.1-UNIT-013",
+        "19.1-UNIT-014"
+      ],
+      "priority_coverage": {
+        "P0": 0,
+        "P1": 8,
+        "P2": 0,
+        "P3": 0
+      },
+      "confidence": {
+        "score": 7,
+        "rationale": "Story state/copy/ownership contract and package.json React/TypeScript plus existing Node test runner. This mounts actual product components; no string-source assertions.",
+        "unknowns": [
+          "Actual presentational exports/props are absent; documented proposal must be aligned on activation.",
+          "SSR cannot prove interactive tooltip, focus, hydration, RSC or CSS layout."
+        ]
+      },
+      "physical_line_count": 183
+    },
+    {
+      "file": "tests/e2e/dashboard/dashboard-pipeline.e2e.spec.ts",
+      "description": "48 skipped production-browser scenarios expanded across current roles, source/amount delivery, empty states, actual-server fault/retry/revocation, onboarding states and three viewports.",
+      "expected_to_fail": true,
+      "test_count": 48,
+      "acceptance_criteria_covered": [
+        "AC19.1-2",
+        "AC19.1-3",
+        "AC19.1-4",
+        "AC19.1-5",
+        "AC19.1-6",
+        "AC19.1-7",
+        "AC19.1-8",
+        "AC19.1-9"
+      ],
+      "test_design_ids": [
+        "19.1-E2E-001",
+        "19.1-E2E-002",
+        "19.1-E2E-003",
+        "19.1-E2E-004",
+        "19.1-E2E-005",
+        "19.1-E2E-006",
+        "19.1-E2E-007",
+        "19.1-E2E-008",
+        "19.1-E2E-009",
+        "19.1-E2E-010"
+      ],
+      "priority_coverage": {
+        "P0": 12,
+        "P1": 36,
+        "P2": 0,
+        "P3": 0
+      },
+      "confidence": {
+        "score": 8,
+        "rationale": "Spec pins binding copy; inspected role-aware/onboarding/quote-pipeline E2E and global setup establish real login and role fixtures. Existing admin-sql/aggregate provide source oracle. Missing fault harness is explicitly a prerequisite.",
+        "unknowns": [
+          "No observed new dashboard DOM; region/label/time semantic seams provisional.",
+          "Contained actual server-read failure/hold/release + server clock harness does not yet exist.",
+          "New isolated scenario fixture metadata is not currently seeded."
+        ]
+      },
+      "physical_line_count": 398
+    }
+  ],
+  "fixtures_created": 0,
+  "actual_product_tests_executed": 0,
+  "fixture_needs": [
+    "Implement the authorized result entry with an explicitly distinguishable generic failure; reconcile provisional Result property names in tests only while preserving assertions.",
+    "Implement the authorized actual registry, registry-coherence integration, and server readDashboard adapter. Reconcile provisional callable/property names; no new role/money grants or HTTP API.",
+    "Expose server-only dependency injection for current role resolver and eligible result loader, using actual default resolver/read entry. It must not become caller-controllable browser authority.",
+    "Node strip runner local register(data URL) maps only next/headers import by supabase-server-client.ts to actual next/headers.js. No new shared hooks are needed for this package-resolution issue.",
+    "Keep registry importable by the Node unit runner without eagerly executing TSX. Actual loader/component registrations must be tested, not a parallel ID list.",
+    "Existing createRoleAwarePhaseAFixture/cleanupRoleAwarePhaseAFixture and quote admin seed helpers suffice for isolated DB composition. Use only guard-managed isolated stack and SUPABASE_TEST_REQUIRED=1 when activated by build.",
+    "Real browser server-fault/revocation containment remains a parent/browser-worker prerequisite; this worker does not fake browser behavior or claim browser delivery evidence.",
+    {
+      "kind": "existing",
+      "description": "Reuse tests/e2e/.auth/fixture.json adminA, roleAware.saljare/montor, notifications.projectManager/finance and adminUserManagement.sharedAccount. Loading is deferred to test callbacks for safe collection."
+    },
+    {
+      "kind": "new-isolated-data",
+      "description": "Optional dashboard19 map in the EXISTING gitignored fixture artifact. Each name must contain user {id,email,password}, tenantId, boundaryNow, completionInstants, acceptedSentinelOre and frozenSentTotalOre. It is metadata only, no fault-switch authority."
+    },
+    {
+      "kind": "new-isolated-data",
+      "names": [
+        "source-history",
+        "seller-sentinel",
+        "entitled-sentinel",
+        "empty-entitled",
+        "empty-withheld",
+        "sent-only",
+        "entitled-zero"
+      ],
+      "description": "Existing local factories seed independent synthetic tenants/users, distinct version lifecycle events including duplicates, superseded history, adjusted frozen acceptance unequal to sent total, no activity or zero decided/zero entitled amounts. Source-history period and completion clocks pinned in actual server dependency harness. Use proper source constraints, no invalid DB rows."
+    },
+    {
+      "kind": "missing-contained-server-harness",
+      "names": [
+        "failure-isolation",
+        "retry-recovery",
+        "retry-failure",
+        "revoke-quote",
+        "revoke-money",
+        "retry-session-lost"
+      ],
+      "description": "Bind failure to the ACTUAL readQuotePipelineResult query dependency in a test-contained production-server process for a unique scenario tenant/user. Prearm actual sequence initial failure -> held retry -> success/error; revoke scenarios success -> actual failure on reload -> current-authority retry. Driver must hold/release the read through observable loading and supply read-completion instants. No browser interception, production endpoint/env flag, broad app hook or dependency is authorized. The driver mechanism remains unknown and must be resolved before AC6/7 browser execution."
+    },
+    {
+      "kind": "missing-contained-onboarding-fixture",
+      "description": "onboarding-{undismissed,dismissed,completed,non-admin,invisible,read-failure}-{success,error} fixtures bind CURRENT onboarding reader facts/state and card outcomes. Retain existing warning and first-admin authorization; use existing first-admin-checklist.e2e.spec.ts for dismiss/restore/reload/completion persistence rather than repeat its mutation journey."
+    },
+    {
+      "kind": "missing-contained-loading-fixture",
+      "names": [
+        "layout-loading",
+        "layout-error",
+        "layout-empty",
+        "layout-withheld"
+      ],
+      "description": "Three viewport scenarios reuse these unique fixture users. Loading must hold a real server read; metadata alone cannot create loading. Dispose usage and restore server injections after each scenario."
+    },
+    {
+      "kind": "component-seam",
+      "description": "Provisional exported QuotePipelineWidget({state:'loading'|'loaded'|'empty'|'error',descriptor?:{data:{period,sentCount,acceptedCount,lostCount,hitRate,acceptedValueOre?},entitlements:{withheld}},completedAt?,onRetry?}), DashboardGrid({children}), WidgetCard({title,href,children}). Presentation-only contracts; no client roles/moneyEntitled authority. Align actual export/prop names on implementation without weakening behavior."
+    },
+    {
+      "kind": "existing-cleanup",
+      "description": "Privileged local SQL only as test oracle/setup; product remains RLS. Revocation scenario snapshots/restores exact membership role assignments in finally. Existing global fixture teardown owns synthetic tenant graph. No fixture edit or DB query ran during generation."
+    }
+  ],
+  "gaps": [
+    "No tests executed here. Parent aggregation performs scaffold collection and bounded red validation; real DB/browser evidence remains unexecuted.",
+    "Malformed date/money synthetic transport cases are defensive input-boundary evidence, not claims that NULL/fractional/invalid database states bypass actual constraints.",
+    "Acceptance rows are unique per version and ID chunks max100, so acceptance pagination beyond500 is unreachable in coherent schema; later acceptance ID-batch failures are covered. Later event/follow-up/latest-version page failures are covered.",
+    "Registry TSX eagerness may require lazy registrations or an implementation-compatible Node harness; do not replace real registrations with fake keys.",
+    "Unit dashboard adapter tests do not prove final HTML/RSC absence or retry accessibility; those remain separate browser-worker evidence.",
+    "Aggregation avoids duplicating existing duplicate-manifest-widget guard; pending producer negative keeps manifest live surfaces empty and tests the new actual registry relationship.",
+    "AC6/7 actual-server browser fault/recovery/revocation evidence unexecuted until contained harness available. JSON metadata is not evidence of server failure.",
+    "Node SSR sibling isolation is actual grid/card mount evidence only; actual onboarding branch preservation remains dashboard server/unit tests plus browser matrix/current regression.",
+    "No runtime tests, browser snapshots, screenshots, RLS proof, passing coverage or latency SLA were claimed."
+  ],
+  "actual_unit_red": {
+    "native_exit": 1,
+    "tests": 87,
+    "passed": 0,
+    "failed": 87,
+    "skipped": 0,
+    "scope": "Missing target module/result entry and new registry validation; downstream assertions not reached where entry missing"
+  },
+  "unit_scaffold_collection": {
+    "native_exit": 0,
+    "tests": 87,
+    "passed": 0,
+    "failed": 0,
+    "skipped": 87
+  },
+  "browser_collection": {
+    "native_exit": 0,
+    "listed": 48,
+    "executed": 0
+  },
+  "typecheck": {
+    "native_exit": 0,
+    "command": "node node_modules/typescript/bin/tsc --noEmit --incremental false"
+  },
+  "lint": {
+    "native_exit": 0,
+    "scope": "six generated test files"
+  },
+  "route": "gpt-6.1-sol / high",
+  "mandatory_acceptance_status": "planned scaffolds; not final coverage",
+  "resources_started": []
+}

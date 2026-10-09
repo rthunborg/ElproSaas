@@ -29,6 +29,58 @@ async function logIn(page: import("@playwright/test").Page, credentials: RoleFix
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 
+/** Settle this submit before another edit can race its action/form reset. */
+async function submitResourceAndSettle(page: import("@playwright/test").Page): Promise<void> {
+  const target = new URL(page.url());
+  const save = page.getByTestId("resource-save");
+  const button = await save.elementHandle();
+  if (!button) throw new Error("Resource save control unavailable");
+  type WitnessButton = HTMLButtonElement & { __resourcePendingWitness?: {
+    sawPending: boolean; settled: boolean; observer: MutationObserver | null;
+  } };
+  // Acknowledge observer installation before clicking. Recording old values
+  // preserves a fast true→false cycle even within one mutation callback.
+  await button.evaluate((element) => {
+    const control = element as WitnessButton;
+    if (control.disabled) throw new Error("Previous resource submission is still pending");
+    const witness = { sawPending: false, settled: false, observer: null as MutationObserver | null };
+    witness.observer = new MutationObserver((records) => {
+      if (control.disabled || records.some((record) => record.oldValue !== null)) witness.sawPending = true;
+      if (witness.sawPending && !control.disabled) witness.settled = true;
+    });
+    witness.observer.observe(control, { attributes: true, attributeFilter: ["disabled"], attributeOldValue: true });
+    control.__resourcePendingWitness = witness;
+  });
+  try {
+    // Initial success/reload and every preceding invalid pending cycle settle
+    // before registration, so an earlier action cannot satisfy this witness.
+    const responsePromise = page.waitForResponse((response) => {
+      const request = response.request();
+      const url = new URL(response.url());
+      return request.method() === "POST" && Boolean(request.headers()["next-action"])
+        && url.origin === target.origin && url.pathname === target.pathname;
+    }, { timeout: 15_000 });
+    const [response] = await Promise.all([responsePromise, save.click()]);
+    expect(response.ok()).toBe(true);
+    // Whole RSC stream EOF can remain open after the action settles. Require
+    // this control's observed pending cycle, never its initial enabled state.
+    await expect.poll(() => button.evaluate((element) => {
+      const control = element as WitnessButton;
+      if (!control.isConnected || document.querySelector('[data-testid="resource-save"]') !== control) {
+        throw new Error("Resource save control remounted during submission");
+      }
+      return control.__resourcePendingWitness?.settled === true && !control.disabled;
+    }), { timeout: 15_000 }).toBe(true);
+  } finally {
+    if (!page.isClosed()) await button.evaluate((element) => {
+      const control = element as WitnessButton;
+      control.__resourcePendingWitness?.observer?.disconnect();
+      delete control.__resourcePendingWitness;
+    });
+    await button.dispose();
+  }
+}
+
 test("[P0] admin persists a same-tenant role and schedule inputs in the existing user-detail route, then reloads server state", async ({ resourcePage: page }) => {
   const fixture = getFixture();
   await logIn(page, fixture.adminUserManagement.tenantAdmin);
@@ -53,18 +105,18 @@ test("[P0] admin persists a same-tenant role and schedule inputs in the existing
 
   await page.getByTestId("resource-weekday-1-start").fill("");
   await page.getByTestId("resource-weekday-1-end").fill("");
-  await page.getByTestId("resource-save").click();
+  await submitResourceAndSettle(page);
   await expect(page.getByTestId("resource-save-error")).toHaveText(/kontrollera/i);
   await page.getByTestId("resource-weekday-1-start").fill("07:00");
   await page.getByTestId("resource-weekday-1-end").fill("16:00");
 
   await page.getByTestId("resource-person-exception-date").fill("");
-  await page.getByTestId("resource-save").click();
+  await submitResourceAndSettle(page);
   await expect(page.getByTestId("resource-save-error")).toHaveText(/kontrollera/i);
   await page.getByTestId("resource-person-exception-date").fill("2026-10-16");
 
   await page.getByTestId("resource-calendar-day-reduction").fill("");
-  await page.getByTestId("resource-save").click();
+  await submitResourceAndSettle(page);
   await expect(page.getByTestId("resource-save-error")).toHaveText(/kontrollera/i);
 
   await page.getByTestId("resource-calendar-day-reduction").fill("50");

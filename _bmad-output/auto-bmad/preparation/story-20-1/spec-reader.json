@@ -1,0 +1,47 @@
+{
+  "spec_path": "_bmad-output/implementation-artifacts/spec-20-1-documents-activation-and-source-authorized-aggregation.md",
+  "exists": true,
+  "artifact_format": "bmad-build-auto",
+  "legacy_story_status": null,
+  "frontmatter": {
+    "title": "Documents activation, source-authorized aggregation and minimal destination",
+    "type": "feature",
+    "created": "2026-10-08",
+    "status": "blocked",
+    "review_loop_iteration": 0,
+    "followup_review_recommended": false,
+    "baseline_revision": "42f5cf60d1ded6d814c2c0f61b70b312144ce10e",
+    "context": [
+      "AGENTS.md",
+      "docs/process/review-order.md",
+      "docs/process/agent-model-routing.md",
+      "docs/process/parallel-auto-bmad.md",
+      "docs/process/parallel-auto-bmad-contract.md",
+      "_bmad-output/planning-artifacts/early-b2-documents-checkpoint-2026-10-07.md",
+      "_bmad-output/planning-artifacts/sprint-change-proposal-2026-10-07.md",
+      "_bmad-output/planning-artifacts/prd-phase-b.md",
+      "_bmad-output/planning-artifacts/epics-phase-b.md",
+      "_bmad-output/planning-artifacts/architecture-phase-b.md",
+      "_bmad-output/planning-artifacts/ux-design-specification-phase-b.md",
+      "docs/decisions/ADR-B008-quote-review-authority-and-derived-artifact-validity.md",
+      "_bmad-output/auto-bmad/preparation/story-20-1/source-authorization-design.md",
+      "_bmad-output/auto-bmad/preparation/story-20-1/owner-boundary-decision-2026-10-08.md",
+      "_bmad-output/auto-bmad/preparation/story-20-1/selected-link-contract-design.md",
+      "_bmad-output/auto-bmad/preparation/story-20-1/checkpoint-reconciliation.md"
+    ],
+    "warnings": [
+      "oversized"
+    ],
+    "deferred": [],
+    "deferred_count": 0
+  },
+  "auto_run_result": {
+    "present": true,
+    "status": "blocked",
+    "blocking_condition": "live Documents oracle disposition unavailable; independent exact Documents selected-link contract review, complete audited/pinned20.1\u201320.3 specifications, checkpoint closure and current migration/path/shared-claim admission pending. Canonical registration and owner-approved optionA are resolved; neither authorizes implementation or global policy changes by itself."
+  },
+  "last_review_pass": null,
+  "status": "blocked",
+  "parse_warnings": [],
+  "error": null
+}

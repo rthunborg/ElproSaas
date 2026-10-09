@@ -1,0 +1,651 @@
+{
+  "schema_version": 1,
+  "artifact_kind": "reviewed-specification-readiness-evidence",
+  "executable_parallel_plan": true,
+  "status": "specification-ready-dispatch-not-started",
+  "story_id": "20.1",
+  "canonical_story_key": "20-1-documents-activation-and-source-authorized-aggregation",
+  "epic": "E20",
+  "approved": true,
+  "preparation_intent_approved": true,
+  "implementation_authorized": false,
+  "branch": "codex/documents-oracle-disposition-readiness",
+  "worktree": "C:\\Users\\Rasmus\\.codex\\worktrees\\dbe6\\ElproSaas",
+  "base_sha": "a9d5269e0e3762255e1cc992bb2465883508dc21",
+  "workflow_version": "304a3a4a3a4b43665257b4e934eb5c905666a339b97989630c9d7f290dd6c3c6",
+  "spec_path": "_bmad-output/implementation-artifacts/spec-20-1-documents-activation-and-source-authorized-aggregation.md",
+  "spec_revision": "63b9e8c20cbb5f116da0a66d6e0ffe27cdc61a9e1f01b11d7f3720fd4e3bc7ea",
+  "author": {
+    "identity": "/root/documents_spec",
+    "agent_id": "01a11ae9-d2ac-7492-830b-edcc13c16b1b",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "reason": "Source authorization, current authority, permission/RLS/token and signing boundary design"
+  },
+  "independent_review": {
+    "approved": true,
+    "status": "approved-bounded-readiness-delta",
+    "preparation_review_complete": true,
+    "reviewer": "/root/documents_audit",
+    "agent_id": "01a11af1-1be3-7110-9fea-57b6b85f03fe",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "spec_revision": "63b9e8c20cbb5f116da0a66d6e0ffe27cdc61a9e1f01b11d7f3720fd4e3bc7ea",
+    "audit_path": "docs/quality/documents-readiness-disposition-review-2026-10-09.md",
+    "additional_material_design_defects": 0,
+    "followup_scope": "Documents-only oracle disposition, all three readiness/status/path deltas, helper exact-route containment, concrete read-only plan and current metadata",
+    "report_path": "docs/quality/documents-readiness-disposition-review-2026-10-09.md",
+    "historical_review_reference": {
+      "audit_path": "docs/quality/story-20-1-selected-link-contract-review-2026-10-08.md",
+      "followup_scope": "New selected-link design delta and two corrected race/artifact classification findings; prior design history retained in prior audit"
+    },
+    "report_sha256_lf": "884bb70394c6d63150484d2361d8925c42e72f6090af3b6a3c05c9e8e8d656e3"
+  },
+  "boundary_choice": "A",
+  "recommended_boundary_choice": "A-with-explicit-owner-acceptance",
+  "integrated_contracts": [
+    {
+      "commit": "ab1ca0445b58f5f496be0d938906c744b6dff87e",
+      "contract": "Existing private tenant-files files/file_links, seven manifest-declared source owners, E11 role-aware RLS/matrix, E10/ADR-B008 quote current-PDF/invalidation, checked file attestation, merged early-E20 sequencing and parallel adapter",
+      "evidence_kind": "source-inspection-only",
+      "checks_passed_in_this_lane": false
+    }
+  ],
+  "provisional_write_paths": [
+    "_bmad-output/implementation-artifacts/spec-20-1-documents-activation-and-source-authorized-aggregation.md",
+    "_bmad-output/auto-bmad/preparation/story-20-1/",
+    "src/scope/manifest.ts",
+    "src/server/authz/permission-matrix.ts",
+    "src/app/(app)/files/layout.tsx",
+    "src/app/(app)/files/page.tsx",
+    "src/features/files/read.ts",
+    "src/features/files/file-index.ts",
+    "src/server/read-models/documents.ts",
+    "src/server/read-models/document-sources.ts",
+    "src/features/documents/actions.ts",
+    "src/server/commands/documents/signed-access.ts",
+    "src/components/files/FileIndexList.tsx",
+    "src/components/files/FilePreviewRow.tsx",
+    "tests/unit/server/read-models/documents.test.ts",
+    "tests/unit/server/read-models/document-sources.test.ts",
+    "tests/integration/rls/documents.rls.test.ts",
+    "tests/integration/commands/documents-signed-access.int.test.ts",
+    "tests/e2e/files/documents.e2e.spec.ts",
+    "src/components/app-shell/nav-items.ts",
+    "src/server/commands/documents/db.ts",
+    "src/server/storage/document-signed-access-attestation.ts",
+    "src/server/commands/envelope.ts",
+    "tests/unit/server/storage/document-signed-access-attestation.test.ts",
+    "tests/unit/server/commands/documents-signed-access.test.ts",
+    "tests/integration/commands/documents-signed-access-lock-races.int.test.ts",
+    "supabase/migrations/20261009091120_story_20_1_documents_selected_link_access.sql"
+  ],
+  "unresolved_write_paths": [],
+  "conflict_domains": [
+    "registry:scope-manifest",
+    "registry:navigation",
+    "auth:permission-matrix",
+    "auth:current-source-authority",
+    "storage:checked-signing-attestation",
+    "schema:migrations",
+    "tests:shared-file-fixtures"
+  ],
+  "risk_domains": [
+    "permissions",
+    "authentication",
+    "authorization",
+    "security",
+    "rls",
+    "public-tokens",
+    "transactional-integrity"
+  ],
+  "legacy_reservations": [
+    {
+      "epic": "E14",
+      "stories": [],
+      "worktree_hint": "b3cc; retained epic14-scheduling",
+      "reason": "Historical reservation; coordinator reports upstream PR merged. Exact shared ownership and released writer reservations still require fresh reconciliation.",
+      "conflict_domains": [
+        "scheduling",
+        "person",
+        "schema:migrations",
+        "auth:permission-matrix",
+        "apis:shared",
+        "tests:shared-fixtures"
+      ],
+      "historical_reason": "PR86 active fixing; idle chat state is not release evidence"
+    },
+    {
+      "epic": "E19",
+      "stories": [
+        "19.1"
+      ],
+      "worktree_hint": "story19-1-dashboard",
+      "reason": "Historical reservation; coordinator reports upstream PR merged. Exact shared ownership and released writer reservations still require fresh reconciliation.",
+      "conflict_domains": [
+        "dashboard",
+        "widget-registry",
+        "registry:scope-manifest",
+        "quote-readers",
+        "AppShell",
+        "NotificationBell",
+        "CI",
+        "tests:shared-fixtures"
+      ],
+      "historical_reason": "PR87 finishing; Next audit CI blocker, unmerged work unavailable as prerequisite"
+    },
+    {
+      "epic": "security-repair",
+      "stories": [],
+      "session": "01a11aeb-9946-7af3-b2ee-865c34db6c24",
+      "worktree_hint": "9cd1",
+      "reason": "Historical reservation; coordinator reports upstream PR merged. Exact shared ownership and released writer reservations still require fresh reconciliation.",
+      "conflict_domains": [
+        "dependencies:next",
+        "dependencies:package-lockfiles"
+      ],
+      "historical_reason": "Sole Next/package/lock writer per coordinator steering"
+    }
+  ],
+  "required_checks": [
+    "documents-source-unit",
+    "documents-integration-rls",
+    "files-signed-access-integration",
+    "documents-browser",
+    "unit",
+    "typecheck",
+    "lint",
+    "production-build",
+    "service-role-containment",
+    "bundle-containment",
+    "lockfiles",
+    "documents-baseline-storage-boundary",
+    "documents-selected-link-unit",
+    "documents-selected-link-lock-races-integration"
+  ],
+  "checks": [
+    {
+      "name": "build-auto-render",
+      "result": "passed",
+      "executed": 1,
+      "skipped": 0,
+      "evidence": "uv render_skill command returned snapshot workflow path"
+    },
+    {
+      "name": "canonical-resolution",
+      "result": "passed-locally",
+      "evidence": "Actual helper resolves all three authorized keys/titles as backlog; E20 count 3; 20.1 first=true last=false after=2. Registration PR unmerged.",
+      "historical_result": "blocked",
+      "historical_evidence": "Root story_plan --resolve20.1 returned story-not-found; integrated epics only candidate"
+    },
+    {
+      "name": "gh-auth",
+      "result": "passed",
+      "evidence": "gh auth status outside restricted environment confirms active keyring account",
+      "secrets_recorded": false
+    },
+    {
+      "name": "live-oracle",
+      "result": "blocked",
+      "evidence": "Initial native Chrome state call aborted after 711 seconds; browser-only cua.getState succeeded, no Lovable tab, targeted repository URL search found no authorized oracle target.",
+      "observations": 0
+    },
+    {
+      "name": "prior-pr-ci",
+      "result": "failed",
+      "commit": "920602960583c34e697386dca972fa169da20285",
+      "run_url": "https://github.com/rthunborg/ElproSaas/actions/runs/37762101656",
+      "failed_step": "Audit dependencies (blocking, high severity)",
+      "evidence": "GitHub Actions job API; full log access returned403",
+      "repair_scope": "reserved separate Next dependency repair lane"
+    },
+    {
+      "name": "bounded-oracle-access-recheck",
+      "result": "blocked",
+      "evidence_path": "_bmad-output/auto-bmad/preparation/story-20-1/oracle-access-recheck-2026-10-08.md",
+      "observations": 0,
+      "browser_inventory_succeeded": true,
+      "missing_prerequisite": "Authorized Lovable URL or accessible existing Lovable tab/session",
+      "spec_changed": false
+    }
+  ],
+  "remaining_gates": [
+    "Fresh ownership, migration ordering/collision, source-base and resource reconciliation immediately before future initialization",
+    "Verified20.1 product integration before20.2; verified20.1/20.2 before20.3",
+    "All mandatory implementation/review/epic/CI gates remain future requirements"
+  ],
+  "parallel_helper_plan": {
+    "executed": true,
+    "native_exit_code": 0,
+    "ok": true,
+    "plan_path": "_bmad-output/auto-bmad/preparation/story-20-1/parallel-plan-2026-10-09.json",
+    "evidence_path": "_bmad-output/auto-bmad/preparation/story-20-1/planner-result-2026-10-09.json",
+    "ready": [
+      "20.1"
+    ],
+    "waiting": {
+      "20.2": [
+        "20.1"
+      ],
+      "20.3": [
+        "20.1",
+        "20.2"
+      ]
+    },
+    "legacy_conflicts": [],
+    "base_sha": "26666ff514fe8702c22e76e78f38b339450454c0",
+    "state_mutated": false
+  },
+  "product_implementation_performed": false,
+  "managed_resources_started": false,
+  "boundary_decision": {
+    "authority": "human owner in current chat",
+    "date": "2026-10-08",
+    "instruction": "Follow your recommendation",
+    "scope": "Documents-specific selected-source listing and opening enforcement; preserve baseline generic Files.View/direct Storage access and issued signed-URL lifetime",
+    "does_not_authorize": [
+      "global Storage policy expansion",
+      "oracle waiver",
+      "implementation",
+      "merge",
+      "deployment"
+    ],
+    "evidence_path": "_bmad-output/auto-bmad/preparation/story-20-1/owner-boundary-decision-2026-10-08.md"
+  },
+  "canonical_registration": {
+    "status": "integrated",
+    "coordinator_serialization_required": true,
+    "patch_path": "_bmad-output/auto-bmad/preparation/story-20-1/registration.patch",
+    "evidence_path": "_bmad-output/auto-bmad/preparation/story-20-1/registration.json",
+    "stories_to_register": 3,
+    "actual_registry_lookup": "resolved",
+    "prospective_first_is_last": false,
+    "registration_pr_merged": true,
+    "actual_evidence_path": "_bmad-output/auto-bmad/preparation/story-20-1/registration.json",
+    "first_is_last": false,
+    "epic_story_count": 3,
+    "merge_sha": "42f5cf60d1ded6d814c2c0f61b70b312144ce10e"
+  },
+  "latest_integrated_base_observation": {
+    "sha": "8ba0150cc60ac17ac378edac5ad77405e907d3bf",
+    "verified": "git fetch origin main",
+    "integrated_into_preparation": true,
+    "contract_preparation_pr": 91
+  },
+  "preparation_delivery": {
+    "status": "complete",
+    "independently_reviewed": true,
+    "implementation_admission": "blocked",
+    "merge_authority": "coordinator only after exact-head CI and preparation review gates",
+    "handoff_path": "_bmad-output/auto-bmad/preparation/story-20-1/preparation-merge-handoff.md",
+    "oracle_waived": false,
+    "registration_applied": true,
+    "current_scope": "All three full canonical specs and bounded handoffs complete, independently reviewed and pinned; implementation admission remains blocked"
+  },
+  "preparation_history": {
+    "branch": "codex/story20-1-documents-preparation",
+    "base_sha": "ab1ca0445b58f5f496be0d938906c744b6dff87e",
+    "canonical_registration": {
+      "status": "prepared-not-applied",
+      "coordinator_serialization_required": true,
+      "patch_path": "_bmad-output/auto-bmad/preparation/story-20-1/registration.patch",
+      "evidence_path": "_bmad-output/auto-bmad/preparation/story-20-1/registration.json",
+      "stories_to_register": 3,
+      "actual_registry_lookup": "blocked",
+      "prospective_first_is_last": false
+    },
+    "latest_integrated_base_observation": {
+      "sha": "23c48b34c8a6c9158eeaf0edfca74e628d575cbc",
+      "security_pr": 89,
+      "verified": "git fetch origin main",
+      "not_yet_integrated_into_preparation": true
+    }
+  },
+  "canonical_registration_followup": {
+    "branch": "codex/documents-backlog-registration",
+    "base_sha": "8a7debbee83c9a4f6eb8ec4496ba2f7ad7db4b4b",
+    "registration_applied_locally": true,
+    "registration_pr_merged": false,
+    "actual_resolutions": [
+      {
+        "ref": "20.1",
+        "story_key": "20-1-documents-activation-and-source-authorized-aggregation",
+        "epic_num": 20,
+        "story_num": 1,
+        "story_suffix": "",
+        "slug": "documents-activation-and-source-authorized-aggregation",
+        "current_status": "backlog",
+        "epic_status": "backlog",
+        "epic_story_count": 3,
+        "is_first_in_epic": true,
+        "is_last_in_epic": false,
+        "stories_after_in_epic": 2,
+        "retrospective_status": "optional",
+        "title": "Documents activation, source-authorized aggregation and minimal destination",
+        "epic_title": "[Wave B2]: Documents Center",
+        "candidates": [],
+        "hard_stop": false,
+        "hard_stop_reason": null,
+        "error": null
+      },
+      {
+        "ref": "20.2",
+        "story_key": "20-2-search-filters-preview-and-archive-restore",
+        "epic_num": 20,
+        "story_num": 2,
+        "story_suffix": "",
+        "slug": "search-filters-preview-and-archive-restore",
+        "current_status": "backlog",
+        "epic_status": "backlog",
+        "epic_story_count": 3,
+        "is_first_in_epic": false,
+        "is_last_in_epic": false,
+        "stories_after_in_epic": 1,
+        "retrospective_status": "optional",
+        "title": "Search, filters, preview and archive/restore",
+        "epic_title": "[Wave B2]: Documents Center",
+        "candidates": [],
+        "hard_stop": false,
+        "hard_stop_reason": null,
+        "error": null
+      },
+      {
+        "ref": "20.3",
+        "story_key": "20-3-entity-panel-links-and-contextual-navigation",
+        "epic_num": 20,
+        "story_num": 3,
+        "story_suffix": "",
+        "slug": "entity-panel-links-and-contextual-navigation",
+        "current_status": "backlog",
+        "epic_status": "backlog",
+        "epic_story_count": 3,
+        "is_first_in_epic": false,
+        "is_last_in_epic": true,
+        "stories_after_in_epic": 0,
+        "retrospective_status": "optional",
+        "title": "Entity-panel links and contextual navigation",
+        "epic_title": "[Wave B2]: Documents Center",
+        "candidates": [],
+        "hard_stop": false,
+        "hard_stop_reason": null,
+        "error": null
+      }
+    ],
+    "actual_epic": {
+      "epic_num": 20,
+      "epic_status": "backlog",
+      "epic_title": "[Wave B2]: Documents Center",
+      "epic_story_count": 3,
+      "epic_stories": [
+        {
+          "key": "20-1-documents-activation-and-source-authorized-aggregation",
+          "story_num": 1,
+          "story_suffix": "",
+          "slug": "documents-activation-and-source-authorized-aggregation",
+          "status": "backlog",
+          "title": "Documents activation, source-authorized aggregation and minimal destination",
+          "is_first_in_epic": true,
+          "is_last_in_epic": false,
+          "stories_after_in_epic": 2
+        },
+        {
+          "key": "20-2-search-filters-preview-and-archive-restore",
+          "story_num": 2,
+          "story_suffix": "",
+          "slug": "search-filters-preview-and-archive-restore",
+          "status": "backlog",
+          "title": "Search, filters, preview and archive/restore",
+          "is_first_in_epic": false,
+          "is_last_in_epic": false,
+          "stories_after_in_epic": 1
+        },
+        {
+          "key": "20-3-entity-panel-links-and-contextual-navigation",
+          "story_num": 3,
+          "story_suffix": "",
+          "slug": "entity-panel-links-and-contextual-navigation",
+          "status": "backlog",
+          "title": "Entity-panel links and contextual navigation",
+          "is_first_in_epic": false,
+          "is_last_in_epic": true,
+          "stories_after_in_epic": 0
+        }
+      ],
+      "retrospective_status": "optional",
+      "hard_stop": false,
+      "hard_stop_reason": null,
+      "error": null
+    },
+    "preserved_done_stories": {
+      "14.1": {
+        "ref": "14.1",
+        "story_key": "14-1-scheduling-activation-person-profiles-and-work-hours",
+        "epic_num": 14,
+        "story_num": 1,
+        "story_suffix": "",
+        "slug": "scheduling-activation-person-profiles-and-work-hours",
+        "current_status": "done",
+        "epic_status": "done",
+        "epic_story_count": 4,
+        "is_first_in_epic": true,
+        "is_last_in_epic": false,
+        "stories_after_in_epic": 3,
+        "retrospective_status": "done",
+        "title": "Scheduling Activation \u2014 Person Profiles and Work Hours",
+        "epic_title": "[Wave B1b]: Resource and Scheduling Foundation",
+        "candidates": [],
+        "hard_stop": false,
+        "hard_stop_reason": null,
+        "error": null
+      },
+      "14.2": {
+        "ref": "14.2",
+        "story_key": "14-2-bookings-and-assignees-schema-and-transactional-commands",
+        "epic_num": 14,
+        "story_num": 2,
+        "story_suffix": "",
+        "slug": "bookings-and-assignees-schema-and-transactional-commands",
+        "current_status": "done",
+        "epic_status": "done",
+        "epic_story_count": 4,
+        "is_first_in_epic": false,
+        "is_last_in_epic": false,
+        "stories_after_in_epic": 2,
+        "retrospective_status": "done",
+        "title": "Bookings and Assignees \u2014 Schema and Transactional Commands",
+        "epic_title": "[Wave B1b]: Resource and Scheduling Foundation",
+        "candidates": [],
+        "hard_stop": false,
+        "hard_stop_reason": null,
+        "error": null
+      },
+      "14.3": {
+        "ref": "14.3",
+        "story_key": "14-3-deterministic-conflict-engine-detection-core",
+        "epic_num": 14,
+        "story_num": 3,
+        "story_suffix": "",
+        "slug": "deterministic-conflict-engine-detection-core",
+        "current_status": "done",
+        "epic_status": "done",
+        "epic_story_count": 4,
+        "is_first_in_epic": false,
+        "is_last_in_epic": false,
+        "stories_after_in_epic": 1,
+        "retrospective_status": "done",
+        "title": "Deterministic Conflict Engine (Detection Core)",
+        "epic_title": "[Wave B1b]: Resource and Scheduling Foundation",
+        "candidates": [],
+        "hard_stop": false,
+        "hard_stop_reason": null,
+        "error": null
+      },
+      "14.4": {
+        "ref": "14.4",
+        "story_key": "14-4-booking-editor-with-live-conflict-warnings-and-audited-override",
+        "epic_num": 14,
+        "story_num": 4,
+        "story_suffix": "",
+        "slug": "booking-editor-with-live-conflict-warnings-and-audited-override",
+        "current_status": "done",
+        "epic_status": "done",
+        "epic_story_count": 4,
+        "is_first_in_epic": false,
+        "is_last_in_epic": true,
+        "stories_after_in_epic": 0,
+        "retrospective_status": "done",
+        "title": "Booking Editor with Live Conflict Warnings and Audited Override",
+        "epic_title": "[Wave B1b]: Resource and Scheduling Foundation",
+        "candidates": [],
+        "hard_stop": false,
+        "hard_stop_reason": null,
+        "error": null
+      },
+      "19.1": {
+        "ref": "19.1",
+        "story_key": "19-1-widget-registry-and-dashboard-framework",
+        "epic_num": 19,
+        "story_num": 1,
+        "story_suffix": "",
+        "slug": "widget-registry-and-dashboard-framework",
+        "current_status": "done",
+        "epic_status": "in-progress",
+        "epic_story_count": 2,
+        "is_first_in_epic": true,
+        "is_last_in_epic": false,
+        "stories_after_in_epic": 1,
+        "retrospective_status": "optional",
+        "title": "Widget Registry, Dashboard Framework, and Live Quote Pipeline",
+        "epic_title": "[Wave B1b]: Operational Dashboard v1",
+        "candidates": [],
+        "hard_stop": false,
+        "hard_stop_reason": null,
+        "error": null
+      }
+    },
+    "preserved_epic14": {
+      "epic_num": 14,
+      "epic_status": "done",
+      "epic_title": "[Wave B1b]: Resource and Scheduling Foundation",
+      "epic_story_count": 4,
+      "epic_stories": [
+        {
+          "key": "14-1-scheduling-activation-person-profiles-and-work-hours",
+          "story_num": 1,
+          "story_suffix": "",
+          "slug": "scheduling-activation-person-profiles-and-work-hours",
+          "status": "done",
+          "title": "Scheduling Activation \u2014 Person Profiles and Work Hours",
+          "is_first_in_epic": true,
+          "is_last_in_epic": false,
+          "stories_after_in_epic": 3
+        },
+        {
+          "key": "14-2-bookings-and-assignees-schema-and-transactional-commands",
+          "story_num": 2,
+          "story_suffix": "",
+          "slug": "bookings-and-assignees-schema-and-transactional-commands",
+          "status": "done",
+          "title": "Bookings and Assignees \u2014 Schema and Transactional Commands",
+          "is_first_in_epic": false,
+          "is_last_in_epic": false,
+          "stories_after_in_epic": 2
+        },
+        {
+          "key": "14-3-deterministic-conflict-engine-detection-core",
+          "story_num": 3,
+          "story_suffix": "",
+          "slug": "deterministic-conflict-engine-detection-core",
+          "status": "done",
+          "title": "Deterministic Conflict Engine (Detection Core)",
+          "is_first_in_epic": false,
+          "is_last_in_epic": false,
+          "stories_after_in_epic": 1
+        },
+        {
+          "key": "14-4-booking-editor-with-live-conflict-warnings-and-audited-override",
+          "story_num": 4,
+          "story_suffix": "",
+          "slug": "booking-editor-with-live-conflict-warnings-and-audited-override",
+          "status": "done",
+          "title": "Booking Editor with Live Conflict Warnings and Audited Override",
+          "is_first_in_epic": false,
+          "is_last_in_epic": true,
+          "stories_after_in_epic": 0
+        }
+      ],
+      "retrospective_status": "done",
+      "hard_stop": true,
+      "hard_stop_reason": "epic 14 is marked done",
+      "error": null
+    },
+    "spec_sha256_lf": "7e475bfd42adc41e61fc4ccba5f399a7816025fdf37ad89d12d299c1aba489ab",
+    "source": "actual canonical files; helper exit zero"
+  },
+  "mechanical_registration_review": {
+    "status": "passed",
+    "reviewer": "/root/registration_audit",
+    "model": "gpt-6.1-sol",
+    "effort": "low",
+    "report_path": "docs/quality/story-20-1-backlog-registration-review-2026-10-08.md",
+    "spec_unchanged": true,
+    "implementation_admission": "blocked",
+    "merge_authority": "coordinator after exact-head required CI"
+  },
+  "selected_link_contract": {
+    "status": "reviewed-design-only",
+    "implementation": "not implemented",
+    "contract_path": "_bmad-output/auto-bmad/preparation/story-20-1/selected-link-contract-design.md",
+    "contract_sha256_lf": "1072d3b3ed84538d4c27352bee221b9dc7587ecd8496e2099b059bfcf3ad86a2",
+    "checkpoint_path": "_bmad-output/auto-bmad/preparation/story-20-1/checkpoint-reconciliation.md",
+    "checkpoint_sha256_lf": "938654fc8611202a4485860c504e1f2c177741b8358839d2860adcd9cf3be8a3",
+    "migration_logical_basename": "story_20_1_documents_selected_link_access.sql",
+    "physical_migration_path": "supabase/migrations/20261009091120_story_20_1_documents_selected_link_access.sql",
+    "physical_timestamp_condition": "Prospectively allocated and collision checked; use reviewed CLI-first empty/unapplied file rename procedure, refresh before claims; no SQL created",
+    "generic_files_signer_and_quote_broker": "Read-only reference contracts; no implementation write claim",
+    "source_design_sha256_lf": "39dbc014e93900ddccd3f48f4d5e510e9bab374ac1a5d78ce61ca73d883699c9"
+  },
+  "previous_integrated_base_observation": {
+    "sha": "8a7debbee83c9a4f6eb8ec4496ba2f7ad7db4b4b",
+    "coordinator_verified_pr_merges": {
+      "86": "8a7debbe",
+      "87": "7db3ded1",
+      "88": "7da9e8f3",
+      "89": "23c48b34"
+    },
+    "not_yet_integrated_into_preparation": false,
+    "fresh_contract_validation_complete": false
+  },
+  "later_story_preparation": {
+    "status": "specification-ready-dispatch-not-started",
+    "metadata_path": "_bmad-output/auto-bmad/preparation/story-20-1/later-story-admission.json",
+    "reviewer": "/root/documents_audit",
+    "model": "gpt-6.1-sol",
+    "effort": "high",
+    "report_path": "docs/quality/documents-readiness-disposition-review-2026-10-09.md",
+    "full_specs_present": 3,
+    "ready_specs": 3,
+    "implementation_authorized": false
+  },
+  "readiness_previous_admission": {
+    "status": "blocked",
+    "approved": false,
+    "branch": "codex/documents-later-story-preparation",
+    "base_sha": "8ba0150cc60ac17ac378edac5ad77405e907d3bf",
+    "remaining_gates": [
+      "Authorized Lovable URL/tab/session and actual behavior evidence, or explicit owner oracle disposition; no waiver recorded",
+      "Record early-E20 checkpoint closure on all three reviewed specifications and authoritative oracle disposition; all specs remain blocked",
+      "Merge this later-story preparation and revalidate current integrated base before implementation",
+      "Allocate physical CLI migration timestamps/paths and pin exact admitted write paths before claims; no SQL files created",
+      "Coordinator validates current ownership/resources and plan, then obtains successful assignments/claims; none exist",
+      "20.2 requires verified20.1 product integration, and20.3 requires verified20.1/20.2 product integration; preparation merges do not satisfy product prerequisites",
+      "Execute per-story and combined-integration required checks at exact product revisions; no runtime Documents evidence claimed",
+      "Retain full E20/wave and PhaseC scope gates; registration, option A and bounded specification preparation are satisfied"
+    ]
+  },
+  "oracle_observations": 0,
+  "legacy_behavior_verified": false,
+  "oracle_requirement_disposition": "not-required-by-documents-only-owner-decision",
+  "owner_decision_path": "_bmad-output/auto-bmad/preparation/story-20-1/owner-oracle-disposition-2026-10-09.md",
+  "physical_migration_path": "supabase/migrations/20261009091120_story_20_1_documents_selected_link_access.sql"
+}

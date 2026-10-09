@@ -47,6 +47,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { adminQuery, closeAdminPool } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import { expectEffectiveTableDml } from "../../support/effective-table-privileges";
 
 const FILE_TABLES = ["files", "file_links"] as const;
 
@@ -312,31 +313,11 @@ describe("File migration reset — files/file_links (AC1/AC4/AC8)", () => {
     }
   });
 
-  it("[P0] GRANTs: authenticated historical DELETE remains ACL-visible but has no DELETE RLS policy; anon has no DML", async (testCtx) => {
+  it("[P0] effective DML: authenticated has SELECT only; audited wrappers own file mutation and anon has no DML", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const rows = await adminQuery<{ grantee: string; privilege_type: string }>(
-      `select grantee, privilege_type from information_schema.role_table_grants
-         where table_schema = 'public' and table_name = any($1::text[])`,
-      [[...FILE_TABLES]],
-    );
-    const authed = rows
-      .filter((r) => r.grantee === "authenticated")
-      .map((r) => r.privilege_type);
-    expect(authed).toContain("SELECT");
-    expect(authed).not.toContain("INSERT");
-    expect(authed).not.toContain("UPDATE");
-    // Historical authenticated DELETE remains explicit; no DELETE RLS policy
-    // permits a direct app mutation.
-    expect(authed).toContain("DELETE");
-    // anon holds NONE of the four DATA-access privileges (Supabase's default schema
-    // privileges still hand anon the non-DML REFERENCES/TRIGGER/TRUNCATE — assert on
-    // DML only, mirroring calc-tables-migration-reset.int.test.ts).
-    const DML = ["SELECT", "INSERT", "UPDATE", "DELETE"];
-    const anonDml = rows
-      .filter((r) => r.grantee === "anon")
-      .map((r) => r.privilege_type)
-      .filter((p) => DML.includes(p));
-    expect(anonDml).toEqual([]);
+    // 20260907171252 closes direct file DML; 20261002141141 removes PUBLIC
+    // inheritance. No migration grants authenticated DELETE.
+    await expectEffectiveTableDml({ files: ["SELECT"], file_links: ["SELECT"] });
   });
 
   it("[P0/AC4] the tenant-files bucket exists and is PRIVATE (public = false)", async (testCtx) => {

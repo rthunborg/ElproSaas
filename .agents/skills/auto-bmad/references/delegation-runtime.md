@@ -1,5 +1,7 @@
 # Delegation runtime — host detection & how to spawn a profile
 
+Parallel run boundary: parallel-epic.md permits concurrently admitted story workers in distinct worktrees. Each worker still awaits its own phase delegates and nested reviews synchronously. This does not authorize detached processes, shared writable checkouts or extra user-owned chats.
+
 `delegation.md` says **what** to tell a delegate (the self-contained, tool-agnostic prompt); this file says **how** to spawn it on the current host and degrade gracefully.
 
 Config fields that drive everything — `delegation.host`, `delegation.mode`, `delegation.cli_phases`, `phase_profiles`, `profiles`. Values, defaults and the eleven phase keys: `state-and-resume.md` → "config.yaml".

@@ -5,7 +5,7 @@ created: '2026-09-29'
 status: 'done'
 baseline_revision: '93dbf8432d420ecf6fcd29e732be7ca136801534'
 review_loop_iteration: 3
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - '_bmad-output/project-context.md'
   - '_bmad-output/implementation-artifacts/epic-14-context.md'
@@ -166,6 +166,8 @@ Limits: Resource command/RLS test scaffolds remain skipped, so they cannot satis
 
 Author: implementation author. Refreshed against the final constrained Story 14.1 repair after precision-preserving form merges, split-shift read-model shaping, controlled exception clear state, and guarded-CDP acceptance.
 
+Narrow 2026-10-08 refresh: `/root/checkpoint_sensitive`, `gpt-6.1-sol` High, authored only the profile test submission-settlement repair below. Historical implementation attribution, acceptance status and all three completed broad review rounds remain unchanged.
+
 ### Command authority and tenant boundary
 
 Review the forward ACL repair first. Authenticated callers retain read access and the audited `SECURITY DEFINER` command path, while direct resource-table `INSERT` and `UPDATE` no longer bypass membership/work-role checks, tenant checks, or target-only audit events. Confirm anonymous calls remain denied and cross-tenant writes leave the privileged snapshot unchanged.
@@ -200,7 +202,7 @@ The browser deliberately renders minute-granular native time controls. It retain
 - `src/features/resources/work-hours.ts:6` and `src/features/resources/capacity-inputs.ts:18` — accept the supported PostgreSQL time shape consistently in schedule and exception validation.
 - `supabase/migrations/20261002190000_resource_time_precision_preservation.sql:4` — extends both audited RPC validators to the supported precision without weakening authorization or overlap checks.
 - `tests/integration/commands/resources.int.test.ts:40` — proves an actual fractional-second schedule, break, and exception RPC round trip.
-- `tests/e2e/resources-person-profile.e2e.spec.ts:119` — proves browser save/reload and partial-clear preservation of the hidden split shift, break, and timed exception.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:171` — proves browser save/reload and partial-clear preservation of the hidden split shift, break, and timed exception.
 
 ### Failure behavior and browser ownership
 
@@ -208,9 +210,19 @@ A resource read failure must not expose an editable blank form. The pinned test 
 
 - `src/components/admin-users/UserDetailPanel.tsx:32` — renders the controlled read error instead of a writable schedule panel.
 - `tests/e2e/support/resource-cdp-attachment.ts:41` — attaches a dedicated context/page over loopback CDP without closing the root browser.
-- `tests/e2e/resources-person-profile.e2e.spec.ts:32` — covers persistence/reload, populated clear/reload, and partial-input rejection.
-- `tests/e2e/resources-person-profile.e2e.spec.ts:89` — verifies preserved deactivated history without booking/reassignment affordances.
-- `tests/e2e/resources-person-profile.e2e.spec.ts:100` — proves server-observable transient failure retains draft input and persists only after retry.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:84` — covers persistence/reload, populated clear/reload, and partial-input rejection.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:141` — verifies preserved deactivated history without booking/reassignment affordances.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:152` — proves server-observable transient failure retains draft input and persists only after retry.
+
+### Settle each profile submission before subsequent edits
+
+The first-attempt CI snapshot retained a selected exception kind with its date blank, so the existing server validation correctly refused the final clear. Consecutive identical validation alerts did not establish completion of their own submissions. The affected test now awaits each real invalid action response and an observed pending true→false cycle before later edits; successful submissions retain their original saved-status/reload checks. Framework reset timing is a supported inference, not a traced cause. Whole response EOF proved unreliable in later executions and is not the current settlement witness.
+
+- `tests/e2e/resources-person-profile.e2e.spec.ts:33` — `submitResourceAndSettle`: settles the three invalid submissions in the affected scenario.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:47` — `new MutationObserver`: records actual pending mutations before submission.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:57` — `responsePromise`: registers the same-path Next action witness before clicking.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:67` — `expect.poll`: requires the observed cycle on the same connected control.
+- `tests/e2e/resources-person-profile.e2e.spec.ts:130` — `toHaveValue`: retains the explicit empty-kind assertion before clearing the date.
 
 ### Final evidence
 
@@ -219,3 +231,30 @@ A resource read failure must not expose an editable blank form. The pinned test 
 - TypeScript: passed. Lint: 0 errors and 13 existing warnings.
 - Guarded production browser acceptance: 4 passed, 0 failed, 0 skipped; root-owned app `b95629c8-276b-4f5f-828c-ba3ec93c4362`, root-owned Chromium CDP loopback 59391. The author did not own or stop either lifecycle.
 - ADR-B012 prerequisite normal required gate: 125 files, 124 passed, 1 intentional physical-loader skip; 1,243 assertions, 1,242 passed, 1 skipped.
+
+### Narrow author Dev Record — profile settlement repair 2026-10-08
+
+Author: `/root/checkpoint_sensitive`, `gpt-6.1-sol` High. Ownership is the first profile persistence browser scenario, its private settlement helper, this review-order refresh and `docs/quality/epic14-profile-settlement-closeout-2026-10-08.md`. All earlier sections, runtime evidence and review history remain attributed to their original revisions.
+
+The published `1cd4ec02` browser job passed natively with 196 passed, one flaky case and four skipped. The affected first attempt failed after 17,429 ms; its retry passed after 3,657 ms. The first-attempt artifact establishes an enabled save button, retained form and validation alert with a selected exception kind and blank exception date. It does not trace the intervening form reset. No production correctness or authorization change is justified by this evidence.
+
+The three invalid submissions in that one scenario now acknowledge a pre-click MutationObserver and await a registered real same-origin/path POST with a Next action header, successful HTTP response and an observed disabled true→false cycle on the same connected save control. Attribute old values retain even a fast cycle; initially enabled state/old alerts cannot pass, remount fails, and `finally` disconnects/deletes the test-only witness. The product already binds that disabled attribute to `useActionState.pending`; no production marker is added. The two successful submissions retain their original click, saved-status and reload/readback checks. The initial success/reload precedes the first invalid witness; prior invalid cycles then settle before the next witness, preventing an earlier response from satisfying it. Existing 15-second response/expectation bounds, fixture, invalid inputs, error/success/clear/reload assertions, shared retries and test timeout remain unchanged. No response or receipt is fabricated.
+
+The first-patch parent-owned four-profile run failed natively with three passed, one 60-second timeout, zero skipped and zero flaky, 81.658 seconds JSON-reported run duration. The affected case ran for 60,025 ms. The first four helper calls completed; final successful-save body completion blocked until test timeout. Its error context has no page snapshot, so neither saved UI nor product failure is established; the EOF/CDP/stream cause remains unconfirmed. The authorized correction limits the helper to invalid submissions and preserves this failed run without catching its error or increasing timeouts.
+
+Executed author checks: `node node_modules/typescript/bin/tsc --noEmit` native 0 and targeted ESLint native 0. Review-order validation is recorded in the linked author report. No browser, database or service command was run by this author. Independent Sol 6.1 High narrow review of corrected test hash `3618CD359BF41D848DF62AB24E8493BA6C44D9DF75FC31DEF6D00077E4009C3B` found no consequential defect.
+
+The parent-owned corrected four-profile run passed natively with four passed, zero failed, zero skipped and zero flaky (report statistics 6.675 seconds). One complete booking/profile resource pack then passed natively with 23 passed, zero failed, zero skipped and zero flaky (report statistics 65.835 seconds). The parent reused its Next 16.3.8 production build with unchanged product source; exact reports are `tmp/epic14-closeout-stack/browser-profile-settlement-four-corrected.json` and `tmp/epic14-closeout-stack/browser-harness-final-23.json`. These passes are actual separately attributed runtime evidence, not a replacement for the failed first patch or original CI flake. All three parent-owned guarded resources received accepted Stop requests after consumers finished, preserving saved state without claiming verified shutdown.
+
+Published `992df83b` CI then failed its general browser job with 191 passed, six failed and four skipped, approximately 7.3 minutes. The profile case failed both attempts at the existing 60-second timeout, waiting on whole response EOF during its first invalid submission. Five separate operator seed-hook `42501` failures are owned by another author. Earlier local 4/4 and 23/23 passes remain attributed to the EOF variant; they do not waive its new CI failure or establish the precise streaming/CDP cause.
+
+The latest repair replaces only EOF completion with the actual observed pending cycle and matching real response. Final TypeScript/targeted ESLint passed natively; review-order validation passed with 32 spec stops and seven report stops. Independent Sol 6.1 High narrow review found no consequential defect in test hash `469E56B6049EBC369DADB8DA61E0EB525E3D31AF19CADDB5D4D2D9163F18E8B8` and verified the existing test bodies remained unchanged by this helper replacement.
+
+The parent-owned complete two-file profile/operator-console pack passed natively with 12 passed, zero failed, zero skipped and zero flaky, 28.741 seconds JSON-reported run duration. All four profile cases and eight operator cases executed on the rebuilt combined-main Next 16.3.8 production app; exact report `tmp/epic14-closeout-stack/browser-profile-pending-operator.json` has zero top-level errors. Parent post-run SQL readback reports zero editor markers and three hooks. This is actual local evidence for the latest helper and separately authored operator fixture repair; it does not rewrite prior CI failures.
+
+Fresh full exact-head five-job CI remains pending. This consumes no additional broad round; historical passes, original CI flake and both EOF failures remain distinct evidence. Reset timing and response-EOF/stream/CDP cause remain untraced, and no official story/epic completion or merge claim is made. Existing performance, manual physical/daylight and Story 15.1 calendar obligations retain their separate status.
+
+
+### Current direct-closeout clearance — 2026-10-08
+
+Author: `/root/kernel_fix`, `gpt-6.1-sol` High, for this bounded metadata reconciliation only; original implementation/fix authorship remains unchanged. Root confirmed all five required gates (verify, db, recovery-storage-loader, e2e, dashboard-e2e) passed on source `179e86c2f96d684310b8c51af59d58ea3e23be78` in [the exact-head run](https://github.com/rthunborg/ElproSaas/actions/runs/37786814317). Actual results: `units 2,159/2,159 passed/zero failed/zero skipped; REQUIRED integration 1,478 total/1,477 passed/zero failed/one preserved skip in275.25s; unchanged real pilot exact120/24profile, two requests/read, Admin p95=15.363932ms≤250ms and synthetic p95=6.183487ms≤25ms; independent recovery one passed/zero failed/zero skipped; general browser197passed/zero failed/zero flaky/four inherited skips in3.7m; dashboard browser57passed/zero failed/zero flaky/zero skipped in1.3m. Skipped integration/browser bodies are unexecuted and receive no coverage credit; independent recovery executes its own separate proof`. Independent narrow High reviews and root-retained evidence are linked in [the direct-closeout record](../../docs/quality/epic14-direct-closeout-evidence-2026-10-08.md). Current follow-up recommendation/review-unverified flags are cleared for the approved direct closeout; historical true recommendations, scores, failures, original pipeline timestamps, baseline and completed broad rounds remain unchanged. This is no additional broad review or score recalculation. Representative performance remains UNKNOWN; manual accessibility/daylight remains NONE, NFR CONCERNS and retained maintenance advisories remain open, and Story15.1 ContractD calendar obligations remain mandatory. No hosted enablement/deployment, skipped-case coverage or further product completion is claimed.

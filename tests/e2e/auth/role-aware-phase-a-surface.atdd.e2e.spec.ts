@@ -1,5 +1,6 @@
 /** Story 11.2 browser ATDD against the real server-derived navigation and local role fixture. */
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test } from "../dashboard/guarded-test";
+import type { Locator, Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 

@@ -1,7 +1,7 @@
 ---
 name: auto-bmad
-description: "Run the FULL BMAD build lane end-to-end — one story at a time, or an ENTIRE EPIC in one run with `epic`."
-argument-hint: "[epic [--epic <N> | --spec <folder>] | --story <id> | --spec <folder> [--story <id>] | setup | reprovision | reset-defaults | config-check | <plain-language instructions for this run, e.g. approve the spec first, stop before the review, dry run>]"
+description: "Run the full BMAD build lane for a story or epic, with opt-in claimed parallel story workers."
+argument-hint: "[worker --assignment <json> | epic --parallel --plan <json> | epic [--epic <N> | --spec <folder>] | --story <id> | --spec <folder> [--story <id>] | setup | reprovision | reset-defaults | config-check | <plain-language instructions for this run, e.g. approve the spec first, stop before the review, dry run>]"
 disable-model-invocation: true
 ---
 
@@ -11,6 +11,23 @@ You drive the **entire BMAD build lane for ONE story** — `bmad-build-auto` pla
 
 **Epic mode (`/auto-bmad epic [--epic <N> | --spec <folder>]`)** instead drives a **WHOLE epic** — every actionable story — in one run, then opens **one PR**.
 - When `epic` is in the invocation, follow `references/epic-pipeline.md` from **E0** onward; the per-story phases below are its inner loop. Both modes share this file: activation gate, Step 0, delegation mechanics, final report.
+
+
+## Opt-in parallel epic mode and worker assignments
+
+Recognize `epic --epic <N> --parallel --plan <absolute-json>` and
+`worker --assignment <absolute-json>` before the normal target/resume picker.
+Run the central-config-only activation gate, then read
+`references/parallel-epic.md` and follow its coordinator or worker procedure.
+Parallel mode preserves epic-level gates and one epic PR, with isolated workers.
+The plan must be validated by `scripts/parallel_run.py`; prose assertions alone
+cannot claim work or finalize a run. The default remains sequential.
+
+A parallel-readiness planning request is read-only with respect to run/claim state:
+delegate approved-spec/dependency analysis, report the helper's admission results,
+and do not start a product worker unless asked. Do not hot-upgrade running loops.
+Workers use only their explicit assignment, never the copied bare-story picker.
+For user instructions see `docs/process/parallel-auto-bmad.md`.
 
 ## Output discipline
 Work quietly — don't pre-announce or narrate routine reads/detections; just do them. Surface only what the user needs:

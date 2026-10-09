@@ -44,6 +44,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { adminQuery, closeAdminPool } from "../../factories/admin-sql";
 import { isLocalStackReachable } from "../../support/test-env";
 import { skipUnlessStack } from "../../support/stack-gate";
+import { expectEffectiveTableDml } from "../../support/effective-table-privileges";
 
 const CALC_TABLES = [
   "calculations",
@@ -309,34 +310,12 @@ describe("Calc migration reset green — calculations/sections/rows (AC1)", () =
     }
   });
 
-  it("[P0] GRANTs: authenticated historical DELETE remains ACL-visible but has no DELETE RLS policy; anon NOTHING", async (testCtx) => {
+  it("[P0] effective DML: calculation edits retain exact per-table grants; anon and authenticated DELETE are denied", async (testCtx) => {
     if (skipUnlessStack(testCtx, stackUp)) return;
-    const rows = await adminQuery<{ grantee: string; privilege_type: string }>(
-      `select grantee, privilege_type from information_schema.role_table_grants
-         where table_schema = 'public' and table_name = any($1::text[])`,
-      [[...CALC_TABLES]],
-    );
-    const authed = rows
-      .filter((r) => r.grantee === "authenticated")
-      .map((r) => r.privilege_type);
-    expect(authed).toContain("SELECT");
-    expect(authed).toContain("INSERT");
-    expect(authed).toContain("UPDATE");
-    // Historical authenticated DELETE remains explicit; no DELETE RLS policy
-    // permits a direct app mutation.
-    expect(authed).toContain("DELETE");
-    // anon has NO DML grant (SELECT/INSERT/UPDATE/DELETE) on the calc tables — the
-    // migrations never grant anon any DML. Supabase's default schema privileges DO
-    // hand every role (anon included) the non-DML REFERENCES/TRIGGER/TRUNCATE on new
-    // public tables (the existing CRM/pricing tables carry the same), so assert
-    // specifically that anon holds NONE of the four data-access privileges, not that
-    // it has zero rows — matching crm-tables-migration-reset.int.test.ts.
-    const DML = ["SELECT", "INSERT", "UPDATE", "DELETE"];
-    const anonDml = rows
-      .filter((r) => r.grantee === "anon")
-      .map((r) => r.privilege_type)
-      .filter((p) => DML.includes(p));
-    expect(anonDml).toEqual([]);
+    // 20260702120000 grants calculation editing; 20260907171252 revokes only
+    // calculation INSERT. Checked wrappers own creation; section/row edits remain.
+    await expectEffectiveTableDml({ calculations: ["SELECT", "UPDATE"],
+      calculation_sections: ["SELECT", "INSERT", "UPDATE"], calculation_rows: ["SELECT", "INSERT", "UPDATE"] });
   });
 
   it("[P0/AC7] no supplier/credential/sync/import/external-mapping/API column on any calc table", async (testCtx) => {

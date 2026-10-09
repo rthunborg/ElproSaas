@@ -31,11 +31,31 @@ export default defineConfig({
     // `*.int.test.ts` / `*.rls.test.ts` already end in `.test.ts`, so `*.test.ts`
     // matches them — no need for redundant `int.test`/`rls.test` alternatives
     // (review fix 2026-06-26).
-    include: ["tests/integration/**/*.{test,spec}.ts"],
-    // The DB-backed suites talk to one shared local Postgres. Each test provisions
-    // its OWN unique two-tenant pair (H5 / R-012), so cross-file parallelism is
-    // data-safe — per-worker isolation is by unique ids, not by separate DBs.
+    // Most suites isolate rows with unique fixture IDs and remain parallel. The
+    // job-run rollback proof creates/drops a global audit_events trigger: its DDL
+    // must run after every other worker releases shared-table transaction locks.
     fileParallelism: true,
+    // Keep include patterns on each project: Vitest 4 concatenates inherited arrays.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "integration-parallel",
+          include: ["tests/integration/**/*.{test,spec}.ts"],
+          exclude: ["tests/integration/jobs/job-runs.int.test.ts"],
+          sequence: { groupOrder: 0 },
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "integration-audit-ddl",
+          include: ["tests/integration/jobs/job-runs.int.test.ts"],
+          fileParallelism: false,
+          sequence: { groupOrder: 1 },
+        },
+      },
+    ],
     globalSetup: ["tests/support/global-setup.ts"],
     // Generous timeout: the first call in a worker may create auth users via the
     // admin API and establish sessions.

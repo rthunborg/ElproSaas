@@ -13,12 +13,13 @@
  * invariant (the ledgered `READINESS_CODES` gap: its exhaustiveness guard checked membership but NOT
  * uniqueness, so a duplicated literal compiled fine and silently inflated a derived union).
  *
- * SCOPE (Story 10.1 only): this ships the schema, the four §5.3 derivations' selectors, and the
+ * ORIGINAL SCOPE (Story 10.1): this shipped the schema, the four §5.3 derivations' selectors, and the
  * coherence validator's four 10.1 rules + the uniqueness invariant. It does NOT wire the widget
  * registry, producer registry, `owner_type`-union derivation, or public-surface closed-set
  * derivation (those are "later derivations as they land" per §5.3), and it does NOT implement the
- * permission-matrix-row coherence rule (EB-A5 → wired at Story 11.1; wiring it now would self-fail
- * against a matrix source that does not exist yet).
+ * permission-matrix-row coherence rule (EB-A5 → wired at Story 11.1).
+ * Story 19.1 additionally validates supplied actual widget loader/component registrations, their active
+ * producer ownership and tenant capability coherence. The structural input keeps the gate pure.
  *
  * [Source: architecture-phase-b.md §5.2 (schema), §5.3 (derivations), §5.4 (coherence + A22 lesson),
  *  §5.5 (activation); ADR-B004 §6.1 (public-surface closed set of three); story 10.1 AC2/AC3/AC4,
@@ -238,7 +239,8 @@ export type CoherenceRule =
   /** A SOFT surface (notification category / file owner type / public surface / deferred file
    *  token) declared by two modules — the uniqueness invariant extended to the soft surfaces the
    *  `duplicate-surface` (hard nav/table/widget) rule does not cover. */
-  | "duplicate-soft-surface";
+  | "duplicate-soft-surface"
+  | "widget-registry-incoherent";
 
 /** A single coherence violation: the rule that fired + a developer-facing detail. */
 export interface CoherenceViolation {
@@ -275,9 +277,18 @@ function isCalendarDate(v: string): boolean {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
 }
 
+/** Actual references supplied by the server registry; no shadow ID catalog. */
+export interface WidgetRegistrationInput {
+  readonly id: string;
+  readonly moduleId: string;
+  readonly requiredCapability: string;
+  readonly load: unknown;
+  readonly component: unknown;
+}
+
 export function validateManifestCoherence(
   manifest: ScopeManifest,
-  options: { readonly permissionMatrix?: unknown } = {},
+  options: { readonly permissionMatrix?: unknown; readonly widgetRegistry?: readonly WidgetRegistrationInput[] } = {},
 ): CoherenceViolation[] {
   const violations: CoherenceViolation[] = [];
   const modules = manifest.modules ?? [];
@@ -300,6 +311,28 @@ export function validateManifestCoherence(
         });
       }
     }
+  }
+
+  if (options.widgetRegistry !== undefined) {
+    const fail = (detail: string) => violations.push({ rule: "widget-registry-incoherent", detail });
+    const registrations = options.widgetRegistry;
+    const declared = modules.filter(m => m.status === "active").flatMap(m => m.widgets);
+    const seen = new Set<string>();
+    for (const registration of registrations) {
+      if (seen.has(registration.id)) fail("widget " + registration.id + " has duplicate registrations");
+      seen.add(registration.id);
+      const owners = modules.filter(m => m.id === registration.moduleId && m.status === "active" && m.widgets.includes(registration.id));
+      if (owners.length !== 1) fail("widget " + registration.id + " lacks exactly one active declared producer " + registration.moduleId);
+      if (typeof registration.load !== "function" || typeof registration.component !== "function")
+        fail("widget " + registration.id + " lacks an actual loader or component");
+      const moduleRows = matrix && typeof matrix === "object" ? (matrix as Record<string, unknown>)[registration.moduleId] : undefined;
+      const row = moduleRows && typeof moduleRows === "object" ? (moduleRows as Record<string, unknown>)[registration.requiredCapability] : undefined;
+      if (!row || typeof row !== "object" || !Array.isArray((row as { roles?: unknown }).roles) ||
+        ("scope" in row && row.scope === "platform") ||
+        ("tenantGrantable" in row && row.tenantGrantable === false))
+        fail("widget " + registration.id + " capability " + registration.requiredCapability + " is not tenant-scoped on its producer");
+    }
+    for (const id of declared) if (!seen.has(id)) fail("declared widget " + id + " has no actual registration");
   }
 
   // ── Rule 1: an `active` module must carry an `epic` reference (§5.4 rule 1) AND an activation

@@ -116,6 +116,8 @@ async function bindBookingEditorHarness(
   let scenario: Scenario | undefined;
   const releases: (() => void)[] = [];
   const pendingRoutes = new Set<Promise<void>>();
+  const transportDiagnostics = process.env.E2E_BOOKING_TRANSPORT_DIAGNOSTICS === "1";
+  let previewFetchCount = 0;
   const confirmations: (() => void)[] = [];
   const transports: ((value: {bodyBytes:number;status:number}) => void)[] = [];
   let observedSaveTimeout: number | undefined;
@@ -157,7 +159,19 @@ async function bindBookingEditorHarness(
     // The response is obtained from the actual Next action; no facts/results are fabricated.
     const fetchTimeout = save ? observedSaveTimeout : undefined;
     if (save) observedSaveTimeout = undefined;
-    const response = await route.fetch(fetchTimeout ? {timeout: fetchTimeout} : undefined);
+    const startedAt = Date.now();
+    const previewCount = save ? 0 : ++previewFetchCount;
+    const diagnose = (stage: "start" | "complete" | "error") => {
+      if (transportDiagnostics && !save) console.info(JSON.stringify({
+        stage: `booking-preview-fetch-${stage}`, count: previewCount, durationMs: Date.now() - startedAt,
+      }));
+    };
+    diagnose("start");
+    let response: import("@playwright/test").APIResponse;
+    try {
+      response = await route.fetch(fetchTimeout ? {timeout: fetchTimeout} : undefined);
+    } catch (error) { diagnose("error"); throw error; }
+    diagnose("complete");
     if (save) {
       for (const observe of transports.splice(0)) observe({bodyBytes:Buffer.byteLength(request.postData() ?? ""),status:response.status()});
       // A denied replay/413 is an actual error response, not confirmation of an existing row.
@@ -176,7 +190,13 @@ async function bindBookingEditorHarness(
   };
   const routeHandler = async (route: import("@playwright/test").Route) => {
     const pending = routeWork(route); pendingRoutes.add(pending);
-    try { await pending; } finally { pendingRoutes.delete(pending); }
+    try { await pending; }
+    catch (error) {
+      // Fetching a response does not settle the intercepted browser request.
+      // Preserve the real failure, but release the action queue even on timeout.
+      await route.abort("failed").catch(() => {});
+      throw error;
+    } finally { pendingRoutes.delete(pending); }
   };
   await page.route("**/*", routeHandler);
   const createReviewed = async (input: ReturnType<typeof bookingInput> & { proposedBookingId: string }, selectedRule?: string) => {
@@ -269,10 +289,13 @@ async function bindBookingEditorHarness(
         releaseOlderAndWaitForSettlement: async () => { race.releaseOlder.resolve(); await race.olderDone.promise; await page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done())))); } };
     },
     async dispose() {
-      for (const release of releases) release();
-      await Promise.allSettled([...pendingRoutes]);
-      if (!page.isClosed()) await page.unroute("**/*", routeHandler);
-      if (owned.workRoleId) await adminSession(async ({ query }) => {
+      try {
+        for (const release of releases) release();
+        await Promise.allSettled([...pendingRoutes]);
+        if (!page.isClosed()) await page.unroute("**/*", routeHandler);
+      } finally {
+        // Page closure can race unroute; it must not skip owned fixture cleanup.
+        if (owned.workRoleId) await adminSession(async ({ query }) => {
         await query("begin");
         try {
           await query("set local session_replication_role=replica");
@@ -291,8 +314,9 @@ async function bindBookingEditorHarness(
           await query("delete from public.work_roles where tenant_id=$1 and id=$2", [tenantId, owned.workRoleId]);
           await query("commit");
         } catch (error) { await query("rollback"); throw error; }
-      });
-      for (const id of users) await deleteAuthUser(id);
+        });
+        for (const id of users) await deleteAuthUser(id);
+      }
     },
   };
 }

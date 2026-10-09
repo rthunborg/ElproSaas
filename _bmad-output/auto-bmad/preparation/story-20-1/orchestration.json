@@ -1,0 +1,413 @@
+{
+  "schema_version": 1,
+  "mode": "parallel-readiness-preparation",
+  "story_reference": "20.1",
+  "canonical_resolution": "blocked: not found in sprint-status",
+  "branch": "codex/story20-1-documents-preparation",
+  "worktree": "C:\\Users\\Rasmus\\.codex\\worktrees\\dbe6\\ElproSaas",
+  "base_sha": "ab1ca0445b58f5f496be0d938906c744b6dff87e",
+  "base_verified": "git fetch origin main; origin/main unchanged",
+  "workflow_version": "d061782354238883c72fc96d0c9affe418a505f7f414459826a4335161c222e1",
+  "overrides": [
+    "preparation only",
+    "no implementation or claims",
+    "no shared planning writes",
+    "no merge or deploy"
+  ],
+  "routes": [
+    {
+      "phase": "preparation-design",
+      "role": "documents_spec",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_spec",
+      "escalation_reason": "Current source authorization, revocation and private storage design",
+      "recorded_after_dispatch": true
+    },
+    {
+      "phase": "independent-spec-authorization-audit",
+      "role": "documents_audit",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_audit",
+      "escalation_reason": "Independent sensitive authorization design and specification review",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "owner-option-A-spec-amendment",
+      "role": "documents_spec",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_spec",
+      "escalation_reason": "Record owner-selected source authorization boundary",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "owner-option-A-targeted-review",
+      "role": "documents_audit",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_audit",
+      "escalation_reason": "Independent review of changed authorization contract",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "canonical-registration-artifact",
+      "role": "registration_plan",
+      "profile": "standard",
+      "model": "gpt-6.1-sol",
+      "effort": "low",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/registration_plan",
+      "escalation_reason": "",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "registration-targeted-audit",
+      "role": "documents_audit",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_audit",
+      "escalation_reason": "Preserve prior sensitive spec contract while verifying metadata-only registration binding",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "bounded-oracle-access-recheck",
+      "role": "oracle_recheck",
+      "profile": "standard",
+      "model": "gpt-6.1-sol",
+      "effort": "low",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/oracle_recheck",
+      "escalation_reason": "",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "preparation-merge-handoff-evidence-review",
+      "role": "documents_audit",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_audit",
+      "escalation_reason": "Targeted evidence review to preserve distinction between preparation completion and sensitive implementation admission",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "apply-registration-documentation",
+      "role": "registration_plan",
+      "profile": "standard",
+      "model": "gpt-6.1-sol",
+      "effort": "low",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/registration_plan",
+      "escalation_reason": "",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "mechanical-registration-independent-review",
+      "role": "registration_audit",
+      "profile": "standard",
+      "model": "gpt-6.1-sol",
+      "effort": "low",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/registration_audit",
+      "escalation_reason": "",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "selected-link-contract-design",
+      "role": "documents_spec",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_spec",
+      "escalation_reason": "Selected-source authorization, signing prepare/finalize and audit binding contract",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "selected-link-contract-independent-review",
+      "role": "documents_audit",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_audit",
+      "escalation_reason": "Independent sensitive contract review",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "integrated-registration-current-doc-reconciliation",
+      "role": "registration_plan",
+      "profile": "standard",
+      "model": "gpt-6.1-sol",
+      "effort": "low",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/registration_plan",
+      "escalation_reason": "",
+      "recorded_after_dispatch": true
+    },
+    {
+      "phase": "later-e20-specifications-preparation",
+      "role": "documents_spec",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_spec",
+      "escalation_reason": "Archive/restore, preview and contextual navigation source authorization",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "later-e20-specifications-independent-review",
+      "role": "documents_audit",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_audit",
+      "escalation_reason": "Independent source-authority and cross-story contract review",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "owner-oracle-disposition-checkpoint-readiness",
+      "role": "documents_spec",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_spec",
+      "escalation_reason": "Checkpoint approval, selected-source and transactional contract readiness",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "read-only-concrete-assignment-plan",
+      "role": "readiness_planner",
+      "profile": "standard",
+      "model": "gpt-6.1-sol",
+      "effort": "low",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/readiness_planner",
+      "escalation_reason": "",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "readiness-independent-targeted-review",
+      "role": "documents_audit",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_audit",
+      "escalation_reason": "Targeted review of oracle disposition, spec readiness and authorization/assignment boundaries",
+      "recorded_after_dispatch": false
+    }
+  ],
+  "reservations": [
+    {
+      "chat": "Checkpoint preview Epic 14 PR 86",
+      "thread_id": "01a1179a-9f1f-7ee2-a35b-95864cbe74ba",
+      "worktree": "C:\\Users\\Rasmus\\.codex\\worktrees\\b3cc\\ElproSaas",
+      "domains": [
+        "scheduling",
+        "person schema",
+        "permissions",
+        "shared APIs",
+        "test fixtures"
+      ],
+      "release_verified": false
+    },
+    {
+      "chat": "Assess Phase B parallel readiness",
+      "thread_id": "01a1160d-b5b1-7623-a8e8-54ef3dc537ed",
+      "worktree": "C:\\Users\\Rasmus\\.codex\\worktrees\\story19-1-dashboard\\ElproSaas",
+      "domains": [
+        "dashboard",
+        "widget registry",
+        "manifest",
+        "quote reader",
+        "AppShell",
+        "NotificationBell",
+        "CI",
+        "tests"
+      ],
+      "release_verified": false
+    },
+    {
+      "chat": "Shared security repair",
+      "thread_id": "01a11aeb-9946-7af3-b2ee-865c34db6c24",
+      "worktree": "C:\\Users\\Rasmus\\.codex\\worktrees\\9cd1\\ElproSaas",
+      "domains": [
+        "Next",
+        "package.json",
+        "package-lock.json",
+        "lock files"
+      ],
+      "release_verified": false
+    }
+  ],
+  "later_integrated_baseline": {
+    "sha": "23c48b34c8a6c9158eeaf0edfca74e628d575cbc",
+    "verified": "git fetch origin main and git log",
+    "security_pr": 89,
+    "preparation_branch_rebased": false,
+    "integration_before_implementation_required": true
+  },
+  "registration_lane": {
+    "branch": "codex/documents-backlog-registration",
+    "base_sha": "8a7debbee83c9a4f6eb8ec4496ba2f7ad7db4b4b",
+    "worktree": "C:\\Users\\Rasmus\\.codex\\worktrees\\dbe6\\ElproSaas",
+    "shared_sprint_writer_release": "Explicit Epic14 owner release confirmed by coordinator",
+    "upstream_merges": {
+      "PR86": "8a7debbee83c9a4f6eb8ec4496ba2f7ad7db4b4b",
+      "PR87": "7db3ded1e903131122eedbf9abd27548bc9c3375",
+      "PR88": "7da9e8f3b63ffe6ed243f3f9ecc413fb56fe25a7",
+      "PR89": "23c48b34c8a6c9158eeaf0edfca74e628d575cbc"
+    },
+    "mode": "mechanical backlog registration and documentation only",
+    "implementation_authorized": false,
+    "merge_authority": "coordinator after exact-head review and CI",
+    "spec_revision_unchanged": "7e475bfd42adc41e61fc4ccba5f399a7816025fdf37ad89d12d299c1aba489ab"
+  },
+  "contract_design_lane": {
+    "branch": "codex/documents-selected-link-contract-preparation",
+    "base_sha": "42f5cf60d1ded6d814c2c0f61b70b312144ce10e",
+    "upstream_merges": {
+      "PR86": "8a7debbee83c9a4f6eb8ec4496ba2f7ad7db4b4b",
+      "PR87": "7db3ded1e903131122eedbf9abd27548bc9c3375",
+      "PR88": "7da9e8f3b63ffe6ed243f3f9ecc413fb56fe25a7",
+      "PR89": "23c48b34c8a6c9158eeaf0edfca74e628d575cbc",
+      "PR90": "42f5cf60d1ded6d814c2c0f61b70b312144ce10e"
+    },
+    "mode": "selected-link contract design preparation only",
+    "implementation_authorized": false,
+    "merge_authority": "coordinator after exact-head required CI",
+    "remaining_precise_gates": [
+      "Missing authorized Lovable target and actual evidence or explicit oracle disposition",
+      "Complete audited pinned canonical20.2/20.3 specs before E20 dispatch",
+      "Final independent High contract/spec pin and checkpoint closure",
+      "Physical migration timestamp and exact implementation write-path admission",
+      "Current-base revalidation and successful coordinator worker claims; no run exists"
+    ]
+  },
+  "later_story_preparation_lane": {
+    "branch": "codex/documents-later-story-preparation",
+    "base_sha": "8ba0150cc60ac17ac378edac5ad77405e907d3bf",
+    "upstream_pr91_merge": "8ba0150cc60ac17ac378edac5ad77405e907d3bf",
+    "scope": "20.2 and20.3 specifications and bounded cross-story checkpoint/handoff evidence",
+    "oracle_observations": 0,
+    "implementation_authorized": false,
+    "merge_authority": "coordinator after exact-head review and required CI",
+    "current_status": "All three full specs and bounded handoffs reviewed and pinned; product admission blocked",
+    "exact_root_plan": "_bmad-output/auto-bmad/orchestration/phase-b-lanes-2026-10-08.md",
+    "remaining_gates": [
+      "Authorized oracle target and actual evidence or explicit owner disposition",
+      "Checkpoint closure on reviewed specs and oracle disposition",
+      "Physical migration timestamps and exact admitted write paths before claims",
+      "Current integrated-base and resource/ownership revalidation, validated coordinator plan and successful assignments",
+      "Implementation and combined-integration checks at exact product revisions"
+    ]
+  },
+  "oracle_disposition_readiness_lane": {
+    "date": "2026-10-09",
+    "branch": "codex/documents-oracle-disposition-readiness",
+    "base_sha": "a9d5269e0e3762255e1cc992bb2465883508dc21",
+    "pr92_merge": "a9d5269e0e3762255e1cc992bb2465883508dc21",
+    "workflow_version": "304a3a4a3a4b43665257b4e934eb5c905666a339b97989630c9d7f290dd6c3c6",
+    "scope": "Owner Documents-only oracle disposition and bounded readiness/planner validation",
+    "implementation_claims_allowed": false,
+    "oracle_observations": 0,
+    "legacy_behavior_verified": false,
+    "merge_authority": "standing owner authorization; merge commit and retain branches after exact-head gates",
+    "specifications_ready": true,
+    "plan_base_sha": "26666ff514fe8702c22e76e78f38b339450454c0",
+    "read_only_plan": {
+      "ok": true,
+      "ready": [
+        "20.1"
+      ],
+      "later_stories_wait_for_verified_predecessors": true,
+      "legacy_conflicts": []
+    },
+    "helper_tests": {
+      "passed": 34,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": 192.92
+    }
+  },
+  "helper_literal_route_path_resolution": {
+    "date": "2026-10-09",
+    "authorization": "Owner: Follow your recommendation",
+    "author": "readiness_planner",
+    "author_model": "gpt-6.1-sol",
+    "author_effort": "low",
+    "reviewer": "documents_audit",
+    "review_model": "gpt-6.1-sol",
+    "review_effort": "high",
+    "scope": "Allow literal square brackets in exact ownership filenames; retain wildcard and traversal rejection; no directory ownership widening",
+    "prospective_run_id": "documents-e20-readiness-2026-10-09",
+    "coordinator": "01a1160d-b5b1-7623-a8e8-54ef3dc537ed",
+    "initialized": false,
+    "commit": "22856baa6df92ec5daf7fe54d0080f046fa43faa",
+    "workflow_version": "304a3a4a3a4b43665257b4e934eb5c905666a339b97989630c9d7f290dd6c3c6",
+    "independent_high_review": "clean",
+    "focused_tests": {
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    "cli_tests": {
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    }
+  }
+}

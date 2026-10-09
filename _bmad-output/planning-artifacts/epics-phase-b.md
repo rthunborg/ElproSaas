@@ -51,6 +51,7 @@ These rules are story-template requirements. Sprint planning and story creation 
 4. ~~**Migration classification round 2 (N-1, NFR52)**~~ — **EXPIRED.** Owner decision 2026-07-20: there is no Lovable→app data migration; existing jobs finish in the legacy app while new work starts in the new one (parallel-run cutover). No B2/B3 module needs a data-migration story, and the per-epic N-1 notes below are void.
 5. **Phase A invariants carry:** integer öre through `@/lib/money`, envelope commands + SECURITY INVOKER RPCs for transaction-sensitive writes (architecture §14; DEFINER only for the two sanctioned exceptions), DB-trigger lock family for new immutability scopes, entity-scoped `files`/`file_links` for every file, append-only audit, archive-over-delete, composite same-tenant FKs, exact-policy enumeration extended never loosened, unit gate grows from its 1378 baseline.
 6. **Wave-boundary checkpoints (PB-D10):** B1a→B1b, B1b→B2, B2→B3 are formal re-scope events — mini-retro, re-validation of the next wave, PRD coarse-FR expansion, full story authoring for the next wave from the sketches/candidates here, and any re-estimate. Checkpoint outcomes are recorded; they are process events, not epics.
+   **2026-10-07 bounded exception:** E20 alone may be prepared and sequenced early after its recorded requirements/schema/oracle/full-story review in [the E20 checkpoint](early-b2-documents-checkpoint-2026-10-07.md). This conditional exception does not waive B1b exit, close E19, authorize other B2 epics, or change E20 wave membership. E14's current loop continues.
 
 ## Requirements Inventory
 
@@ -1645,13 +1646,13 @@ AC sketch: `markJobComplete` SECURITY INVOKER RPC — one completion per job (un
 
 **Stories:**
 
-#### Story 19.1: Widget Registry and Dashboard Framework
+#### Story 19.1: Widget Registry, Dashboard Framework, and Live Quote Pipeline
 
-AC sketch: `src/scope/widget-registry.ts` — manifest-declared widget ids → components + required capability + role-default placement; a widget renders only when its module is active AND the role holds the capability; no placeholder widgets by construction (a widget id without an active module fails the manifest validator); responsive 12-col → 1-col grid; `WidgetCard` contract (title, content, one deep link, empty-with-meaning/loading/error-retry/freshness states); a failed widget never blanks the grid; role-default layouts, no user customization in v1 (UXB-A12).
+AC sketch: `src/scope/widget-registry.ts` — manifest-declared widget ids → components + required capability + role-default placement; a widget renders only when its module is active AND the role holds the capability; no placeholder widgets by construction (a widget id without an active module fails the manifest validator); responsive 12-col → 1-col grid; `WidgetCard` contract (title, content, one deep link, empty-with-meaning/loading/error-retry/freshness states); a failed widget never blanks the grid; role-default layouts, no user customization in v1 (UXB-A12). Story 19.1 also owns the live `Offertpipeline` widget, using the E10 read-model with amounts governed by the N-4 entitlement seed; only this widget moves from 19.2. The full implementation specification is `../implementation-artifacts/spec-19-1-dashboard-framework-and-quote-pipeline.md`. E19 remains incomplete until all five widgets retained in 19.2 are delivered and its epic gates pass.
 
-#### Story 19.2: The v1 Widget Set
+#### Story 19.2: The Remaining Five v1 Widgets
 
-AC sketch: exactly six widgets on live B1 data (PB-A11): `Offertpipeline` (E10 read-model; amounts per the N-4 seed), `Uppföljningar` (due/overdue + quick complete), `Veckans bokningar` (mine/team toggle per role), `Konflikter` (open by type → resolver), `Aktiva jobb` (status, recently active, missing planned dates), `Tidläget` (reported vs expected hours); widget money rides the entitlement contract (FR108); widget list manifest-traceable (AC-B1b-8); Montör does not land here (`Min dag`) but may open if granted.
+AC sketch: the remaining five widgets on live B1 data (PB-A11): `Uppföljningar` (due/overdue + quick complete), `Veckans bokningar` (mine/team toggle per role), `Konflikter` (open by type → resolver), `Aktiva jobb` (status, recently active, missing planned dates), `Tidläget` (reported vs expected hours); widget money rides the entitlement contract (FR108); widget list manifest-traceable (AC-B1b-8); Montör does not land here (`Min dag`) but may open if granted.
 
 ---
 
@@ -1659,13 +1660,29 @@ AC sketch: exactly six widgets on live B1 data (PB-A11): `Offertpipeline` (E10 r
 
 > **Depth note (PB-D10):** candidate titles only. Expanded to full stories at the **B1b→B2 checkpoint** together with the PRD coarse-FR expansion (AC-B2-8) and the B2 schema finalization (architecture §9.3). Every epic: first story = activation story (Cross-Epic Rule 1); `[oracle-check]` labels resolve before the epic's first story (Rule 2); **migration-classification round 2 (N-1) precedes each module's data-migration story** (Rule 4, NFR52, AC-B2-7).
 
-## Epic 20 [Wave B2]: Documents Center — candidates
+## Epic 20 [Wave B2]: Documents Center — early checkpoint preparation
+
+**2026-10-07 sequencing amendment:** The candidate scope below is retained; full E20 stories and FR109 expansion are governed by [the E20 checkpoint](early-b2-documents-checkpoint-2026-10-07.md). Preparation is authorized. Implementation eligibility requires its recorded requirements/schema/oracle/story review; no completed checkpoint is asserted here. Activation remains same-PR and aggregate sources remain active and authorized only.
 
 **Scope line:** Global `Dokument` aggregation over all active modules' entity-scoped file metadata; zero storage tables (PB-D6). **Key dependency:** B1 metadata compatibility (already guaranteed). **N-1 note:** no module data of its own — no migration story; legacy document-page index parity verified against aggregated modules.
 
-- Story 20.1 (candidate): Documents activation + aggregation read-model (filter by module/owner-type/purpose/date; signed-URL preview; RLS-scoped via source entities).
+- Story 20.1 (candidate, expanded in the early checkpoint): Documents activation + aggregation read-model and minimally usable list, with the atomic `Filer` → `Dokument` nav swap; active-owner coverage and source-entity authorization. See FR109-AC1–AC12 and the 20.1 acceptance section in the early checkpoint.
 - Story 20.2 (candidate): Documents UI — search/filter surface, preview pane, archive/restore per archive-over-delete (P55 thinned trash disposition); no folder tree (UXB-A13).
-- Story 20.3 (candidate): `Filer` → `Dokument` nav swap + entity-panel cross-links ("visa i Dokument").
+- Story 20.3 (candidate, expanded in the early checkpoint): Entity-panel cross-links ("Visa i Dokument") and authorized contextual navigation. The nav swap belongs to 20.1 activation, not this later story.
+
+> Backlog registration amendment (2026-10-08): the owner-authorized titles and keys below register the three existing E20 slots only. They do not approve readiness, expand acceptance criteria or close the early checkpoint.
+
+### Story 20.1: Documents activation, source-authorized aggregation and minimal destination
+
+Canonical backlog key: `20-1-documents-activation-and-source-authorized-aggregation`. Existing candidate scope and checkpoint gates above remain applicable.
+
+### Story 20.2: Search, filters, preview and archive/restore
+
+Canonical backlog key: `20-2-search-filters-preview-and-archive-restore`. Existing candidate scope and checkpoint gates above remain applicable.
+
+### Story 20.3: Entity-panel links and contextual navigation
+
+Canonical backlog key: `20-3-entity-panel-links-and-contextual-navigation`. Existing candidate scope and checkpoint gates above remain applicable.
 
 ## Epic 21 [Wave B2]: Rentals — candidates
 

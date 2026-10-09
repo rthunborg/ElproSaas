@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: codex/epic14-resume
 status: done
-updated_at: "2026-10-07T16:15:20Z"
+updated_at: "2026-10-08T13:58:03Z"
 started_at: "2026-10-06T11:47:14Z"
 completed_at: "2026-10-07T16:15:20Z"
 active_seconds: 15979
@@ -72,10 +72,10 @@ retro:
   doc: null
   verdict: null
   open_action_items: 0
-bmad_status_flipped_at: null
+bmad_status_flipped_at: 9
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/86"
-ci_run_url: null
-ci_status: unknown
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/37786814317"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null
@@ -188,6 +188,10 @@ overrides:
   post_dev_coverage_new_fixtures: 0
   post_dev_coverage_summary: "_bmad-output/test-artifacts/automation-summary-14-3-deterministic-conflict-engine-detection-core.md"
   post_dev_coverage_remaining_story_gaps: 0
+  direct_closeout_source_head: 179e86c2f96d684310b8c51af59d58ea3e23be78
+  direct_closeout_ci_run_id: "37786814317"
+  direct_closeout_clearance_date: 2026-10-08
+  direct_closeout_evidence: docs/quality/epic14-direct-closeout-evidence-2026-10-08.md
 constraints:
   - "Approved Story14.3 scope and PhaseB manifest only; resources active, scheduling pending untilEpic15."
   - Allfour transferred conflict checks mandatory before14.4/EpicPR.

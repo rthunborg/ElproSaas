@@ -1,5 +1,7 @@
 # Per-story pipeline
 
+Assigned parallel workers: only worker --assignment uses the bounded adapter in parallel-epic.md W. It replaces target picking/branching, excludes aggregate writes and Phase 8/9, and preserves required implementation/testing/review. Ordinary per-story runs still follow this file in full.
+
 The orchestrator runs these phases **in order** for a single story. The story primitive is `bmad-build-auto`, invoked twice per story — a **plan run** (Phase 3, `Halt after planning.` ⇒ spec at `ready-for-dev`) and a **build run** (Phase 5, `/bmad-build-auto <spec_path>` ⇒ implement → review → finalize → `done`; build-auto commits its own diff and never pushes) — plus an ordinary **follow-up review pass** (Phase 7, Low unless sensitive) and, only when the explicit convergence conditions below fire, a distinct **final-convergence pass** (Low unless sensitive). Each phase runs this sequence:
 1. Check its condition.
 2. Resolve the named **`delegation.md` entry** and profile. Before launch, persist the exact role/profile/model/effort/host/tier/route/escalation reason with `state_update.py route-select`; an exact same-phase selection returns `resumed: true`, while route changes obey the controlled escalation rules in `state-and-resume.md`. Then delegate — or run the orchestrator-direct action.

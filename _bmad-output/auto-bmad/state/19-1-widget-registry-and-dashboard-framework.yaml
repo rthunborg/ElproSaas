@@ -1,0 +1,107 @@
+# auto-bmad per-story state — written by scripts/state_update.py (full stable schema;
+# see references/state-and-resume.md). Prose belongs in reports/{key}.md, not here.
+story_key: 19-1-widget-registry-and-dashboard-framework
+epic_num: 19
+story_num: 1
+story_suffix: ""
+story_source: sprint
+spec_folder: null
+story_id: null
+branch: codex/19-1-widget-registry-and-dashboard-framework
+status: done
+updated_at: "2026-10-08T12:16:00Z"
+started_at: "2026-10-07T14:07:05Z"
+completed_at: "2026-10-08T09:50:49Z"
+active_seconds: 9933
+timing_anchor: null
+is_first_in_epic: true
+is_last_in_epic: false
+git_mode: remote
+base_branch: main
+selected_phase: followup_review
+selected_role: primary-reviewer
+selected_profile: standard
+selected_model: gpt-6.1-sol
+selected_effort: high
+selected_host: codex
+selected_tier: subagents
+selected_route: subagent
+escalation_reason: "Automatic sensitive-task escalation: permissions, tenant-isolation"
+routing_ledger:
+  - "{\"effort\":\"low\",\"escalation_reason\":\"Ordinary task uses Low effort\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: permissions, tenant-isolation\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_epic\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: permissions, tenant-isolation\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: permissions, tenant-isolation\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: permissions, tenant-isolation\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Automatic sensitive-task escalation: permissions, tenant-isolation\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+tea_risk: high
+tea_selected: [atdd, automate]
+tea_rationale: Required capability and quote-amount entitlement gates are authorization-sensitive
+epic_story_count: 2
+stories_after_in_epic: 1
+completed_phases: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+spec_path: "C:/Users/Rasmus/.codex/worktrees/story19-1-dashboard/ElproSaas/_bmad-output/implementation-artifacts/spec-19-1-dashboard-framework-and-quote-pipeline.md"
+spec_approved: true
+build:
+  status: done
+  blocking_condition: null
+  followup_review_recommended: false
+  review_loop_iteration: 0
+  deferred_count: 0
+  warnings: []
+followup_passes: 1
+hitl_halt: continued
+review_unverified: false
+story_trace: null
+legacy_review_resume: false
+legacy_review_iteration: null
+legacy_review_loop_done: false
+legacy_external_review_iterations: null
+legacy_convergence_unverified: false
+legacy_artifact_path: null
+commits: [e0fb33c5, 659139d4, a97c11bf, b8ccf157, 357d1db0, 798f1f60, 39b299c1, 0ceb02be, 27a21dad, 7ee80eed, 7954ff48, e008a133]
+phase8_steps:
+  trace_gate: null
+  nfr: null
+  test_review: null
+  reconcile: null
+  archive: null
+  retro: null
+gate_decision: null
+gate_iterations: 0
+deferred_work_archived: 0
+retro:
+  doc: null
+  verdict: null
+  open_action_items: 0
+bmad_status_flipped_at: 9
+pr_url: "https://github.com/rthunborg/ElproSaas/pull/87"
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/37772222858"
+ci_status: passed
+pr_merged: true
+merge_method: merge
+merge_commit: 7db3ded1e903131122eedbf9abd27548bc9c3375
+branch_deleted: false
+open_questions: []
+deferred_work: []
+blockers: []
+overrides:
+  legacy_epic14_reserved: true
+  bounded_story19_1_authorized: true
+  stop_after_story: true
+  accepted_base: ab1ca0445b58f5f496be0d938906c744b6dff87e
+  story_branch_prefix: codex/
+  parallel_epic_adapter: false
+  adopt_existing_reviewed_spec: true
+  independent_review_not_started_due_verification_gate: true
+  guarded_services_not_launched: true
+  renderer_default_sandbox_failed: true
+  renderer_escalated_fresh_invocation_passed: true
+  runtime_readiness_verified: true
+  fresh_root_hook_verified: true
+  isolated_migrations_verified: 80
+  isolated_compose_resource_id: ce1b3a05-0681-4a46-ad91-cbda4ea2aa98
+constraints:
+  - "Only dashboard framework and live quote pipeline; no 19.2 widgets, E20 or Epic19 completion"
+  - "No bookings/scheduling/person/migration/permission-matrix changes; use existing integrated contracts"
+  - "Dedicated guarded mutable test resources; preserve independent review and merge approval gates"

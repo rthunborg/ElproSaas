@@ -5,7 +5,7 @@ created: '2026-10-06'
 status: 'done'
 baseline_revision: '4947dbb44089c0462619c63443f3107712dc4cc7'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - 'docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md'
   - '_bmad-output/project-context.md'
@@ -374,13 +374,17 @@ Limits: this is an incrementally migrated existing local database, not the manda
 Author: Story 14.2 implementation/fix author, with a nested test implementation author; round 2 booking fixes and trail refreshed by the round 2 fix author.
 Refreshed by the required author completion hook against implementation commit `1f7bfcd823d2b9a3c4bd2b35f4c7b40b2c36009d` and its tested fix working tree based on `dc2c0c897a9d3639fff8672b95d3898773126f46`, retaining baseline `4947dbb44089c0462619c63443f3107712dc4cc7`.
 
+Narrow final trail refresh on 2026-10-08: `/root/merge_review`, `gpt-6.1-sol` High, the bounded merge/harness fix author. Original implementation and round 2 author attribution remains above. This refresh checks current source locations and the carried-forward prerequisite dependency configuration; it does not claim authorship of their booking implementations or another broad review round. The separate Dev Record below distinguishes historical runtime evidence from current outstanding gates.
+
+The later bounded concurrent-create fixture repair is authored by `/root/kernel_fix`, `gpt-6.1-sol` High, over `abff9615b6a5b6540953f2efb28454076f007deb`. It supplies one real complete reviewed command to the four existing concurrent saves; production replay authority remains unchanged. The appended author record distinguishes actual controlled helper-path failures from the original CI failure whose codes were not recorded.
+
 ### Checked internal booking entry
 
 The commands reuse resolved envelope authority and suppress its second audit because SQL owns atomic audit. [Contract C](../../docs/decisions/epic-14-story-ownership-contract-c-2026-10-06.md) gates user-facing entry on Story 14.3. The review fix preserves up to six fractional digits across command/RPC identity and validates sub-millisecond positive ranges without Date truncation.
 
 - `src/server/commands/bookings/create-booking.ts:7` — `export const createBooking`: enters the actual envelope with SQL-owned audit.
 - `src/server/commands/bookings/update-booking.ts:6` — `export const updateBooking`: checks target ownership before the RPC.
-- `src/server/commands/bookings/validation.ts:12` — `function normalizedInstant`: normalizes UTC without losing PostgreSQL microseconds.
+- `src/server/commands/bookings/validation.ts:13` — `function normalizedInstant`: normalizes UTC without losing PostgreSQL microseconds.
 - `supabase/migrations/20261006101609_bookings_and_assignees.sql:258` — `create function public.create_booking`: independently rechecks actor and live role.
 
 ### Durable replay and indivisible persistence
@@ -390,7 +394,7 @@ SQL reconstructs canonical identity and serializes create/update scope. The roun
 - `supabase/migrations/20261006104143_booking_invariant_corrections.sql:26` — `create or replace function public.booking_payload_internal`: rebuilds normalized SQL identity.
 - `supabase/migrations/20261006113212_booking_replay_current_authority.sql:23` — `has_tenant_role`: rechecks CREATE replay authority under the actor lock.
 - `supabase/migrations/20261006113212_booking_replay_current_authority.sql:36` — `has_tenant_role`: rechecks UPDATE replay authority after the booking row lock.
-- `tests/integration/commands/bookings-replay-authority.int.test.ts:100` — `revoked during lock wait`: AC4 refuses stale replay after observed blocking and admin revocation.
+- `tests/integration/commands/bookings-replay-authority.int.test.ts:136` — `revoked during lock wait`: AC4 refuses stale replay after observed blocking and admin revocation.
 
 ### Tenant relationships and assigned-worker visibility
 
@@ -399,32 +403,41 @@ The three tables belong to active resources. Composite references and checked co
 - `supabase/migrations/20261006104143_booking_invariant_corrections.sql:13` — `create or replace function public.booking_owned_by_current_user`: joins assignment and active scalar/secondary Montor roles.
 - `supabase/migrations/20261006101609_bookings_and_assignees.sql:104` — `revoke all on public.bookings`: removes direct writes and private outcome visibility.
 - `src/features/resources/booking-types.ts:2` — `BOOKING_PUBLIC_COLUMNS`: declares the safe read projection.
-- `tests/integration/rls/bookings.rls.test.ts:16` — `secondary Montor grants`: AC9 proves own reads and child-role revocation.
+- `tests/integration/rls/bookings.rls.test.ts:38` — `secondary Montor grants`: AC9 proves own reads and child-role revocation.
 
 ### Scoped prerequisite dependency repair
 
-The owner authorized compatible remediation for the two high transitive advisories. The Next plugin's sole glob consumer requires a version-specific adaptation as well as the scoped dependency replacement. The physical-root and actual-rule regressions test the installed patched package; they preserve the real lint boundary without altering the application Next version.
+The owner authorized compatible remediation for the two high transitive advisories. The Next plugin's sole glob consumer requires a version-specific adaptation as well as the scoped dependency replacement. The later independently reviewed maintenance PR 89 carries Next 16.3.8 into this closeout; the scoped override and patched dependency now target that version while retaining the existing compatible patch file. The physical-root and actual-rule regressions exercise the installed patched package and preserve the real lint boundary. The historical 16.3.6 repair evidence above remains attributed to its original author and revision.
 
-- `pnpm-workspace.yaml:7` — `'@next/eslint-plugin-next@16.3.6>fast-glob'`: scopes the replacement to the affected plugin version.
+- `pnpm-workspace.yaml:6` — `'@next/eslint-plugin-next@16.3.8>fast-glob'`: scopes the replacement to the final affected plugin version.
 - `patches/@next__eslint-plugin-next@16.3.6.patch:11` — `expandDirectories: false`: preserves direct directory roots.
-- `tests/unit/dependencies/next-lint-root-globs.test.ts:34` — `installed Next lint helper preserves`: proves physical roots, arrays, braces and missing paths.
-- `tests/unit/dependencies/next-lint-root-globs.test.ts:50` — `patched Next no-html-link-for-pages`: proves real internal-anchor lint reporting.
+- `tests/unit/dependencies/next-lint-root-globs.test.ts:39` — `installed Next lint helper preserves`: proves physical roots, arrays, braces and missing paths.
+- `tests/unit/dependencies/next-lint-root-globs.test.ts:55` — `patched Next no-html-link-for-pages`: proves real internal-anchor lint reporting.
 
 ### Retained evidence and the detector gate
 
 Actual envelope tests prove AC2/3 exact booking/assignment/outcome/audit state; INT-003/004/005 and their new regressions prove AC4 replay, changed-payload refusal and overlapping create/update writes; INT-006/007 prove AC5 exact rollback. DB-001/002/003/004/005 plus INT-009 cover AC6 standalone/coherent parents, constraints, job continuity and DST; INT-010 covers AC7 history and membership-deactivation races. RLS-001/002/003/004 and exact-policy/H4/cross-tenant/anon probes exercise AC1/8/9. The generated envelope probes retain every role assertion in five bounded tests with the existing 30-second budget and normal parallel configuration. Round 2 direct checked-RPC tests protect strict clock grammar for both operations and exact no-write/no-audit refusal; sequential and observed-wait replay tests cover current active scalar and secondary actor authority.
 
-- `tests/integration/commands/bookings.int.test.ts:17` — `six-digit timestamp replay`: AC4 preserves command/RPC results and exact timestamps.
-- `tests/integration/commands/bookings.int.test.ts:51` — `overlapping same-key updates`: AC4 proves identical and changed-payload UPDATE races.
-- `tests/integration/commands/bookings.int.test.ts:248` — `14.2-INT-006 booking preparation`: AC5 proves booking and audit fault rollback.
-- `tests/integration/commands/bookings-replay-authority.int.test.ts:170` — `out-of-range clock fields`: AC6 bypasses TypeScript and verifies SQL refusal snapshots.
+- `tests/integration/commands/bookings.int.test.ts:20` — `six-digit timestamp replay`: AC4 preserves command/RPC results and exact timestamps.
+- `tests/integration/commands/bookings.int.test.ts:54` — `overlapping same-key updates`: AC4 proves identical and changed-payload UPDATE races.
+- `tests/integration/commands/bookings.int.test.ts:264` — `14.2-INT-006 booking preparation`: AC5 proves booking and audit fault rollback.
+- `tests/integration/commands/bookings-replay-authority.int.test.ts:199` — `out-of-range clock fields`: AC6 bypasses TypeScript and verifies SQL refusal snapshots.
+
+### Concurrent identical creates share one complete reviewed command
+
+The latest test-only repair prepares one actual signed review before four real parallel saves, with nonempty acknowledged warnings and no selected acceptance. All four-success/equal-result and independent one-booking/two-assignee/one-audit assertions remain. Current-editor opt-in diagnostics record sanitized rejected preparation codes; they change neither the production command nor fixture cache. A controlled late-preview failure proves the helper path without claiming the unrecorded original CI cause.
+
+- `tests/integration/commands/bookings.int.test.ts:245` — `reviewedFixtureInput`: prepares the full canonical reviewed command once.
+- `tests/integration/commands/bookings.int.test.ts:250` — `Promise.all`: retains four real concurrent saves.
+- `tests/integration/commands/bookings.int.test.ts:255` — `after.bookings`: retains exact durable multiplicity checks.
+- `tests/support/bookings-atdd.ts:140` — `pre-review-rejected`: captures only a sanitized preparation failure code.
 
 ### Shared final-send diagnosis boundary
 
 The cumulative gate exposed existing quote-send fixture failures, so the test factory installs a shared failure observer instead of relying on case-local diagnostics. Its fixed output contains generic stages, guard booleans and authorized relative clock deltas; readback timing remains an explicit evidence limit. The observer retains its original query/results and production attestation/review authority. A later authorized prerequisite fixture repair orders the initial/corrected recipient readback by its asserted delivery sequence while retaining exact recipient, recovery, sequence and correction-audit checks.
 
 - `tests/factories/tenants/core.ts:354` — `return observeQuoteSendRpcs`: binds diagnostics for every authenticated fixture client.
-- `tests/support/quote-send-diagnostics.ts:29` — `export function observeQuoteSendRpcs`: reuses one observer while preserving request builders.
+- `tests/support/quote-send-diagnostics.ts:32` — `export function observeQuoteSendRpcs`: reuses one observer while preserving request builders.
 - `tests/unit/quote-send-diagnostics.test.ts:21` — `send observer preserves lazy fluent query`: checks SDK identity and generic redaction.
 - `tests/integration/email/quote-delivery-recipient-snapshot.int.test.ts:208` — `order by o.delivery_sequence`: matches the exact initial/corrected delivery sequence assertion.
 
@@ -432,9 +445,32 @@ The cumulative gate exposed existing quote-send fixture failures, so the test fa
 
 The prerequisite metadata fixture now selects both production helpers by schema-qualified UUID regprocedure identity. It retains exact existence/count, SECURITY DEFINER and empty search-path assertions while the unchanged adversarial suite creates and exercises a separate hostile helper; missing production signatures fail the selector cast.
 
-- `tests/integration/rls/migration-reset.int.test.ts:143` — `public.is_active_tenant_member(uuid)`: selects exact production signatures for the existence assertion.
-- `tests/integration/rls/migration-reset.int.test.ts:159` — `public.is_tenant_admin(uuid)`: scopes exact count and function-security metadata checks.
+- `tests/integration/rls/migration-reset.int.test.ts:168` — `public.is_active_tenant_member(uuid)`: selects exact production signatures for the existence assertion.
+- `tests/integration/rls/migration-reset.int.test.ts:184` — `public.is_tenant_admin(uuid)`: scopes exact count and function-security metadata checks.
 - `tests/integration/commands/record-audit-event-search-path.int.test.ts:77` — `evil_audit.is_active_tenant_member(uuid)`: retains the hostile-shadow runtime proof.
 
 Evidence: see Implementation Author Evidence, Review Fix Log, Round 2 Fix Author Evidence and Cumulative PDF-send Investigation above for executed counts, prerequisite repairs, the unconfirmed final-send incidents and remaining CI/detector gates. Optional-unavailable skip probes validate runner behavior only, and do not count toward the 18 required booking obligations.
 Limits: fixtures and privileged readbacks/fault triggers are test-only. There is no booking browser flow in this story. Earlier cumulative final-send causes remain unconfirmed; one focused reproduction isolates a failed time witness without proving a shared cause. Focused/joint success is not full-gate evidence. Local evidence comes from incremental SQL application; the exact empty-schema migration/seed/required-integration CI chain remains MANDATORY before Epic finalization/merge and is not claimed as executed here. Performance and volume are unmeasured. No derived detector, refresh or override acceptance is claimed; 14.3-INT-003/004/005/006 remain mandatory before 14.4 and the Epic PR.
+
+## Narrow author Dev Record — final trail refresh 2026-10-08
+
+Author: `/root/merge_review`, `gpt-6.1-sol` High. Ownership for this refresh is limited to the existing Suggested Review Order and this appended record. All earlier author records, contracts, acceptance criteria, frontmatter, status and the two completed broad review rounds remain unchanged.
+
+The final mechanical checker reproduced 13 stale stops in this story and one nonliteral `createReviewed()` anchor in the author's CI browser configuration evidence. This author inspected the actual cited functions, test bodies, exact helper selectors and dependency settings, refreshed all 13 story stops and corrected the separate CI document anchor to `const createReviewed`. The current dependency rationale now records the carried-forward Next 16.3.8 maintenance change and continued version-scoped plugin patch; it does not rewrite the original 16.3.6 repair history. The booking replay wait, microsecond, direct SQL grammar, rollback and role-visibility assertions retain their existing meaning.
+
+Executed verification for this docs-only refresh: the repository's bounded review-order checker and whitespace check; source inspection verified every cited stop. No product/test implementation, SQL, workflow or configuration was changed by this refresh, and no test suite, database write or service operation was executed. The recorded historical pass counts above remain evidence for their original revisions, not fresh execution claims.
+
+Current gate limits are retained: the parent reports final typecheck native 0, but the corrected ACL probe remains failed with its baseline retained (244 total / 220 passed / 24 failed / 0 skipped). Fresh shared-runner CI is blocked pending the coordinator's required approval message. The earlier `e1e663ce` whole-browser CI result remains 193 passed / 4 failed; the narrow runner-configuration repair is documented separately in `docs/quality/epic14-ci-browser-config-closeout-2026-10-08.md` and still requires fresh execution evidence. No complete required-integration, CI or Epic closeout PASS is invented here. Existing performance, human physical/daylight and Story 15.1 calendar limits remain separate release obligations.
+
+### Concurrent-create fixture — bounded author repair 2026-10-08
+
+Author: `/root/kernel_fix`, explicitly `gpt-6.1-sol` High, for `bookings.int.test.ts`/`bookings-atdd.ts` only; original implementation, round-two and prior trail authorship remains intact. Fresh `abff9615b6a5b6540953f2efb28454076f007deb` CI run37780712377 passed four jobs but REQUIRED database failed1477total/1475passed/1failed/1inherited skip in267.56s. INT-005's original four-success assertion recorded no failure codes, so its specific CI cause is unobservable. A plain parent focused diagnostic passed1/0failed/15excluded,native0, not a complete16-case pass.
+
+The authorized controlled old-case diagnostic then failed twice, each0passed/1failed/15excluded,native1, preserving the original assertions. All four real previews/cache misses were gathered; three previews proceeded, and the fourth real preview waited for an observed real committed finalize. The second run's fixed console witness records both control booleans true, actual `snapshot_booking_editor` BK409, discarded pre-review BK409, and one envelope COMMAND_CONFLICT beside three successful results; its executed case took925.7382ms. The rejected array index varies with arrival order. The first controlled failure's missing console output and all historical failures remain preserved. SQL already enforces full decision identity/current authorization/locking; this proves a reachable adapter race, not a production idempotency bypass or the unobserved original CI cause.
+
+The final test prepares one actual signed reviewed input, positively asserts acknowledged nonempty warning IDs/no selected acceptance, and dispatches four real identical saves in the original Promise.all. All original equal-result/private-outcome/one-booking/two-assignee/one-audit assertions remain; the temporary control flag/proxy/barriers are removed. Support retains only bounded opt-in current-editor RPC and pre-review diagnostics, without changing production SQL, cache, grants, worker configuration, timeout/retry/skip or serializing the writes. Author lint/typecheck/whitespace checks pass native0. Parent's complete REQUIRED booking file passes16total/16passed/0failed/0skipped or excluded,native0,26.487s JSON start→last-file-end, saved in `integration-concurrent-create-final-full16.json`; post-pack SQL reports0markers/3hooks. Independent SolHigh source review returns no findings against the two source hashes retained in the linked author record, confirming the control is removed and all four real writes/equality/durable checks remain. Final author-trail verification and fresh five-job CI remain pending; official completion drafts remain unapplied. [The bounded author's evidence and verified stops](../../docs/quality/epic14-concurrent-create-fixture-closeout-2026-10-08.md) preserve exact plain/controlled/full execution counts, diagnostics and limits. No original intent/frontmatter/status/counter/baseline, historical true recommendation or completed broad-round count changes.
+
+
+### Current direct-closeout clearance — 2026-10-08
+
+Author: `/root/kernel_fix`, `gpt-6.1-sol` High, for this bounded metadata reconciliation only; original implementation/fix authorship remains unchanged. Root confirmed all five required gates (verify, db, recovery-storage-loader, e2e, dashboard-e2e) passed on source `179e86c2f96d684310b8c51af59d58ea3e23be78` in [the exact-head run](https://github.com/rthunborg/ElproSaas/actions/runs/37786814317). Actual results: `units 2,159/2,159 passed/zero failed/zero skipped; REQUIRED integration 1,478 total/1,477 passed/zero failed/one preserved skip in275.25s; unchanged real pilot exact120/24profile, two requests/read, Admin p95=15.363932ms≤250ms and synthetic p95=6.183487ms≤25ms; independent recovery one passed/zero failed/zero skipped; general browser197passed/zero failed/zero flaky/four inherited skips in3.7m; dashboard browser57passed/zero failed/zero flaky/zero skipped in1.3m. Skipped integration/browser bodies are unexecuted and receive no coverage credit; independent recovery executes its own separate proof`. Independent narrow High reviews and root-retained evidence are linked in [the direct-closeout record](../../docs/quality/epic14-direct-closeout-evidence-2026-10-08.md). Current follow-up recommendation/review-unverified flags are cleared for the approved direct closeout; historical true recommendations, scores, failures, original pipeline timestamps, baseline and completed broad rounds remain unchanged. This is no additional broad review or score recalculation. Representative performance remains UNKNOWN; manual accessibility/daylight remains NONE, NFR CONCERNS and retained maintenance advisories remain open, and Story15.1 ContractD calendar obligations remain mandatory. No hosted enablement/deployment, skipped-case coverage or further product completion is claimed.

@@ -9,7 +9,7 @@ spec_folder: null
 story_id: null
 branch: codex/epic14-resume
 status: done
-updated_at: "2026-10-07T16:15:18Z"
+updated_at: "2026-10-08T14:03:22Z"
 started_at: "2026-09-29T08:23:21Z"
 completed_at: "2026-10-07T16:15:18Z"
 active_seconds: 77845
@@ -18,15 +18,15 @@ is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: retrospective
-selected_role: retrospective-delegate
-selected_profile: default
+selected_phase: followup_review
+selected_role: primary-reviewer
+selected_profile: standard
 selected_model: gpt-6.1-sol
-selected_effort: low
+selected_effort: high
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: "Headless documentary synthesis from established evidence; no new sensitive implementation or security review."
+escalation_reason: "Independent final metadata review validates actual authorization/RLS clearance, five-job eligibility, canonical story completion and preserved historical release obligations."
 routing_ledger:
   - "{\"effort\":\"xhigh\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-sol\",\"phase\":\"tea_epic\",\"profile\":\"critical\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"medium\",\"escalation_reason\":\"\",\"host\":\"codex\",\"model\":\"gpt-5.6-luna\",\"phase\":\"tea_triage\",\"profile\":\"light\",\"role\":\"test-risk-triage\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
@@ -51,6 +51,12 @@ routing_ledger:
   - "{\"effort\":\"high\",\"escalation_reason\":\"Epic14 advisory audits cover actual tenant/RLS, signed review authority and atomic audited command test quality\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_epic_audit\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"high\",\"escalation_reason\":\"Ledger includes actual auth/RLS, money/tax and transactional obligations; conservative read-only reconciliation requires High.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"deferred_reconcile\",\"profile\":\"standard\",\"role\":\"deferred-reconciler\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
   - "{\"effort\":\"low\",\"escalation_reason\":\"Headless documentary synthesis from established evidence; no new sensitive implementation or security review.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"retrospective\",\"profile\":\"default\",\"role\":\"retrospective-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Bounded direct-closeout metadata must reconcile established tenant/RLS and transactional review clearance without changing historical review rounds or failed evidence.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"final_convergence\",\"profile\":\"standard\",\"role\":\"final-convergence\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Independent bounded check of authorization/RLS review clearance, exact CI eligibility and metadata preservation; no new broad code review.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Current review-clearance metadata is sensitive; preserve original rounds and timestamps and apply only after five actual exact-source CI passes.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"final_convergence\",\"profile\":\"standard\",\"role\":\"final-convergence\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Apply bounded current tenant/RLS and transactional review clearance after confirmed five-job source gate 37786814317; preserve historical counters, timestamps and failures.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"final_convergence\",\"profile\":\"standard\",\"role\":\"final-convergence\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Acceptance metadata follows actual current authorization/RLS and transactional review clearance; keep bounded High assessment and preserve all separate release obligations.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"retrospective\",\"profile\":\"default\",\"role\":\"retrospective-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"high\",\"escalation_reason\":\"Independent final metadata review validates actual authorization/RLS clearance, five-job eligibility, canonical story completion and preserved historical release obligations.\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"followup_review\",\"profile\":\"standard\",\"role\":\"primary-reviewer\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: null
 tea_selected: []
 tea_rationale: null
@@ -68,7 +74,7 @@ build:
   warnings: []
 followup_passes: 0
 hitl_halt: null
-review_unverified: true
+review_unverified: false
 story_trace: null
 legacy_review_resume: false
 legacy_review_iteration: null
@@ -88,13 +94,13 @@ gate_decision: PASS
 gate_iterations: 1
 deferred_work_archived: 6
 retro:
-  doc: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/epic-14-retro-2026-10-07.md"
-  verdict: rejected
-  open_action_items: 6
-bmad_status_flipped_at: null
+  doc: "_bmad-output/implementation-artifacts/epic-14-retro-2026-10-08.md"
+  verdict: accepted-with-open-items
+  open_action_items: 4
+bmad_status_flipped_at: 9
 pr_url: "https://github.com/rthunborg/ElproSaas/pull/86"
-ci_run_url: "https://github.com/rthunborg/ElproSaas/actions?query=branch%3Acodex%2Fepic14-resume"
-ci_status: unknown
+ci_run_url: "https://github.com/rthunborg/ElproSaas/actions/runs/37786814317"
+ci_status: passed
 pr_merged: false
 merge_method: null
 merge_commit: null
@@ -319,7 +325,7 @@ overrides:
   acceptance_contract_d_owner_approved: true
   acceptance_contract_d_document: docs/decisions/epic-14-story-ownership-contract-d-2026-10-07.md
   story14_4_completed_independent_review_rounds: 2
-  story14_4_followup_still_recommended: true
+  story14_4_followup_still_recommended: false
   epic_trace_formal_total: 36
   epic_trace_formal_full: 36
   epic_trace_uncovered: []
@@ -367,9 +373,20 @@ overrides:
   deferred_archive_heuristic_false_positives_retained: 27
   epic_ci_wait_skipped_reason: "Draft completion from retained review recommendations; pipeline links CI without waiting. Empty-chain/seed/required full CI still mandatory before merge."
   draft_pr_number: 86
-  ci_registration_observed: false
-  ci_wait_skipped: true
+  ci_registration_observed: true
+  ci_wait_skipped: false
   merge_prompt_skipped_reason: "Caveated draft; no automatic merge."
+  direct_closeout_source_head: 179e86c2f96d684310b8c51af59d58ea3e23be78
+  direct_closeout_ci_required_jobs: 5
+  direct_closeout_ci_passed_jobs: 5
+  direct_closeout_concurrent_create_gate_pending: false
+  direct_closeout_admin_pilot_gate_pending: false
+  direct_closeout_completed_on: 2026-10-08
+  direct_closeout_review_rounds_preserved: "14.1:3,14.2:2,14.3:2,14.4:2"
+  direct_closeout_timing_scope: "Original pipeline timestamps/active seconds retained; closeout duration not reconstructed."
+  direct_closeout_empty_chain_ci_executed: true
+  direct_closeout_final_metadata_publication_pending: true
+  direct_closeout_historical_override_scope: "Older empty_chain_ci_executed=false and draft/wait reasons describe the original October 7 pipeline; current exact source-head execution is recorded by the dated direct_closeout fields and successor report."
 constraints:
   - "Phase B manifest-governed approved Epic14 stories only; maintain hard Phase C exclusions."
   - "Epic13 observation and release gates remain separate; no hosted migrations, deployment or flag changes during this implementation workflow."
@@ -382,4 +399,4 @@ stories_landed:
   - 14-3-deterministic-conflict-engine-detection-core
   - 14-4-booking-editor-with-live-conflict-warnings-and-audited-override
 stories_skipped: []
-batch_flip_done: false
+batch_flip_done: true

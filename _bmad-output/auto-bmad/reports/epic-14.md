@@ -772,3 +772,45 @@ No new deferred items harvested.
 3. Complete manual accessibility/exploratory evidence and obtain approved performance targets before certification claims. No immediate manual machine commands are required.
 
 **Next:** Human review: /bmad-checkpoint-preview codex/epic14-resume. Project context: run /bmad-project-context refresh (recommended after an epic).
+
+## Report — 2026-10-08T14:03:43Z (direct closeout â€” accepted with open items)
+
+**Epic:** `14` — 4 stories.
+**Branch:** `codex/epic14-resume` (HEAD `179e86c`).
+**Pipeline status:** All four official stories and Epic 14 are done; review holds cleared; five required source-head jobs passed. Final metadata-head CI and PR readiness pending.
+**Continues:** 2026-10-07 final caveated draft, preserved above
+
+**Summary:** Completed the owner-authorized direct closeout of person profiles/work hours, transactional bookings, deterministic detection and the reviewed booking editor. Original pipeline timestamps and active seconds remain historical; this closeout duration is not reconstructed.
+
+**Timing:** started 2026-09-29T08:23:21Z; completed 2026-10-07T16:15:18Z — elapsed 199h 51m (≈21h 37m AI-run, ≈178h 14m human/idle wait); resumed 19×.
+
+**Stories:**
+1. 14.1 â€” done; current review verified; follow-up recommendation false; original three broad review rounds retained.
+2. 14.2 â€” done; current review verified; follow-up recommendation false; original two broad review rounds retained.
+3. 14.3 â€” done; current review verified; follow-up recommendation false; original two broad review rounds retained.
+4. 14.4 â€” done; current review verified; follow-up recommendation false; original two broad review rounds retained.
+
+**Skipped:** (none)
+
+**Epic gate:** PASS retained: formal 36/36 FULL, supplementary 74/77 FULL. Source 179e86c2, run 37786814317: all five required jobs passed, including fresh empty migration/seed, REQUIRED integration/RLS and unchanged Admin pilot.
+
+**TEA:** Actual source-head results: 2159/2159 units, 1478 integration total/1477 passed/0 failed/1 existing skip; independent recovery 1/1 without skip; general browser 197 passed/0 failed/0 flaky/4 existing skips; dashboard 57/57 without skip or flake. Pilot exact 120/24 memberships, two requests/read, Admin p95 15.363932 ms and synthetic p95 6.183487 ms under unchanged 3-request and 250/25 ms limits. Skipped bodies receive no coverage credit. NFR CONCERNS/performance UNKNOWN/manual NONE retained; original quality 0/F not rescored.
+
+**Retrospective:** Accepted-with-open-items â€” _bmad-output/implementation-artifacts/epic-14-retro-2026-10-08.md; two existing actions done, quality in progress plus three open = four remaining. Rejected October 7 retrospective preserved untouched.
+
+**Overrides:** Direct closeout owner-authorized; sensitive fix and independent review delegates explicitly Sol 6.1 High. Exact four canonical story transitions completed; pending story list empty; phase-9 markers recorded. Historical counters, timestamps, scores, failures and earlier draft reasons retained. Managed resource Stop requests accepted; no shutdown verification claimed. No merge or deployment.
+
+**Open questions:**
+1. Owner-approved representative Epic 14 performance workloads and targets remain pending.
+
+**Deferred work:**
+1. 44 structural/maintenance advisories remain (three High, 41 Medium); four consequential High repairs independently verified.
+2. Manual accessibility/daylight/exploratory evidence remains unexecuted.
+3. Contract D actual calendar empty-slot click/drag and keyboard/dialog parity mandatory in Story 15.1 before calendar exposure/completion.
+4. 176 deferred obligations retained; no additional archive or unrelated epic transition.
+Only the original six fully verified historical obligations remain archived.
+
+**⚠️ Needs human:**
+1. Remaining tracked performance and manual observation work requires its recorded owner/QA participation; no immediate closeout approval or machine command is needed.
+
+**Next:** Run all five required checks on the final metadata commit, verify exact head, then mark PR 86 ready for review. Merge and hosted deployment remain outside this closeout.

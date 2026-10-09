@@ -2,7 +2,7 @@
 import { createHash } from "node:crypto";
 import { buildScheduleReadShifts } from "@/features/resources/schedule-read";
 import type { BookingFacts } from "@/features/resources/booking-types";
-import { detectConflicts } from "@/features/scheduling/conflicts";
+import { detectAllBookingConflicts } from "@/features/scheduling/conflicts";
 import { DEFAULT_SCHEDULING_RULES, SCHEDULING_RULES_VERSION,
   type SchedulingBooking, type SchedulingFacts, type SchedulingRules } from "@/features/scheduling/types";
 import { BOOKING_CONFLICT_ENGINE_VERSION, CONFLICT_CLAIM_FIELDS, type ConflictClaims } from "./conflict-attestation";
@@ -107,32 +107,30 @@ export function deriveBookingConflicts(snapshot: DetectionSnapshot): { output: D
     ...(row.reductionPercent !== null ? { reductionPercent: row.reductionPercent } : {}) })), jobInputs: null, rules: facts.rules };
   const unique = new Map<string, DerivedConflict>();
   const groups = new Map<string, LogicalConflictGroup>();
-  for (const candidate of bookings) {
-    const input: SchedulingFacts = { ...common, candidate, existingBookings: bookings.filter((row) => row.id !== candidate.id) };
-    for (const conflict of detectConflicts(input)) {
-      for (const personId of conflict.affectedPersonIds) {
-        // The engine's collision identity encodes every participant. Hashing keeps
-        // complete aggregate identities within the existing DB column constraint.
-        const naturalKey = `v1:${createHash("sha256").update(JSON.stringify([conflict.naturalKey, personId])).digest("hex")}`;
-        const row: DerivedConflict = { booking_id: conflict.bookingIds[0]!, related_booking_id: conflict.bookingIds[1] ?? null,
-          affected_person_profile_id: personId, conflict_type: conflict.conflictType,
-          starts_at: conflict.startsAt, ends_at: conflict.endsAt, natural_key: naturalKey };
-        unique.set(naturalKey, row);
-        const keys = [naturalKey];
-        // Preserve the established first-pair row/key, then expose every remaining
-        // aggregate participant through an existing-schema association row. Each
-        // key still binds the complete participant set, person, type and window.
-        for (const bookingId of conflict.bookingIds.slice(2)) {
-          const participantKey = `v2:${createHash("sha256").update(JSON.stringify([conflict.naturalKey, personId, bookingId])).digest("hex")}`;
-          unique.set(participantKey, { ...row, booking_id: bookingId,
-            related_booking_id: conflict.bookingIds[0]!, natural_key: participantKey });
-          keys.push(participantKey);
-        }
-        if (conflict.bookingIds.includes(snapshot.bookingId)) {
-          const logicalId = JSON.stringify([conflict.naturalKey, personId]);
-          groups.set(logicalId, { logicalId, keys: keys.sort(), personId, bookingIds: conflict.bookingIds,
-            rule: conflict.conflictType, startsAt: conflict.startsAt, endsAt: conflict.endsAt });
-        }
+  const input: SchedulingFacts = { ...common, candidate: proposed, existingBookings: bookings.filter((row) => row.id !== proposed.id) };
+  for (const conflict of detectAllBookingConflicts(input)) {
+    for (const personId of conflict.affectedPersonIds) {
+      // The engine's collision identity encodes every participant. Hashing keeps
+      // complete aggregate identities within the existing DB column constraint.
+      const naturalKey = `v1:${createHash("sha256").update(JSON.stringify([conflict.naturalKey, personId])).digest("hex")}`;
+      const row: DerivedConflict = { booking_id: conflict.bookingIds[0]!, related_booking_id: conflict.bookingIds[1] ?? null,
+        affected_person_profile_id: personId, conflict_type: conflict.conflictType,
+        starts_at: conflict.startsAt, ends_at: conflict.endsAt, natural_key: naturalKey };
+      unique.set(naturalKey, row);
+      const keys = [naturalKey];
+      // Preserve the established first-pair row/key, then expose every remaining
+      // aggregate participant through an existing-schema association row. Each
+      // key still binds the complete participant set, person, type and window.
+      for (const bookingId of conflict.bookingIds.slice(2)) {
+        const participantKey = `v2:${createHash("sha256").update(JSON.stringify([conflict.naturalKey, personId, bookingId])).digest("hex")}`;
+        unique.set(participantKey, { ...row, booking_id: bookingId,
+          related_booking_id: conflict.bookingIds[0]!, natural_key: participantKey });
+        keys.push(participantKey);
+      }
+      if (conflict.bookingIds.includes(snapshot.bookingId)) {
+        const logicalId = JSON.stringify([conflict.naturalKey, personId]);
+        groups.set(logicalId, { logicalId, keys: keys.sort(), personId, bookingIds: conflict.bookingIds,
+          rule: conflict.conflictType, startsAt: conflict.startsAt, endsAt: conflict.endsAt });
       }
     }
   }

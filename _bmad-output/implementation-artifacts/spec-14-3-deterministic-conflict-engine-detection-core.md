@@ -344,64 +344,58 @@ R2's one medium verification gap is patched with two operation-row wait cases, w
 
 Canonical typecheck/lint/unit/lockfiles/source containment/audit-high/build/bundle containment all pass native0. Lint0errors/13inherited warnings; units1993total/1992passed/0failed/one inherited Windows xattr skip; UTC/Los_Angeles/Tokyo each14/14/0/0; audit2moderate/0high. Build follows fullINT, with no overlap. No migration/seed/reset/ledger/service/hosted change occurred; populated ledger evidence remains95 and is not empty-chain proof. [Check summary](../test-artifacts/story14-3-r2-check-summary.json) records actual outcomes. R2 all six layers are complete, score3/followupfalse; independent narrow regression inspection passed as reported by the delegate; final trail/evidence inspection also passed as reported by the delegate; exact empty-chain EpicCI remains pending. Historical failure counts/unknown causes and all withdrawn unregistered-case claims remain intact; no broadR3,14.4 or terminal completion credit.
 
+### Narrow conflict-kernel closeout author record — 2026-10-08
+
+Author `/root/kernel_fix` was explicitly routed to `gpt-6.1-sol` High before implementing this sensitive full-tenant/transaction-identity change. The approved existing 1,000-group functional workload revealed repeated full-fact validation, UTC parsing and work-window construction. Whole-tenant orchestration now batches the same sole detector rule loop with invocation-local validated/parsed facts and exact prepared person/day capacity. Every active post-overlay booking still contributes; malformed cancelled/history facts fail loud, candidate old-state exclusion and complete aggregate associations remain intact. Engine/config versions, natural keys, output shape, workflow acceptance and frozen intent are unchanged. No dependency, migration, UI, timeout or rule change belongs to this patch.
+
+Current tested working tree is the kernel patch over `333d0524`, after parent-owned reviewed main dependency reconciliation. Scheduling units execute20/20/0/0; direct TypeScript and focused ESLint native0. The genuine disjoint1,000-peer pure diagnostic executes with1,000rows/1,000groups/0peer-only and unchanged output/group/receipt/save sizes381001/625001/834240/1120180bytes. Independent capacity/detector/server sources captured directly from pre-change `612ea4e` (import path changes only) derive in19871.180ms; current derives in94.324ms, with identical output SHA256 `b118b548a8599465d0fdfdbd1bd970bd0812fa795e6a72d549a91948650f9f0e` and group SHA256 `a7434887356adf913fe6ccd2ac9d2fe4bac87eccb0deb80de7935d0dea14ea7a`. Pure measurements do not establish HTTP/transaction behavior or a general performance SLO. Independent High review and remaining fresh gates are parent-owned. Historical failures/counts/causal limitations and both completed broad review rounds are retained, with no new broad round credited. [Closeout author rationale and executed evidence](../../docs/quality/epic14-kernel-closeout-2026-10-08.md) records commands, exact equivalence boundaries and remaining gates.
+
+Parent-reported fresh execution after the stable kernel patch and Next16.3.8: complete native units2042total/2041passed/0failed/1existing Windows xattr skip in10.527s; production buildnative0; canonical lintnative0 with0errors/13existing warnings; typecheck and all three containment checksnative0. The genuine1,000-group HTTP preview/save case returnsnative0,1passed/0failed/0skipped,12.742s invocation/9.756s case,476ms preview fetch and an actual1120245-byte save body withHTTP200,1,000groups and one selected whole group. All actual durable assertions pass:1accepted/999open conflicts, one create and one attributable audit. This is runtime application/database evidence, separately attributed from the pure diagnostic's1120180-byte synthetic transport. At this author refresh the complete23-case browser gate is active; fresh full required integration and exact fresh empty-chain CI remain pending. No previous failure is waived, inherited skips are not coverage, and these results do not change story/epic/release status.
+
 ## Suggested Review Order
 
-Author: `/root/build_14_3/author_14_3`, implementation/fix author; its explicitly owned High worker implemented the pure modules.
-Refreshed against tested HEAD `3e8e337a8e7933b2c6af1930476690801a469477` plus the two R2 identity-wait tests. Canonical resume baseline `719ffb2dc74807b9d8c1242e4d383f3e34f665f9` and original full implementation review baseline `2a6c9e6d6859987590f2e875f695a75c16125af6` remain preserved. R1 and R2 completed; delegate-reported narrow High regression inspection passed, with final trail/evidence inspection also passed as reported by the delegate.
+Original implementation/fix author: `/root/build_14_3/author_14_3`; narrow 2026-10-08 kernel fix author: `/root/kernel_fix`, explicitly `gpt-6.1-sol` High. Refreshed against the current kernel working-tree patch over `333d0524`. Original resume/review baselines and R1/R2 verification remain in the historical records above; this reading guide adds no broad review or release completion credit.
 
-### Actual saves preserve command and replay authority
+### Preview and actual save retain existing current authority
 
-Existing create/update entries use internal snapshot/detect/finalize orchestration with the original UUID and closed result contract. Genuine valid expiry refreshes through the same three-attempt stale path; exhaustion uses the existing retryable SERVER_ERROR code, without adding a wire field (AC6/10).
+Public create/update commands continue through the same snapshot/detect/sign/finalize boundary. The narrow optimization begins at checked frozen facts and preserves the server's complete derived result set, current command identity and review authority (AC5–11); review/replay/SQL behavior is unchanged by this patch.
 
 - `src/server/commands/bookings/create-booking.ts:7` — `createBooking`: existing public command entry.
-- `src/server/commands/bookings/booking-db.ts:15` — `executeBooking`: preserves typed SQL failure mapping.
-- `src/server/bookings/save-with-conflicts.ts:19` — `saveWithConflicts`: bounded same-UUID retry and cookie-bound authority.
-- `tests/integration/commands/booking-conflicts.int.test.ts:201` — `three real stale attempts`: actually registered exhaustion with exact durable no-op.
+- `src/server/bookings/save-with-conflicts.ts:26` — `saveWithConflicts`: existing snapshot/finalize authority.
+- `src/server/bookings/conflict-facts.ts:79` — `deriveBookingConflicts`: checked tenant facts and candidate overlay.
+- `src/server/bookings/conflict-facts.ts:111` — `detectAllBookingConflicts`: complete detection before signed output projection.
 
-### Exact facts and signed validity cross the SQL boundary
+### One detector preserves exact windows and candidate-excluding capacity
 
-Fact-equivalence verification remains the approved bridge between the sole TypeScript detector and SQL. The forward fix returns stale only for genuine otherwise valid expiry after HMAC/current-facts/output checks; strict future/oversized/invalid authority stays denied, and engine v2 binds complete participant associations (AC5/6/11).
+Single-candidate and complete tenant entry points share the same rule loop. Validation precedes active-booking filtering; invocation-local normalized ranges and person/day work terms remove repetition while keeping half-open microseconds, gap/fold policy, layered subtraction and hundredths arithmetic identical (AC1–6/12).
 
-- `supabase/migrations/20261006144057_booking_conflict_review_integrity_fixes.sql:25` — `finalize_booking_conflicts`: bound authority, full CAS and verified-expiry refresh.
-- `src/server/bookings/conflict-attestation.ts:6` — `BOOKING_CONFLICT_ENGINE_VERSION`: refuses older incomplete fresh authority.
-- `tests/unit/server/bookings/conflict-attestation.test.ts:19` — `CONFLICT_CLAIM_FIELDS`: each claim tampering changes authority.
-- `tests/integration/commands/booking-conflicts.int.test.ts:740` — `correctly signed otherwise valid`: isolated database-relative clock/lifetime guards and controls.
+- `src/features/scheduling/conflicts.ts:26` — `detectAllBookingConflicts`: validate and prepare one complete invocation.
+- `src/features/scheduling/conflicts.ts:69` — `detectPreparedConflicts`: sole shared detector rule loop.
+- `src/features/scheduling/capacity.ts:83` — `prepareDailyCapacity`: prepare actual work terms without peer demand.
+- `src/features/scheduling/capacity.ts:106` — `availableHundredths`: unchanged exact additive-demand arithmetic.
 
-### Deterministic local windows and capacity remain pure
+### Every aggregate participant retains its established workflow identity
 
-Half-open UTC microseconds and explicit Stockholm local windows preserve gap/fold policy and layered capacity arithmetic. Independent literal assertions now test persisted dated absence/blocked adapter behavior through actual resource and booking commands, supplementing the pure engine fixtures (AC1–4/12).
+The server still hashes each complete conflict/person identity into the established first-pair row and associates every remaining booking through supplemental v2 keys. Candidate-third aggregate review therefore includes every exact row while unrelated peer groups stay outside candidate review (AC7–9 and retained Story14.4 boundary).
 
-- `src/features/scheduling/conflicts.ts:10` — `detectConflicts`: sorted participant/person/window identities.
-- `src/features/scheduling/capacity.ts:73` — `dailyCapacity`: actual schedules and separate capacity terms.
-- `src/features/scheduling/time-zone.ts:45` — `stockholmLocalToUtc`: first-valid gap and earlier fold.
-- `tests/integration/commands/booking-conflicts.int.test.ts:713` — `persisted dated absence`: independent literal UTC warnings from persisted facts.
+- `src/server/bookings/conflict-facts.ts:124` — `bookingIds.slice(2)`: associates every remaining capacity participant.
+- `tests/unit/features/scheduling/batch-conflicts.test.ts:100` — `server projection preserves`: exact repeated-detector v1/v2 rows and complete candidate-third groups.
+- `tests/integration/commands/booking-conflicts.int.test.ts:718` — `every participant in four-booking`: retained durable association and refresh assertion.
 
-### Complete associations and final-lock identity preserve integrity
+### Literal goldens and independent old-source bytes constrain the optimization
 
-Full tenant refresh remains necessary for peer and aggregate dependencies. The established first-pair row/key remains stable for unchanged accepted evidence; one supplemental stable row per remaining participant makes every booking retrievable, while changed full identities reopen. Confirmed invitation identity and actual expiry are rechecked after all blocking locks (AC7–10). R2 changes only trusted recipient identity during the observed operation-row wait, retaining a long-lived invitation so denial specifically exercises the final current-Auth check; finally restores the exact original email and confirmation timestamp.
+Six new tests retain exact full-tenant equivalence to repeated public detection and existing literal goldens, with cancellation/peer refresh, changed assignees/windows, consistent duplicates, malformed cancelled facts, per-call isolation, fractional microseconds, explicit overtime and DST boundaries. The old-source genuine1,000-peer benchmark additionally matches complete output/group hashes and unchanged large receipt/save sizes; it does not replace actual HTTP/database evidence (AC1–12).
 
-- `src/server/bookings/conflict-facts.ts:113` — `bookingIds.slice(2)`: associates every remaining capacity participant.
-- `tests/integration/commands/booking-conflicts.int.test.ts:669` — `every participant in four-booking`: literal retrieval, accepted-key preservation and changed-identity refresh.
-- `supabase/migrations/20261006144057_booking_conflict_review_integrity_fixes.sql:127` — `email_confirmed_at`: current trusted recipient identity after the final lock.
-- `tests/integration/commands/booking-conflicts.int.test.ts:607` — `invitation rechecks current confirmed Auth identity`: confirmation/email races with exact durable no-op.
-- `supabase/migrations/20261006144057_booking_conflict_review_integrity_fixes.sql:132` — `clock_timestamp`: actual expiry after the operation-row lock.
-- `tests/integration/commands/booking-conflicts.int.test.ts:253` — `holds first gate before row lock`: all eight actual consumed-writer race classes.
+- `tests/unit/features/scheduling/batch-conflicts.test.ts:24` — `batch full-tenant output`: unchanged literal goldens and serialized equivalence.
+- `tests/unit/features/scheduling/batch-conflicts.test.ts:33` — `batch preserves old/new`: complete peer refresh and invocation isolation.
+- `tests/unit/features/scheduling/batch-conflicts.test.ts:84` — `batch validates malformed`: cancelled/history facts still fail loud.
+- `docs/quality/epic14-kernel-closeout-2026-10-08.md:11` — `## Executed evidence`: executed commands, exact hashes and pending real gates.
 
-### Execution evidence and remaining blockers stay visible
+Evidence: [current narrow author evidence](../../docs/quality/epic14-kernel-closeout-2026-10-08.md), with20scheduling units passed/0failed/0skipped and direct TypeScript/focused ESLint native0, plus parent-reported fresh whole-unit/build/static gates and actual1,000-group HTTP/database preview/save with exact acceptance/audit readbacks. Historical [R2 author verification](../test-artifacts/story14-3-verification.md#r2-identity-wait-regression--2026-10-07), [named matrix audit](../test-artifacts/story14-3-r2-named-audit.json), [check summary](../test-artifacts/story14-3-r2-check-summary.json) and [review provenance](../test-artifacts/story14-3-r2-review-provenance.json) are historical evidence, not fresh results for this production patch.
 
-All four transferred P0/P1 obligations use actual commands and exact durable readbacks. The registration audit withdraws historical exhaustion/distinct-key execution claims; the current complete report actually executes both and all R1 regressions. Safe observers retain actual RPC responses and emit only guard booleans/time deltas. Current full verification passes; historical failures and their causal limits remain separate. R2 and independent narrow regression/trail inspections passed; exact empty-chain Epic CI remains required (AC7–12).
+Limits: this author executed pure/static checks; the parent executed fresh whole-unit/build/static and the actual large HTTP/database case and owns remaining full browser, required integration and exact fresh empty-chain Epic CI gates. No general scalability claim or inherited-skip coverage is implied. Parent owns independent High review/provenance and final completion decisions. Applied migrations and all original review/failed-run history remain preserved. No hosted/external or Phase C capability is introduced.
 
-Root authorized only immutable generated BMAD Markdown/JSON cache exclusion for canonical lint EPERM; application/test coverage remains intact. Applied migrations stay immutable and the new forward record preserves all94 prior ledger entries.
 
-The current high advisory is repaired within Next's declared compatible transitive range, so the lock changes only sharp/native closure rather than application APIs. Diagnostic scripts retain their historical filenames and unsupported warnings; dynamic built-in imports satisfy canonical lint without a new ignore or executing old WSL readers.
+### Current direct-closeout clearance — 2026-10-08
 
-- `eslint.config.mjs:19` — `_bmad/render/**`: narrow generated-cache ignore.
-- `tests/integration/commands/booking-conflicts.int.test.ts:157` — `14.3-INT-005`: exact CREATE/UPDATE rollback snapshots.
-- `tests/integration/commands/booking-conflicts.int.test.ts:177` — `14.3-INT-006`: actual stale save keeps original identity.
-- `docs/process/local-setup.md:129` — `Booking conflict attestation`: dedicated private key and synthetic local bootstrap.
-- `pnpm-lock.yaml:2096` — `sharp@0.35.5`: compatible patched native dependency; manifest/Next remain unchanged.
-- `_bmad-output/test-artifacts/story14-3-time-stability-runner.cjs:3` — `await import('node:fs')`: diagnostic-only import repair, preserving native-argv/stdin containment.
-
-Evidence: [current author verification/AC mapping](../test-artifacts/story14-3-verification.md#r2-identity-wait-regression--2026-10-07), [actual named matrix audit](../test-artifacts/story14-3-r2-named-audit.json), [current check summary](../test-artifacts/story14-3-r2-check-summary.json) and [R2 reviewer provenance](../test-artifacts/story14-3-r2-review-provenance.json). Complete full8-worker run native0:1368total/1367passed/0failed/1intentional recovery skip; affected10suites native0:145/145/0/0. Both new identity variants execute, all31 named anchors/all14 units/seven matrix rows/four transfers pass; each of three timezones executes14/14 without skips. Canonical lint0errors/13inherited warnings, units1993/1992/0/1Windows xattr skip, audit2moderate/0high; typecheck/build/containment/lockfile checks pass. Prior sharp/native smoke is historical unchanged-dependency evidence. All historical failed counts and unknown causes remain preserved.
-
-Limits: prior direct failed proof lacks same-proof receipt, its readback is postfailure and historical individual causes remain unknown. Owner correction plus bounded/current functional evidence does not promise indefinite clock stability. The R2 complete run includes the unchanged compatible sharp/native and diagnostic-import repairs. No production code or migration changed in this R2 patch. Native sharp execution is Windows-only; Linux binary execution belongs to CI. R2 completed with one medium verification gap; delegate-reported narrow High regression inspection passed; final trail/evidence inspection also passed as reported by the delegate; exact empty-chain Epic CI remains required. No broad R3 is credited. No14.4 browser/editor/override, hosted/external, numeric coverage or performance/scalability claim is made.
+Author: `/root/kernel_fix`, `gpt-6.1-sol` High, for this bounded metadata reconciliation only; original implementation/fix authorship remains unchanged. Root confirmed all five required gates (verify, db, recovery-storage-loader, e2e, dashboard-e2e) passed on source `179e86c2f96d684310b8c51af59d58ea3e23be78` in [the exact-head run](https://github.com/rthunborg/ElproSaas/actions/runs/37786814317). Actual results: `units 2,159/2,159 passed/zero failed/zero skipped; REQUIRED integration 1,478 total/1,477 passed/zero failed/one preserved skip in275.25s; unchanged real pilot exact120/24profile, two requests/read, Admin p95=15.363932ms≤250ms and synthetic p95=6.183487ms≤25ms; independent recovery one passed/zero failed/zero skipped; general browser197passed/zero failed/zero flaky/four inherited skips in3.7m; dashboard browser57passed/zero failed/zero flaky/zero skipped in1.3m. Skipped integration/browser bodies are unexecuted and receive no coverage credit; independent recovery executes its own separate proof`. Independent narrow High reviews and root-retained evidence are linked in [the direct-closeout record](../../docs/quality/epic14-direct-closeout-evidence-2026-10-08.md). Current follow-up recommendation/review-unverified flags are cleared for the approved direct closeout; historical true recommendations, scores, failures, original pipeline timestamps, baseline and completed broad rounds remain unchanged. This is no additional broad review or score recalculation. Representative performance remains UNKNOWN; manual accessibility/daylight remains NONE, NFR CONCERNS and retained maintenance advisories remain open, and Story15.1 ContractD calendar obligations remain mandatory. No hosted enablement/deployment, skipped-case coverage or further product completion is claimed.

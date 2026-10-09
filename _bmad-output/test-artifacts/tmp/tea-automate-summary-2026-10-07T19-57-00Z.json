@@ -1,0 +1,74 @@
+{
+  "detected_stack": "frontend",
+  "total_tests": 5,
+  "api_tests": 4,
+  "e2e_tests": 1,
+  "backend_tests": 0,
+  "fixtures_created": 0,
+  "api_test_files": 1,
+  "e2e_test_files": 1,
+  "priority_coverage": {
+    "P2": 0,
+    "P0": 2,
+    "P1": 3,
+    "P3": 0
+  },
+  "subagent_execution": "SUBAGENT",
+  "performance_gain": "unmeasured",
+  "knowledge_fragments_used": [
+    "api-testing-patterns",
+    "data-factories",
+    "fixture-architecture",
+    "intercept-network-call",
+    "library-integration-mandate",
+    "network-error-monitor",
+    "network-first",
+    "pactjs-utils-mandate",
+    "playwright-cli",
+    "playwright-utils-mandate",
+    "selector-resilience",
+    "test-levels-framework",
+    "test-priorities-matrix"
+  ],
+  "playwright_utils_deviations": [],
+  "pactjs_utils_deviations": [],
+  "timestamp": "2026-10-07T19-57-00Z",
+  "validation": {
+    "focused_browser": {
+      "pass": 1,
+      "fail": 0,
+      "skip": 0
+    },
+    "full_unit": {
+      "skip": 1,
+      "pass": 2052,
+      "fail": 0,
+      "total": 2053
+    },
+    "focused_lint": "passed",
+    "dashboard_burn_in": {
+      "pass": 290,
+      "iterations": 10,
+      "fail": 0,
+      "skip": 0
+    },
+    "typecheck": "passed",
+    "spec": "unchanged",
+    "focused_node": {
+      "pass": 92,
+      "fail": 0,
+      "skip": 0
+    },
+    "full_browser": {
+      "pass": 57,
+      "fail": 0,
+      "skip": 0
+    },
+    "repeated_browser": {
+      "pass": 3,
+      "fail": 0,
+      "skip": 0
+    },
+    "workflow": "completed"
+  }
+}

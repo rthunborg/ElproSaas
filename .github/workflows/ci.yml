@@ -367,6 +367,11 @@ jobs:
       # Auth-mail E2E must fail loudly if its required local Auth/Mailpit stack is
       # unavailable; this matches the database integration gate.
       SUPABASE_TEST_REQUIRED: "1"
+      # Booking fixture helpers also preview/sign inside the Playwright worker.
+      # Match the existing local seed and webServer pair; these are synthetic
+      # CI-only values, not a production fallback or browser-public credential.
+      BOOKING_CONFLICT_ATTESTATION_KEY_ID: "test_v1"
+      BOOKING_CONFLICT_ATTESTATION_HMAC_SECRET: "local-test-only-booking-conflict-attestation-secret-v1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -436,6 +441,95 @@ jobs:
         with:
           name: playwright-report
           path: playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: supabase stop
+
+  # Story19.1 required partition: isolated runner/database, own fixture setup and real read proxy.
+  dashboard-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Same gate as `db`: only spin up the stack + browser after the fast `verify` job
+    # is green. Runs in parallel with `db` (each boots its own local stack).
+    needs: [verify]
+    env:
+      # Auth-mail E2E must fail loudly if its required local Auth/Mailpit stack is
+      # unavailable; this matches the database integration gate.
+      SUPABASE_TEST_REQUIRED: "1"
+      E2E_PORT: "3201"
+      DASHBOARD_PROXY_PORT: "37921"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser (chromium + OS deps)
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          # Pin the same explicit version as the `db` job (see its note).
+          version: 2.115.0
+
+      - name: Start local Supabase stack
+        run: supabase start
+
+      - name: Migration reset (empty DB → migrate → seed)
+        # Bounded retry (added 2026-07-26): `supabase db reset` intermittently fails with
+        # "Error status 502: An invalid response was received from the upstream server" during its
+        # FINAL "Restarting containers..." step — i.e. AFTER every migration applied and seed.sql ran.
+        # The same exact-ledger + seed + auth verifier used by `db` distinguishes completed recovery
+        # from a real migration/seed failure before any retry or Playwright execution.
+        run: |
+          for attempt in 1 2 3; do
+            echo "::group::supabase db reset (attempt $attempt/3)"
+            if supabase db reset; then
+              echo "::endgroup::"
+              exit 0
+            fi
+            echo "::endgroup::"
+            echo "db reset attempt $attempt failed"
+            if node scripts/verify/check-local-supabase-reset.mjs; then
+              echo "db reset completed; recovered from the CLI's final restart error"
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              sleep 15
+            fi
+          done
+          echo "supabase db reset failed after 3 attempts — treating as a REAL failure"
+          exit 1
+
+      # The Playwright webServer builds + starts the app against the local stack
+      # (NEXT_PUBLIC_* are inlined from playwright.config.ts), globalSetup seeds the
+      # two-tenant fixture, and the specs drive the real browser journeys (G-2/G-3).
+      - name: Required dashboard browser tests (dedicated fixtures and read proxy)
+        # The configured reporter sums Playwright test attempts only. Its own
+        # production build/web-server bootstrap remains outside the approved
+        # five-minute browser execution budget.
+        run: pnpm exec playwright test --config tests/e2e/dashboard/playwright.ci.config.ts
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-playwright-report
+          path: playwright-report/dashboard/
           retention-days: 7
           if-no-files-found: ignore
 

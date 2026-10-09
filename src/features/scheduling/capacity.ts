@@ -72,6 +72,16 @@ export type DailyCapacity = {
  */
 export function dailyCapacity(input: SchedulingFacts, person: SchedulingPerson, date: string): DailyCapacity {
   const day = localDayRange(date);
+  const demand = activeExistingBookings(input).filter((booking) => booking.assigneeIds.includes(person.id)).reduce((total, booking) => {
+    const overlap = intersectRanges(bookingRange(booking), day); return total + (overlap ? overlap.end - overlap.start : BigInt(0));
+  }, BigInt(0));
+  return prepareDailyCapacity(input, person, date)(demand);
+}
+/** Prepare immutable work terms once; each candidate supplies exact peer demand.
+ * The closure is invocation-local and retains hundredths until the same division.
+ */
+export function prepareDailyCapacity(input: SchedulingFacts, person: SchedulingPerson, date: string): (demand: bigint) => DailyCapacity {
+  const day = localDayRange(date);
   const ordinary = unionRanges(person.shifts.filter((shift) => shift.weekday === weekdayForDate(date)).flatMap((shift) => {
     const range = localRange(date, shift.start, shift.end); if (!range) return [];
     const breaks = shift.breaks.flatMap((pause) => { const range = localRange(date, pause.start, pause.end); return range ? [range] : []; });
@@ -91,18 +101,17 @@ export function dailyCapacity(input: SchedulingFacts, person: SchedulingPerson, 
   // Percent rules can produce sub-microsecond budgets. Keep hundredths of a
   // microsecond until comparison/terms, rather than silently rounding away loss.
   const reductionHundredths = calendar?.variant === "reduced_capacity" ? duration(work) * BigInt(calendar.reductionPercent!) : BigInt(0);
-  const demand = activeExistingBookings(input).filter((booking) => booking.assigneeIds.includes(person.id)).reduce((total, booking) => {
-    const overlap = intersectRanges(bookingRange(booking), day); return total + (overlap ? overlap.end - overlap.start : BigInt(0));
-  }, BigInt(0));
   const buffer = BigInt(input.rules.planningBufferMinutes * 60000000);
-  const availableHundredths = (duration(work) - demand - buffer) * BigInt(100) - reductionHundredths;
-  // Demand is whole microseconds: comparison to the floored positive budget is
-  // exact. Negative budgets always warn for any positive candidate duration.
-  return { workWindows: work, availableMicroseconds: availableHundredths / BigInt(100), terms: {
-    scheduledMinutes: minutes(duration(scheduled)), holidayClosedMinutes: Number(closedMicros * BigInt(100) + reductionHundredths) / 6000000000,
-    absenceMinutes: minutes(absenceMicros), existingBookingMinutes: minutes(demand), blockedMinutes: minutes(blockedMicros),
-    bufferMinutes: minutes(buffer), availableMinutes: Number(availableHundredths) / 6000000000,
-  } };
+  return (demand) => {
+    const availableHundredths = (duration(work) - demand - buffer) * BigInt(100) - reductionHundredths;
+    // Demand is whole microseconds: comparison to the floored positive budget is
+    // exact. Negative budgets always warn for any positive candidate duration.
+    return { workWindows: work, availableMicroseconds: availableHundredths / BigInt(100), terms: {
+      scheduledMinutes: minutes(duration(scheduled)), holidayClosedMinutes: Number(closedMicros * BigInt(100) + reductionHundredths) / 6000000000,
+      absenceMinutes: minutes(absenceMicros), existingBookingMinutes: minutes(demand), blockedMinutes: minutes(blockedMicros),
+      bufferMinutes: minutes(buffer), availableMinutes: Number(availableHundredths) / 6000000000,
+    } };
+  };
 }
 /** Available capacity excludes the candidate and its old version. Can be negative. */
 export function calculateCapacity(input: SchedulingFacts, personId: string, date: string): CapacityTerms {

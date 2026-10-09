@@ -60,7 +60,7 @@
 # use the current Epic 10 statuses and approved corrective-story entries below.
 
 generated: 2026-06-12
-last_updated: 10-07-2026 18:12  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
+last_updated: 10-08-2026 15:59  # ADR-B009 connected-field course correction verified; governance Story 10.7 done, no PWA/offline functionality delivered.
 project: Kopplas
 project_key: NOKEY
 tracking_system: file-system
@@ -244,11 +244,11 @@ development_status:
   # finalized at the checkpoint / gate close).
   # E14: N-3 is resolved by ADR-B009 (connected 360x640 field UX; no Story 10.7
   # technical prerequisite). N-9 is answered; conflict/capacity fixtures can harden.
-  epic-14: in-progress
-  14-1-scheduling-activation-person-profiles-and-work-hours: review
-  14-2-bookings-and-assignees-schema-and-transactional-commands: review
-  14-3-deterministic-conflict-engine-detection-core: review
-  14-4-booking-editor-with-live-conflict-warnings-and-audited-override: review
+  epic-14: done
+  14-1-scheduling-activation-person-profiles-and-work-hours: done
+  14-2-bookings-and-assignees-schema-and-transactional-commands: done
+  14-3-deterministic-conflict-engine-detection-core: done
+  14-4-booking-editor-with-live-conflict-warnings-and-audited-override: done
   epic-14-retrospective: done
 
   # E15: 15-5 is public token surface #1 — ships only with the ADR-B004 abuse
@@ -290,8 +290,10 @@ development_status:
   18-4-job-completion-event: backlog
   epic-18-retrospective: optional
 
-  epic-19: backlog
-  19-1-widget-registry-and-dashboard-framework: backlog
+  # 2026-10-07: 19.1 receives only Offertpipeline plus framework; 19.2 retains
+  # five widgets. Bounded second lane; Epic 19 stays incomplete (see sprint change proposal).
+  epic-19: in-progress
+  19-1-widget-registry-and-dashboard-framework: done
   19-2-the-v1-widget-set: backlog
   epic-19-retrospective: optional
 
@@ -299,12 +301,17 @@ development_status:
   # ---- candidate lists (32 candidates, epics-phase-b.md Wave B2 section) and
   # ---- add their story rows to this file (re-run sprint planning).
 
+  # E20-only early preparation exception: see early-b2-documents-checkpoint-2026-10-07.md.
+  # No E20 story admission until its recorded oracle/specification gates close.
   # WAVE B2 — epic-level entries ONLY (candidate stories uncommitted, PB-D10).
   # Every B2/B3 module: activation story first (Cross-Epic Rule 1);
   # [oracle-check] labels resolve before the epic's first story (Rule 2);
   # N-1 migration classification round 2 precedes each module's data-migration
   # story (Rule 4, NFR52).
   epic-20: backlog  # Documents center — 3 candidates; aggregation only, no tables (PB-D6)
+  20-1-documents-activation-and-source-authorized-aggregation: backlog
+  20-2-search-filters-preview-and-archive-restore: backlog
+  20-3-entity-panel-links-and-contextual-navigation: backlog
   epic-20-retrospective: optional
   epic-21: backlog  # Rentals — 6 candidates; feeds E26; migration story [gated: N-1]
   epic-21-retrospective: optional
@@ -530,7 +537,7 @@ action_items:
       evidence before merge, preserving executed/skipped counts and isolated recovery
       proof."
     owner: "Epic delivery owner"
-    status: open
+    status: done
     ref: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/epic-14-retro-2026-10-07.md"
   - id: "epic-14-retro-review"
     epic: 14
@@ -538,7 +545,7 @@ action_items:
       through bounded permitted review, then official completion transitions and retrospective
       refresh."
     owner: "Epic delivery/review owner"
-    status: open
+    status: done
     ref: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/epic-14-retro-2026-10-07.md"
   - id: "epic-14-retro-quality"
     epic: 14
@@ -546,7 +553,7 @@ action_items:
       expiry-clock, fixture-order and oversized-test remediation with actual resolution
       evidence."
     owner: "QA/test owner"
-    status: open
+    status: in-progress
     ref: "C:/DEV/ElproSaas/_bmad-output/implementation-artifacts/epic-14-retro-2026-10-07.md"
   - id: "epic-14-retro-performance"
     epic: 14
