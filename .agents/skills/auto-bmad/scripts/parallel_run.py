@@ -92,7 +92,9 @@ def branch(repo):
     return git(repo,'symbolic-ref','--quiet','--short','HEAD')
 
 def path_token(token):
-    require(isinstance(token,str) and token and '\\' not in token and not any(c in token for c in '*?[]\n\r\x00'), 'Paths must be exact relative POSIX paths or trailing-slash prefixes')
+    # Brackets are literal filename characters (for example Next.js route segments).
+    # Ownership comparisons below use equality/prefix checks, never glob matching.
+    require(isinstance(token,str) and token and '\\' not in token and not any(c in token for c in '*?\n\r\x00'), 'Paths must be exact relative POSIX paths or trailing-slash prefixes')
     p = PurePosixPath(token)
     require(not p.is_absolute() and '..' not in p.parts and '.' not in p.parts and ':' not in token and p.parts[0] != '.git','Unsafe path: '+token)
     require(str(p)+( '/' if token.endswith('/') else '')==token,'Noncanonical path: '+token)

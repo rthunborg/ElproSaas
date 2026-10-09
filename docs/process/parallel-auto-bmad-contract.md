@@ -59,6 +59,10 @@ Each story records:
 
 Do not use globs or absolute file paths in write_paths. Broad directory prefixes
 can unintentionally overlap shared state or other stories and will be refused.
+Literal square brackets in filenames, including Next.js `[customerId]` route
+segments, are accepted as exact characters. They never act as glob character
+classes; `*` and `?` remain forbidden. Ownership uses literal equality or a
+declared trailing-slash directory prefix.
 Declare a common semantic domain for migrations touching the same schema contract,
 shared registries, permissions, package/lockfile changes and shared test datasets.
 Any ownership under supabase/migrations/ requires the schema:migrations domain;

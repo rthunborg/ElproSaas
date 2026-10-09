@@ -36,7 +36,7 @@ EntityFilePanel source paths: customer/facility/contact nested customer page; ca
 - `src/components/documents/DocumentPreviewPane.tsx`
 - `src/components/documents/DocumentLifecycleActions.tsx`
 - `src/app/(app)/files/page.tsx`
-- `supabase/migrations/` CLI-allocated basename`story_20_2_documents_lifecycle_origin_and_restore.sql`(actual timestamp path pinned before claims)
+- `supabase/migrations/20261009091121_story_20_2_documents_lifecycle_origin_and_restore.sql` (exact planning reservation; CLI-first empty/unapplied creation then verified local rename, no SQL here)
 - `tests/unit/features/documents/filters.test.ts`
 - `tests/unit/features/documents/date-bounds.test.ts`
 - `tests/unit/features/documents/preview-state.test.ts`
@@ -75,3 +75,7 @@ Generic EntityFilePanel/CommitmentFilesPanel/FileIndexUpload,20.1 HMAC/RPC signi
 ## Exact required check handoff
 
 20.2 required names: `documents20-2-filter-unit`, `documents20-2-lifecycle-integration`, `documents20-2-browser` plus `unit`,`typecheck`,`lint`,`production-build`,`service-role-containment`,`bundle-containment`,`lockfiles` and20.1 selected-link/quote/lock regressions.20.3 names: `documents20-3-context-unit`,`documents20-3-context-integration`,`documents20-3-browser` plus the same general gates and changed20.1/20.2 boundary regressions. Exact argv is in each spec Verification section; mandatory DB/RLS use SUPABASE_TEST_REQUIRED=1 and report positive executed/zero skipped. Actual passing evidence must bind exact product result and combined integration revision; none is claimed by these docs.
+
+## Current readiness disposition — 2026-10-09
+
+Historical pins and prior blocked preparation statements above remain history. Current readiness base is`a9d5269e0e3762255e1cc992bb2465883508dc21`; exact Lovable comparison is NOT REQUIRED under the recorded owner decision, with zero observations/no verified legacy parity. Integrated High review covers all three complete historical specs/contracts. The bounded readiness/path/disposition delta has coordinator-confirmed targeted independent High acceptance and recorded checkpoint closure on2026-10-09; all three specs are ready-for-dev with new pins, implementation_authorized:false; actual sequential product handoffs and fresh claims/resources remain dispatch gates.20.1 reserved migration is`supabase/migrations/20261009091120_story_20_1_documents_selected_link_access.sql`;20.2 reserved path is listed above;20.3 has none. See the readiness checkpoint for CLI/no-timestamp-flag creation/rename and collision/order checks. No existing shared interface changes.

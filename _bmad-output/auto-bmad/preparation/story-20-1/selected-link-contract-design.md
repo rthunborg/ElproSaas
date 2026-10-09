@@ -1,6 +1,6 @@
 # Story20.1 selected-link access contract
 
-Status: concrete future implementation design, pending independent High review and remaining checkpoint gates. Date:2026-10-08. Integrated source base:`42f5cf60d1ded6d814c2c0f61b70b312144ce10e`. Preparation branch:`codex/documents-selected-link-contract-preparation`; worktree:`C:\Users\Rasmus\.codex\worktrees\dbe6\ElproSaas`. Author:`/root/documents_spec`, `gpt-6.1-sol` High. No code, migration, database query, runtime test, claim or ready-for-dev promotion has occurred.
+Status: independently High-reviewed future implementation design at historical pin; no product/runtime proof. Current readiness base:`a9d5269e0e3762255e1cc992bb2465883508dc21`; historical source base42f5 remains below as inspection history. The bounded2026-10-09 oracle/path/readiness delta has coordinator-confirmed independent High acceptance and recorded preparation-checkpoint closure; all three specs are ready-for-dev, not assigned or implemented. Author:`/root/documents_spec`, `gpt-6.1-sol` High; root owns admission.
 
 ## Fixed optionA reach
 
@@ -65,7 +65,7 @@ Map prepare/finalize SQL42501 to generic TENANT_ACCESS_DENIED; FSA10 to FILE_ACC
 
 ## Exact intended product paths and migration unit
 
-Future additive migration logical basename is **`story_20_1_documents_selected_link_access.sql`**, located under`supabase/migrations/` with the real CLI-generated timestamp when implementation is admitted. This preparation cannot allocate that physical filename without creating a forbidden migration; the SQL API/schema unit above is fixed, not a wrapper TBD. Future author runs`supabase migration new story_20_1_documents_selected_link_access` and pins its actual returned path before worker claims, declaring`schema:migrations`. No existing migration edited; zero new tables/views/storage policies/buckets/roles; new checked/internal functions and ACLs only.
+Reserved future additive migration: **`supabase/migrations/20261009091120_story_20_1_documents_selected_link_access.sql`**. The coordinator-authorized planning reservation was checked absent in current main and all registered worktrees. At admitted implementation retain CLI-first empty/unapplied creation then verified workspace-local rename exactly as `readiness-checkpoint-2026-10-09.md` specifies; no unsupported timestamp flag, existing migration edit or SQL creation here. SQL APIs/schema unit remain fixed, schema:migrations serialized; zero new tables/views/Storage policies/buckets/roles.
 
 Exact TS product paths: `src/features/documents/actions.ts`; `src/server/commands/documents/signed-access.ts`; `src/server/commands/documents/db.ts`(typed new RPC signatures/error mapping); `src/server/storage/document-signed-access-attestation.ts`; `src/server/commands/envelope.ts`; `src/server/read-models/document-sources.ts`; `src/server/read-models/documents.ts`; existing files list/page/preview, manifest/nav/matrix paths in Story20.1. The generic `files.ts`, `file-db.ts`, generic attestation module and quote signer are read-only reuse references, not automatic write claims.
 
@@ -81,4 +81,4 @@ Source inspected at42f5: generic signing`src/server/commands/files/files.ts`; ge
 
 Supabase official database-function documentation was consulted for function privilege/search-path fundamentals; the changelog.md web fetch rejected text/markdown, so no changelog compatibility pass is claimed. This is future contract design, not an implementation relying on an unverified new API. [Official database functions](https://supabase.com/docs/guides/database/functions).
 
-Independent High exact-revision review must verify signatures, definer authority predicates, matrix/source equivalence, canonical vectors/ACLs and locking boundary before pinning. The full20.1–20.3 preparation/checkpoint, oracle disposition, claimed physical migration path, current integrated-base and shared-resource/semantic admission remain gates. Nothing here authorizes implementation or closes them.
+Historical independent High exact-contract review is integrated; targeted review accepted only oracle disposition, readiness and exact path allocation on2026-10-09, as confirmed by the coordinator. Exact Documents oracle comparison is not required under the2026-10-09 owner decision. All three canonical specs must retain reviewed pins before first E20 dispatch; actual integrated-base/path/shared-resource/semantic admission and runtime checks remain future worker gates. No command/RPC/proof/locking/ACL contract is changed by this amendment.

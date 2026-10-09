@@ -1,0 +1,372 @@
+{
+  "schema_version": 1,
+  "observed_date": "2026-10-09",
+  "worktrees": [
+    {
+      "worktree": "C:/DEV/ElproSaas",
+      "head": "eef577cadffaf1b67fdff362081127d77a814beb",
+      "branch": "refs/heads/codex/epic14-resume",
+      "anchor_scan": {
+        "total": 73,
+        "status_counts": {
+          "done": 73
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/DEV/ElproSaas/tmp/private/epic11-pilot-operations",
+      "head": "1edcab4466f588fdaf5c3502e32aa8d437795738",
+      "branch": "refs/heads/codex/epic-11-operational-verification",
+      "anchor_scan": {
+        "total": 59,
+        "status_counts": {
+          "done": 59
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/DEV/ElproSaas/tmp/private/pr59-review-fixes",
+      "head": "a435c6e7bff5f9200e06fbcd7852d447c4ec8e87",
+      "branch": "refs/heads/codex/pr59-review-fixes",
+      "anchor_scan": {
+        "total": 59,
+        "status_counts": {
+          "done": 59
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/DEV/ElproSaas/tmp/private/review-order-main",
+      "head": "958f3ae165b11886bcc2d576c93b4e37a2a5f4ab",
+      "branch": "refs/heads/codex/review-order-convention",
+      "anchor_scan": {
+        "total": 57,
+        "status_counts": {
+          "done": 57
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/DEV/ElproSaas/tmp/private/review-order-pr47",
+      "head": "c06757d27cb1e84cb9298a21d71ce39158b2c21f",
+      "branch": "refs/heads/codex/pr46-post-merge-bookkeeping",
+      "anchor_scan": {
+        "total": 54,
+        "status_counts": {
+          "done": 54
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/DEV/ElproSaas/tmp/worktrees/epic-12-console-verification-20260920",
+      "head": "661dfd33a2f9992254a521ac71b64ef885eda862",
+      "anchor_scan": {
+        "total": 63,
+        "status_counts": {
+          "done": 63
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/DEV/ElproSaas/tmp/worktrees/fix-backup-db-url-stdin",
+      "head": "1de84866fe891e39e48b7139baf97d192665997a",
+      "branch": "refs/heads/codex/fix-backup-db-url-stdin",
+      "anchor_scan": {
+        "total": 59,
+        "status_counts": {
+          "done": 59
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/DEV/ElproSaas/tmp/worktrees/ops-isolated-recovery-stack",
+      "head": "bb910b16c8fd26c2e6205e14f840a2f400c67c8a",
+      "branch": "refs/heads/codex/ops-isolated-recovery-stack",
+      "anchor_scan": {
+        "total": 59,
+        "status_counts": {
+          "done": 59
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/DEV/ElproSaas-onboarding-base-repro",
+      "head": "0b4e37e8f76998282573599b3543751538dd5fdc",
+      "anchor_scan": {
+        "total": 63,
+        "status_counts": {
+          "done": 63
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/DEV/ElproSaas-worktrees/epic11-auth-callback",
+      "head": "2fb018a8af185525dad1d94043dae7703c7c88ed",
+      "branch": "refs/heads/codex/story-11-3-auth-callback",
+      "anchor_scan": {
+        "total": 59,
+        "status_counts": {
+          "done": 59
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/DEV/ElproSaas-worktrees/epic11-checkpoint",
+      "head": "a435c6e7bff5f9200e06fbcd7852d447c4ec8e87",
+      "branch": "refs/heads/codex/epic-11-release-evidence",
+      "anchor_scan": {
+        "total": 59,
+        "status_counts": {
+          "done": 59
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/DEV/ElproSaas-worktrees/epic11-identity",
+      "head": "fc2a85e4e615653c812a002eb48a63c6820e2823",
+      "branch": "refs/heads/codex/story-11-3-invitation-identity-binding",
+      "anchor_scan": {
+        "total": 57,
+        "status_counts": {
+          "done": 57
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/DEV/ElproSaas-worktrees/epic11-lifecycle",
+      "head": "64af003a6f9fd1bee6f7494b6b52b819d071198c",
+      "branch": "refs/heads/codex/story-11-3-invitation-lifecycle",
+      "anchor_scan": {
+        "total": 57,
+        "status_counts": {
+          "done": 57
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/DEV/ElproSaas-worktrees/epic11-nfr-evidence",
+      "head": "23b379a97969160ac9fffb34913648303b1e9e70",
+      "branch": "refs/heads/codex/epic-11-nfr-evidence",
+      "anchor_scan": {
+        "total": 59,
+        "status_counts": {
+          "done": 59
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/DEV/ElproSaas-worktrees/epic11-reset",
+      "head": "7c543525f6b60ea3d76fb5c189af714f9c9ce0a7",
+      "branch": "refs/heads/codex/story-11-3-reset-retry",
+      "anchor_scan": {
+        "total": 59,
+        "status_counts": {
+          "done": 59
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/DEV/ElproSaas-worktrees/epic11-test-quality",
+      "head": "9b2aaed410b610e0781ad1d3578cdb9ed0407373",
+      "branch": "refs/heads/codex/epic-11-test-quality",
+      "anchor_scan": {
+        "total": 59,
+        "status_counts": {
+          "done": 59
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/Users/Rasmus/.codex/worktrees/9cd1/ElproSaas",
+      "head": "8ba353320687adbd476ba750144ddee03e040dcb",
+      "branch": "refs/heads/codex/next-image-ssrf-maintenance",
+      "anchor_scan": {
+        "total": 68,
+        "status_counts": {
+          "done": 68
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/Users/Rasmus/.codex/worktrees/b3cc/ElproSaas",
+      "head": "76ebf1f77b014399c695be08b1e16fa4a21d149b",
+      "branch": "refs/heads/codex/epic14-closeout",
+      "anchor_scan": {
+        "total": 74,
+        "status_counts": {
+          "done": 74
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/Users/Rasmus/.codex/worktrees/dbe6/ElproSaas",
+      "head": "a9d5269e0e3762255e1cc992bb2465883508dc21",
+      "branch": "refs/heads/codex/documents-oracle-disposition-readiness",
+      "anchor_scan": {
+        "total": 74,
+        "status_counts": {
+          "done": 74
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/Users/Rasmus/.codex/worktrees/epic12-fix-e2e/ElproSaas",
+      "head": "931ff85d1ab921678e529a2984fb3f3cd7f41529",
+      "anchor_scan": {
+        "total": 63,
+        "status_counts": {
+          "done": 63
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/Users/Rasmus/.codex/worktrees/epic13-base-e2e/ElproSaas",
+      "head": "0b4e37e8f76998282573599b3543751538dd5fdc",
+      "anchor_scan": {
+        "total": 63,
+        "status_counts": {
+          "done": 63
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/Users/Rasmus/.codex/worktrees/epic13-release-decisions/ElproSaas",
+      "head": "1020387b624b2b777a0629eabfa373d0df39ba99",
+      "branch": "refs/heads/codex/epic13-release-decisions",
+      "anchor_scan": {
+        "total": 68,
+        "status_counts": {
+          "done": 68
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/Users/Rasmus/.codex/worktrees/epic14-scheduling/ElproSaas",
+      "head": "b175b1d8c18eeb277d3ab450a6dde40643290b65",
+      "branch": "refs/heads/epic/14-wave-b1b-resource-and-scheduling-foundation",
+      "anchor_scan": {
+        "total": 72,
+        "status_counts": {
+          "done": 68,
+          "in-progress": 4
+        }
+      },
+      "in_progress_or_unresolved_anchors": [
+        {
+          "path": "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\auto-bmad\\state\\14-1-scheduling-activation-person-profiles-and-work-hours.yaml",
+          "status": "in-progress",
+          "epic_num": "14",
+          "story_id": "null",
+          "active_story": null,
+          "parallel_run_id": null
+        },
+        {
+          "path": "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\auto-bmad\\state\\14-2-bookings-and-assignees-schema-and-transactional-commands.yaml",
+          "status": "in-progress",
+          "epic_num": "14",
+          "story_id": "null",
+          "active_story": null,
+          "parallel_run_id": null
+        },
+        {
+          "path": "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\auto-bmad\\state\\14-3-deterministic-conflict-engine-detection-core.yaml",
+          "status": "in-progress",
+          "epic_num": "14",
+          "story_id": "null",
+          "active_story": null,
+          "parallel_run_id": null
+        },
+        {
+          "path": "C:\\Users\\Rasmus\\.codex\\worktrees\\epic14-scheduling\\ElproSaas\\_bmad-output\\auto-bmad\\state\\epic\\epic-14.yaml",
+          "status": "in-progress",
+          "epic_num": "14",
+          "story_id": "null",
+          "active_story": "14-3-deterministic-conflict-engine-detection-core",
+          "parallel_run_id": null
+        }
+      ]
+    },
+    {
+      "worktree": "C:/Users/Rasmus/.codex/worktrees/parallel-bmad-plan/ElproSaas",
+      "head": "1f06e597387bb6a667bfc605fa4952bf7956e6e0",
+      "branch": "refs/heads/codex/phase-b-second-lane-readiness",
+      "anchor_scan": {
+        "total": 68,
+        "status_counts": {
+          "done": 68
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/Users/Rasmus/.codex/worktrees/runner-cursor-resilience/ElproSaas",
+      "head": "68b7db3021d0601283a6c4d65141ac93f4416999",
+      "branch": "refs/heads/codex/runner-cursor-resilience",
+      "anchor_scan": {
+        "total": 68,
+        "status_counts": {
+          "done": 68
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    },
+    {
+      "worktree": "C:/Users/Rasmus/.codex/worktrees/story19-1-dashboard/ElproSaas",
+      "head": "a9d5269e0e3762255e1cc992bb2465883508dc21",
+      "branch": "refs/heads/codex/phase-b-lane-closeout",
+      "anchor_scan": {
+        "total": 74,
+        "status_counts": {
+          "done": 74
+        }
+      },
+      "in_progress_or_unresolved_anchors": []
+    }
+  ],
+  "shared_store_path": "C:\\DEV\\ElproSaas\\.git\\auto-bmad-parallel.sqlite3",
+  "shared_store_exists": false,
+  "claims": [],
+  "sessions_evidence": "Root list_threads(50) 2026-10-09: this lane active; Coordinator 01a1160d-b5b1-7623-a8e8-54ef3dc537ed idle C:/DEV/ElproSaas; Epic14 checkpoint idle b3cc; other retained idle/notLoaded; no Epic15 chat/worktree found. Idle is not ownership release; fresh pre-init inspection required.",
+  "owner_release_evidence": {
+    "source": "root coordinator verified GitHub and existing lane record",
+    "epic14_merge": "8a7debbee83c9a4f6eb8ec4496ba2f7ad7db4b4b",
+    "epic14_ci_run": "37791451950",
+    "epic14_required_jobs_passed": 5,
+    "epic14_sprint_writer": "released by original owner; stale retained anchors not edited",
+    "accepted_phase_b_base": "a9d5269e0e3762255e1cc992bb2465883508dc21",
+    "accepted_base_ci_run": "37810245623",
+    "accepted_base_required_jobs_passed": 5,
+    "earlier_failed_db_attempt": "retained historical failure; later required rerun passed",
+    "fresh_pre_init_gate_required": true
+  },
+  "anchor_scan_summary": {
+    "source": "Read-only scan across all registered worktrees: _bmad-output/auto-bmad/state/*.yaml and state/epic/*.yaml; copied completed anchors are counted in each checkout but omitted from detail. Every non-completed anchor retains its original parsed fields and path.",
+    "total_anchor_entries": 1647,
+    "omitted_non_active_anchor_status_counts": {
+      "done": 1643
+    },
+    "retained_non_completed_anchor_entries": 4
+  }
+}

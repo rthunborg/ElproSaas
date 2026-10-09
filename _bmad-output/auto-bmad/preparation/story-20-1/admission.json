@@ -1,20 +1,20 @@
 {
   "schema_version": 1,
-  "artifact_kind": "blocked-story-preparation-evidence",
-  "executable_parallel_plan": false,
-  "status": "blocked",
+  "artifact_kind": "reviewed-specification-readiness-evidence",
+  "executable_parallel_plan": true,
+  "status": "specification-ready-dispatch-not-started",
   "story_id": "20.1",
   "canonical_story_key": "20-1-documents-activation-and-source-authorized-aggregation",
   "epic": "E20",
-  "approved": false,
+  "approved": true,
   "preparation_intent_approved": true,
   "implementation_authorized": false,
-  "branch": "codex/documents-later-story-preparation",
+  "branch": "codex/documents-oracle-disposition-readiness",
   "worktree": "C:\\Users\\Rasmus\\.codex\\worktrees\\dbe6\\ElproSaas",
-  "base_sha": "8ba0150cc60ac17ac378edac5ad77405e907d3bf",
-  "workflow_version": "d061782354238883c72fc96d0c9affe418a505f7f414459826a4335161c222e1",
+  "base_sha": "a9d5269e0e3762255e1cc992bb2465883508dc21",
+  "workflow_version": "304a3a4a3a4b43665257b4e934eb5c905666a339b97989630c9d7f290dd6c3c6",
   "spec_path": "_bmad-output/implementation-artifacts/spec-20-1-documents-activation-and-source-authorized-aggregation.md",
-  "spec_revision": "ad9ae965b3cadbe5def211a7e1adc2e2bd77ceab81986930444b05844f96bef0",
+  "spec_revision": "63b9e8c20cbb5f116da0a66d6e0ffe27cdc61a9e1f01b11d7f3720fd4e3bc7ea",
   "author": {
     "identity": "/root/documents_spec",
     "agent_id": "01a11ae9-d2ac-7492-830b-edcc13c16b1b",
@@ -23,17 +23,23 @@
     "reason": "Source authorization, current authority, permission/RLS/token and signing boundary design"
   },
   "independent_review": {
-    "approved": false,
-    "status": "reviewed-design-only",
+    "approved": true,
+    "status": "approved-bounded-readiness-delta",
     "preparation_review_complete": true,
     "reviewer": "/root/documents_audit",
     "agent_id": "01a11af1-1be3-7110-9fea-57b6b85f03fe",
     "model": "gpt-6.1-sol",
     "effort": "high",
-    "spec_revision": "ad9ae965b3cadbe5def211a7e1adc2e2bd77ceab81986930444b05844f96bef0",
-    "audit_path": "docs/quality/story-20-1-selected-link-contract-review-2026-10-08.md",
+    "spec_revision": "63b9e8c20cbb5f116da0a66d6e0ffe27cdc61a9e1f01b11d7f3720fd4e3bc7ea",
+    "audit_path": "docs/quality/documents-readiness-disposition-review-2026-10-09.md",
     "additional_material_design_defects": 0,
-    "followup_scope": "New selected-link design delta and two corrected race/artifact classification findings; prior design history retained in prior audit"
+    "followup_scope": "Documents-only oracle disposition, all three readiness/status/path deltas, helper exact-route containment, concrete read-only plan and current metadata",
+    "report_path": "docs/quality/documents-readiness-disposition-review-2026-10-09.md",
+    "historical_review_reference": {
+      "audit_path": "docs/quality/story-20-1-selected-link-contract-review-2026-10-08.md",
+      "followup_scope": "New selected-link design delta and two corrected race/artifact classification findings; prior design history retained in prior audit"
+    },
+    "report_sha256_lf": "884bb70394c6d63150484d2361d8925c42e72f6090af3b6a3c05c9e8e8d656e3"
   },
   "boundary_choice": "A",
   "recommended_boundary_choice": "A-with-explicit-owner-acceptance",
@@ -71,25 +77,25 @@
     "src/server/commands/envelope.ts",
     "tests/unit/server/storage/document-signed-access-attestation.test.ts",
     "tests/unit/server/commands/documents-signed-access.test.ts",
-    "tests/integration/commands/documents-signed-access-lock-races.int.test.ts"
+    "tests/integration/commands/documents-signed-access-lock-races.int.test.ts",
+    "supabase/migrations/20261009091120_story_20_1_documents_selected_link_access.sql"
   ],
-  "unresolved_write_paths": [
-    "Physical CLI migration timestamp/path must be allocated and pinned before claims; logical basename is fixed",
-    "Final write-path admission must include the reviewed contract paths and preserve read-only generic signer/quote broker references"
-  ],
+  "unresolved_write_paths": [],
   "conflict_domains": [
     "registry:scope-manifest",
     "registry:navigation",
     "auth:permission-matrix",
     "auth:current-source-authority",
     "storage:checked-signing-attestation",
-    "schema:migrations-if-wrappers-required",
+    "schema:migrations",
     "tests:shared-file-fixtures"
   ],
   "risk_domains": [
     "permissions",
-    "authentication-authorization",
-    "security-rls",
+    "authentication",
+    "authorization",
+    "security",
+    "rls",
     "public-tokens",
     "transactional-integrity"
   ],
@@ -204,18 +210,31 @@
     }
   ],
   "remaining_gates": [
-    "Authorized Lovable URL/tab/session and actual behavior evidence, or explicit owner oracle disposition; no waiver recorded",
-    "Record early-E20 checkpoint closure on all three reviewed specifications and authoritative oracle disposition; all specs remain blocked",
-    "Merge this later-story preparation and revalidate current integrated base before implementation",
-    "Allocate physical CLI migration timestamps/paths and pin exact admitted write paths before claims; no SQL files created",
-    "Coordinator validates current ownership/resources and plan, then obtains successful assignments/claims; none exist",
-    "20.2 requires verified20.1 product integration, and20.3 requires verified20.1/20.2 product integration; preparation merges do not satisfy product prerequisites",
-    "Execute per-story and combined-integration required checks at exact product revisions; no runtime Documents evidence claimed",
-    "Retain full E20/wave and PhaseC scope gates; registration, option A and bounded specification preparation are satisfied"
+    "Fresh ownership, migration ordering/collision, source-base and resource reconciliation immediately before future initialization",
+    "Verified20.1 product integration before20.2; verified20.1/20.2 before20.3",
+    "All mandatory implementation/review/epic/CI gates remain future requirements"
   ],
   "parallel_helper_plan": {
-    "executed": false,
-    "reason": "Canonical backlog registration resolves locally; no approved ready-for-dev spec or closed admission gates. No executable plan emitted."
+    "executed": true,
+    "native_exit_code": 0,
+    "ok": true,
+    "plan_path": "_bmad-output/auto-bmad/preparation/story-20-1/parallel-plan-2026-10-09.json",
+    "evidence_path": "_bmad-output/auto-bmad/preparation/story-20-1/planner-result-2026-10-09.json",
+    "ready": [
+      "20.1"
+    ],
+    "waiting": {
+      "20.2": [
+        "20.1"
+      ],
+      "20.3": [
+        "20.1",
+        "20.2"
+      ]
+    },
+    "legacy_conflicts": [],
+    "base_sha": "26666ff514fe8702c22e76e78f38b339450454c0",
+    "state_mutated": false
   },
   "product_implementation_performed": false,
   "managed_resources_started": false,
@@ -412,7 +431,7 @@
         "is_last_in_epic": false,
         "stories_after_in_epic": 3,
         "retrospective_status": "done",
-        "title": "Scheduling Activation — Person Profiles and Work Hours",
+        "title": "Scheduling Activation \u2014 Person Profiles and Work Hours",
         "epic_title": "[Wave B1b]: Resource and Scheduling Foundation",
         "candidates": [],
         "hard_stop": false,
@@ -433,7 +452,7 @@
         "is_last_in_epic": false,
         "stories_after_in_epic": 2,
         "retrospective_status": "done",
-        "title": "Bookings and Assignees — Schema and Transactional Commands",
+        "title": "Bookings and Assignees \u2014 Schema and Transactional Commands",
         "epic_title": "[Wave B1b]: Resource and Scheduling Foundation",
         "candidates": [],
         "hard_stop": false,
@@ -516,7 +535,7 @@
           "story_suffix": "",
           "slug": "scheduling-activation-person-profiles-and-work-hours",
           "status": "done",
-          "title": "Scheduling Activation — Person Profiles and Work Hours",
+          "title": "Scheduling Activation \u2014 Person Profiles and Work Hours",
           "is_first_in_epic": true,
           "is_last_in_epic": false,
           "stories_after_in_epic": 3
@@ -527,7 +546,7 @@
           "story_suffix": "",
           "slug": "bookings-and-assignees-schema-and-transactional-commands",
           "status": "done",
-          "title": "Bookings and Assignees — Schema and Transactional Commands",
+          "title": "Bookings and Assignees \u2014 Schema and Transactional Commands",
           "is_first_in_epic": false,
           "is_last_in_epic": false,
           "stories_after_in_epic": 2
@@ -577,14 +596,14 @@
     "status": "reviewed-design-only",
     "implementation": "not implemented",
     "contract_path": "_bmad-output/auto-bmad/preparation/story-20-1/selected-link-contract-design.md",
-    "contract_sha256_lf": "dd11f47be7bc97f1cfff26340d6b6f2e49f4bf2956c6396290c288c6c8e7a9f8",
+    "contract_sha256_lf": "1072d3b3ed84538d4c27352bee221b9dc7587ecd8496e2099b059bfcf3ad86a2",
     "checkpoint_path": "_bmad-output/auto-bmad/preparation/story-20-1/checkpoint-reconciliation.md",
-    "checkpoint_sha256_lf": "b429e74d9bb86346aaf453304fffd740e987c2dce40fa1b43fe374e043ad7012",
+    "checkpoint_sha256_lf": "938654fc8611202a4485860c504e1f2c177741b8358839d2860adcd9cf3be8a3",
     "migration_logical_basename": "story_20_1_documents_selected_link_access.sql",
-    "physical_migration_path": "supabase/migrations/<CLI-generated-timestamp>_story_20_1_documents_selected_link_access.sql",
-    "physical_timestamp_condition": "Allocate and pin before validated implementation claims; no migration created in preparation",
+    "physical_migration_path": "supabase/migrations/20261009091120_story_20_1_documents_selected_link_access.sql",
+    "physical_timestamp_condition": "Prospectively allocated and collision checked; use reviewed CLI-first empty/unapplied file rename procedure, refresh before claims; no SQL created",
     "generic_files_signer_and_quote_broker": "Read-only reference contracts; no implementation write claim",
-    "source_design_sha256_lf": "fdc7d0a12526f90f860172ac3a7e7db94501e9a82baa9ea7f19e3a9651e54caa"
+    "source_design_sha256_lf": "39dbc014e93900ddccd3f48f4d5e510e9bab374ac1a5d78ce61ca73d883699c9"
   },
   "previous_integrated_base_observation": {
     "sha": "8a7debbee83c9a4f6eb8ec4496ba2f7ad7db4b4b",
@@ -598,14 +617,35 @@
     "fresh_contract_validation_complete": false
   },
   "later_story_preparation": {
-    "status": "reviewed-preparation-complete",
+    "status": "specification-ready-dispatch-not-started",
     "metadata_path": "_bmad-output/auto-bmad/preparation/story-20-1/later-story-admission.json",
     "reviewer": "/root/documents_audit",
     "model": "gpt-6.1-sol",
     "effort": "high",
-    "report_path": "docs/quality/story-20-2-20-3-preparation-review-2026-10-08.md",
+    "report_path": "docs/quality/documents-readiness-disposition-review-2026-10-09.md",
     "full_specs_present": 3,
-    "ready_specs": 0,
+    "ready_specs": 3,
     "implementation_authorized": false
-  }
+  },
+  "readiness_previous_admission": {
+    "status": "blocked",
+    "approved": false,
+    "branch": "codex/documents-later-story-preparation",
+    "base_sha": "8ba0150cc60ac17ac378edac5ad77405e907d3bf",
+    "remaining_gates": [
+      "Authorized Lovable URL/tab/session and actual behavior evidence, or explicit owner oracle disposition; no waiver recorded",
+      "Record early-E20 checkpoint closure on all three reviewed specifications and authoritative oracle disposition; all specs remain blocked",
+      "Merge this later-story preparation and revalidate current integrated base before implementation",
+      "Allocate physical CLI migration timestamps/paths and pin exact admitted write paths before claims; no SQL files created",
+      "Coordinator validates current ownership/resources and plan, then obtains successful assignments/claims; none exist",
+      "20.2 requires verified20.1 product integration, and20.3 requires verified20.1/20.2 product integration; preparation merges do not satisfy product prerequisites",
+      "Execute per-story and combined-integration required checks at exact product revisions; no runtime Documents evidence claimed",
+      "Retain full E20/wave and PhaseC scope gates; registration, option A and bounded specification preparation are satisfied"
+    ]
+  },
+  "oracle_observations": 0,
+  "legacy_behavior_verified": false,
+  "oracle_requirement_disposition": "not-required-by-documents-only-owner-decision",
+  "owner_decision_path": "_bmad-output/auto-bmad/preparation/story-20-1/owner-oracle-disposition-2026-10-09.md",
+  "physical_migration_path": "supabase/migrations/20261009091120_story_20_1_documents_selected_link_access.sql"
 }

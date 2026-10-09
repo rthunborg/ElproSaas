@@ -1,56 +1,57 @@
 {
   "schema_version": 1,
-  "artifact_kind": "blocked-later-story-preparation-admission",
-  "base_sha": "8ba0150cc60ac17ac378edac5ad77405e907d3bf",
-  "branch": "codex/documents-later-story-preparation",
-  "status": "blocked",
-  "approved": false,
+  "artifact_kind": "reviewed-specification-readiness-evidence",
+  "base_sha": "a9d5269e0e3762255e1cc992bb2465883508dc21",
+  "branch": "codex/documents-oracle-disposition-readiness",
+  "status": "specification-ready-dispatch-not-started",
+  "approved": true,
   "implementation_authorized": false,
-  "executable_parallel_plan": false,
+  "executable_parallel_plan": true,
   "specifications": [
     {
       "story": "20.1",
       "key": "20-1-documents-activation-and-source-authorized-aggregation",
       "path": "_bmad-output/implementation-artifacts/spec-20-1-documents-activation-and-source-authorized-aggregation.md",
-      "sha256_lf": "ad9ae965b3cadbe5def211a7e1adc2e2bd77ceab81986930444b05844f96bef0",
-      "changed": false
+      "sha256_lf": "63b9e8c20cbb5f116da0a66d6e0ffe27cdc61a9e1f01b11d7f3720fd4e3bc7ea",
+      "changed": true
     },
     {
       "story": "20.2",
       "key": "20-2-search-filters-preview-and-archive-restore",
       "path": "_bmad-output/implementation-artifacts/spec-20-2-search-filters-preview-and-archive-restore.md",
-      "sha256_lf": "69728205c3f45fa8c213c9cad13b8076e15d9c37afd56799cd824df0e830ab5e",
+      "sha256_lf": "5b1ef70a7323f4a0878db8b26ca5ce428bd73de130d64d169c3207dc45e391e8",
       "changed": true
     },
     {
       "story": "20.3",
       "key": "20-3-entity-panel-links-and-contextual-navigation",
       "path": "_bmad-output/implementation-artifacts/spec-20-3-entity-panel-links-and-contextual-navigation.md",
-      "sha256_lf": "2f5e34fa7522ec7d701cc5ba92b41fbcf78f59278b7d09b13e8f3db957fba584",
+      "sha256_lf": "55c997e11bd09d5f5b384b70d8bf4a65827993274ce347ae6711efbebbfe255b",
       "changed": true
     }
   ],
   "companions": [
     {
       "path": "_bmad-output/auto-bmad/preparation/story-20-1/cross-story-handoffs.md",
-      "sha256_lf": "2a96ead137349dee745080d1fcfc587a58f171600d34425755bbd24914976191"
+      "sha256_lf": "4437556f9caa75bb23e3a0bd6d900b7e4cc5802cdbfc8adbba7f7f47bcbc846f"
     },
     {
       "path": "_bmad-output/auto-bmad/preparation/story-20-1/later-story-preparation.md",
-      "sha256_lf": "a6c630ed46520023e6dd8da2a8b165ae13ef3ade2c41468c33e5548f88542a80"
+      "sha256_lf": "2765c58b8bcb7c249408174c27218047b147d00acd6a09062a0f1f05f818064c"
     },
     {
       "path": "_bmad-output/auto-bmad/preparation/story-20-1/checkpoint-reconciliation.md",
-      "sha256_lf": "b429e74d9bb86346aaf453304fffd740e987c2dce40fa1b43fe374e043ad7012"
+      "sha256_lf": "938654fc8611202a4485860c504e1f2c177741b8358839d2860adcd9cf3be8a3"
     }
   ],
   "independent_review": {
-    "status": "reviewed-preparation-complete",
+    "status": "approved-bounded-readiness-delta",
     "model": "gpt-6.1-sol",
     "effort": "high",
     "reviewer": "/root/documents_audit",
-    "report_path": "docs/quality/story-20-2-20-3-preparation-review-2026-10-08.md",
-    "report_sha256_lf": "640c15d81c7de2b63a6e0223f341b04a9b0400b129e10365c7edea8d9d0b6e51"
+    "report_path": "docs/quality/documents-readiness-disposition-review-2026-10-09.md",
+    "approved": true,
+    "report_sha256_lf": "884bb70394c6d63150484d2361d8925c42e72f6090af3b6a3c05c9e8e8d656e3"
   },
   "ownership_kind": "provisional future design paths only; no run, assignment or write claim",
   "stories": [
@@ -77,10 +78,11 @@
         "tests/integration/commands/documents-lifecycle.int.test.ts",
         "tests/integration/commands/documents-lifecycle-lock-races.int.test.ts",
         "tests/integration/rls/documents-filter-archive.rls.test.ts",
-        "tests/e2e/files/documents-search-preview-lifecycle.e2e.spec.ts"
+        "tests/e2e/files/documents-search-preview-lifecycle.e2e.spec.ts",
+        "supabase/migrations/20261009091121_story_20_2_documents_lifecycle_origin_and_restore.sql"
       ],
       "migration_logical_basename": "story_20_2_documents_lifecycle_origin_and_restore.sql",
-      "physical_migration_path": "supabase/migrations/<CLI-allocated timestamp>_story_20_2_documents_lifecycle_origin_and_restore.sql",
+      "physical_migration_path": "supabase/migrations/20261009091121_story_20_2_documents_lifecycle_origin_and_restore.sql",
       "migration_directory_is_shared_reservation_only": true,
       "required_checks": [
         {
@@ -216,11 +218,48 @@
   "oracle_observations": 0,
   "oracle_waived": false,
   "remaining_gates": [
-    "Authorized oracle target and actual evidence or explicit owner disposition",
-    "Checkpoint closure on reviewed specs and oracle disposition",
-    "Physical migration timestamps and exact admitted write paths before claims",
-    "Current integrated-base and resource/ownership revalidation, validated coordinator plan and successful assignments",
-    "Implementation and combined-integration checks at exact product revisions"
+    "Fresh ownership, migration ordering/collision, source-base and resource reconciliation immediately before future initialization",
+    "Verified20.1 product integration before20.2; verified20.1/20.2 before20.3",
+    "All mandatory implementation/review/epic/CI gates remain future requirements"
   ],
-  "bounded_preparation_status": "complete; all three full canonical specs independently reviewed and pinned, none admitted ready-for-dev"
+  "bounded_preparation_status": "complete; all three full canonical specs independently reviewed and pinned, none admitted ready-for-dev",
+  "readiness_previous_admission": {
+    "status": "blocked",
+    "approved": false,
+    "branch": "codex/documents-later-story-preparation",
+    "base_sha": "8ba0150cc60ac17ac378edac5ad77405e907d3bf",
+    "remaining_gates": [
+      "Authorized oracle target and actual evidence or explicit owner disposition",
+      "Checkpoint closure on reviewed specs and oracle disposition",
+      "Physical migration timestamps and exact admitted write paths before claims",
+      "Current integrated-base and resource/ownership revalidation, validated coordinator plan and successful assignments",
+      "Implementation and combined-integration checks at exact product revisions"
+    ]
+  },
+  "legacy_behavior_verified": false,
+  "oracle_requirement_disposition": "not-required-by-documents-only-owner-decision",
+  "owner_decision_path": "_bmad-output/auto-bmad/preparation/story-20-1/owner-oracle-disposition-2026-10-09.md",
+  "workflow_version": "304a3a4a3a4b43665257b4e934eb5c905666a339b97989630c9d7f290dd6c3c6",
+  "parallel_helper_plan": {
+    "executed": true,
+    "native_exit_code": 0,
+    "ok": true,
+    "plan_path": "_bmad-output/auto-bmad/preparation/story-20-1/parallel-plan-2026-10-09.json",
+    "evidence_path": "_bmad-output/auto-bmad/preparation/story-20-1/planner-result-2026-10-09.json",
+    "ready": [
+      "20.1"
+    ],
+    "waiting": {
+      "20.2": [
+        "20.1"
+      ],
+      "20.3": [
+        "20.1",
+        "20.2"
+      ]
+    },
+    "legacy_conflicts": [],
+    "base_sha": "26666ff514fe8702c22e76e78f38b339450454c0",
+    "state_mutated": false
+  }
 }

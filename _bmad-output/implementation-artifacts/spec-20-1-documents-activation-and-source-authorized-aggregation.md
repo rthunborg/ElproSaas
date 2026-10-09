@@ -1,5 +1,5 @@
 ---
-status: blocked
+status: ready-for-dev
 type: feature
 created: "2026-10-08"
 review_loop_iteration: 0
@@ -10,10 +10,12 @@ story_id: "20.1"
 canonical_story_key: "20-1-documents-activation-and-source-authorized-aggregation"
 epic: E20
 title: Documents activation, source-authorized aggregation and minimal destination
-base_sha: 42f5cf60d1ded6d814c2c0f61b70b312144ce10e
-baseline_revision: 42f5cf60d1ded6d814c2c0f61b70b312144ce10e
-branch: codex/documents-selected-link-contract-preparation
+base_sha: a9d5269e0e3762255e1cc992bb2465883508dc21
+baseline_revision: a9d5269e0e3762255e1cc992bb2465883508dc21
+branch: codex/documents-oracle-disposition-readiness
 implementation_authorized: false
+readiness_review: accepted-targeted-high
+oracle_requirement: not-required-owner-decision-2026-10-09
 boundary_choice: A
 boundary_decision_date: "2026-10-08"
 context:
@@ -33,15 +35,18 @@ context:
   - _bmad-output/auto-bmad/preparation/story-20-1/owner-boundary-decision-2026-10-08.md
   - _bmad-output/auto-bmad/preparation/story-20-1/selected-link-contract-design.md
   - _bmad-output/auto-bmad/preparation/story-20-1/checkpoint-reconciliation.md
+  - _bmad-output/auto-bmad/preparation/story-20-1/owner-oracle-disposition-2026-10-09.md
+  - _bmad-output/auto-bmad/preparation/story-20-1/primary-guidance-2026-10-09.md
+  - _bmad-output/auto-bmad/preparation/story-20-1/readiness-checkpoint-2026-10-09.md
 ---
 
 # Story 20.1: Documents activation, source-authorized aggregation and minimal destination
 
 ## Preparation disposition
 
-This is a complete reviewable blocked preparation draft, not a ready-for-dev specification. Integrated base`42f5cf60d1ded6d814c2c0f61b70b312144ce10e` includes canonical backlog registration for`20-1-documents-activation-and-source-authorized-aggregation` and the existing20.2/20.3 slots. The earlier story-not-found finding is historical and resolved; registration does not approve readiness or close the early checkpoint. Auto-BMAD parallel P0 still requires the approved/pinned full specification and truthful admission evidence. This lane neither edits aggregate planning nor initializes a run or claim.
+Complete canonical specification on integrated base`a9d5269e0e3762255e1cc992bb2465883508dc21`. All three registered E20 specs and their sensitive contracts are independently reviewed at historical pins; the bounded owner-disposition/readiness/path amendment received targeted independent High acceptance and coordinator-recorded checkpoint closure on2026-10-09. The canonical-not-found finding is historical and resolved. Specification readiness is distinct from actual worker admission; no run, claim or aggregate state is created here.
 
-The owner authorized preparation and, on2026-10-08, approved recommended optionA: bounded Documents selected-source enforcement with the residual baseline generic Files.View/direct Storage authority and issued-URL lifetime explicitly retained. The decision is recorded in the companion owner-boundary artifact. The bounded sequencing amendment permits early FR109 expansion and E20 preparation; it does not close the B1b exit or the early Documents checkpoint. Live-oracle disposition, independent exact-contract review, complete20.1–20.3 specification preparation, checkpoint closure and shared-scope admission remain unresolved and prevent ready-for-dev. No product implementation, migration, module activation, environment/dependency change, merge or deployment is performed by this package.
+The owner approved optionA on2026-10-08 and explicitly disposed of exact Documents Lovable comparison on2026-10-09. Current official guidance supports the bounded patterns; actual oracle observations remain zero, with no legacy parity verification. Full20.1–20.3 preparation and reviewed requirements/schema/contracts exist; this amendment closes the former oracle gap, with targeted independent High acceptance and coordinator-recorded checkpoint closure on2026-10-09. OptionA retains baseline generic Files.View/direct Storage authority and issued-URL lifetime. No product implementation, migration, activation, dependency/environment change, merge or deployment is performed.
 
 Author: `/root/documents_spec`, agent `01a11ae9-d2ac-7492-830b-edcc13c16b1b`, explicit `gpt-6.1-sol` High authorization/design route. Independent review identities and exact reviewed spec hash belong to the companion admission/review record; the author does not self-certify review.
 
@@ -61,7 +66,7 @@ Deliver FR109-AC1–AC5, the minimal checked-access portion of AC7, and the appl
 
 **Always:** Require current active membership, Documents.View, Files.View, enrolled source capability/RLS, exact live link/file and the explicit source-live matrix. Reuse the private existing file substrate; preserve commitment locks, ADR-B008 invalidation and checked attributable audit. Record the chosen direct Storage boundary and issued-URL expiry limits accurately.
 
-**Block If:** Live oracle disposition, independent High exact-contract review, complete audited/pinned20.1–20.3 specifications, checkpoint closure, exact migration/path ownership or shared reservation reconciliation is unresolved. The approved optionA boundary may not be widened to generic/global policy enforcement by inference. A blocked draft is not permission to build.
+**Block If:** Actual worker dispatch lacks current exact path/shared ownership/resource/base admission or verified prior product handoffs. Release additionally requires the specified runtime checks. The specification checkpoint is closed after independent High acceptance; no readiness label replaces those execution gates. Exact Lovable comparison is not required. OptionA cannot expand to generic/global policyB.
 
 **Never:** Consume unmerged Epic14/19.1 APIs, infer new role entitlements, copy Lovable code, create a second file store, ship pending-source surfaces, introduce PhaseC flows, change secrets/dependencies/environment from this preparation lane, initialize claims, merge or deploy.
 
@@ -78,15 +83,15 @@ Deliver FR109-AC1–AC5, the minimal checked-access portion of AC7, and the appl
 
 ## Entry gates and exact blockers
 
-1. **Canonical registration resolved, full preparation gate retained:** integrated sprint/epics register all three existing E20 story keys as backlog. Coordinator retains aggregate state. The authoritative early checkpoint explicitly requires complete audited/pinned20.1–20.3 canonical specs before first E20 dispatch;20.2/20.3 preparation is not complete and no exemption is inferred. See`checkpoint-reconciliation.md` for evidence. This preparation gate is distinct from later-story implementation dependencies.
-2. **Boundary resolved, concrete contract pending review:** owner approved optionA on2026-10-08. Documents selected-link list/open/refresh actions enforce current source authority; baseline generic Files.View/direct Storage access retains its wider tenant-role/path authority. Existing issued URLs may survive source revocation until expiry. This approval does not selectB or authorize global file/Storage policy changes. `selected-link-contract-design.md` fixes the command/input, checked prepare/finalize RPCs, source validation/locking, distinct HMAC binding and additive migration unit. Independent High review and actual migration/path/shared-claim admission remain required; this design is not implemented or runtime-proven.
-3. **Live oracle:** confirm current Swedish navigation/page terminology and minimum list/open/error interactions in an authorized Lovable session. The native browser-state request stalled for 711 seconds and was aborted without a document-page observation. Historical audit and synthetic fixtures are not live parity evidence. Browser-only retry may resolve access; otherwise retain this blocker, without claiming a gate pass or inventing a waiver.
-4. **Checkpoint closure:** independent High authorization/design/spec audit, expanded FR109 and schema disposition, oracle disposition, owner decision and implementation admission recorded on the exact revision. Preparation approval alone is not checkpoint closure.
+1. **Canonical registration/full preparation:** All three E20 keys are registered and complete specs independently reviewed at historical pins. Retain all three approved/pinned specs before first E20 dispatch. This amendment has targeted High acceptance and coordinator-recorded checkpoint closure, with final LF pins retained in coordinator/review records, not a20.1-only exception. Later product implementation dependencies are separate.
+2. **Boundary/contract resolved:** Owner-approved optionA and the independent High reviewed `selected-link-contract-design.md` fix exact command/RPC/HMAC/locking/ACL/schema scope. Baseline generic Files.View/direct Storage and issued-URL residuals remain accepted. Design approval is not implementation/runtime proof or actual shared-claim admission.
+3. **Oracle disposition resolved:** Exact Documents Lovable terminology/interaction comparison is NOT REQUIRED by the direct-human2026-10-09 decision. See the exact quote in `owner-oracle-disposition-2026-10-09.md`; zero actual observations and no verified legacy parity. The historical711-second aborted request remains historical evidence, without a new browser probe.
+4. **Preparation checkpoint:** Expanded FR109, schema/authorization contracts, full three-story review and explicit oracle disposition have evidence in `readiness-checkpoint-2026-10-09.md`. The coordinator confirmed targeted High acceptance and preparation-checkpoint closure on2026-10-09; final pins are retained in coordinator/review records. Worker admission and runtime/release evidence remain separate.
 5. **Serialized conflicts:** release or reconcile the exact nav/manifest/permission/auth/storage/shared-test claims identified in admission evidence. Do not use unmerged Epic14 or Story19.1 code as prerequisites. Revalidate against a newer integrated base before eventual dispatch.
 
 ## Acceptance criteria
 
-These are the proposed build contract under review with owner-approved optionA fixed in AC8. Remaining entry gates still block ready-for-dev and implementation.
+These are the complete build requirements with approved optionA fixed in AC8. The targeted readiness amendment is independently High-accepted and the preparation checkpoint recorded closed; current worker admission and product verification remain separate.
 
 1. **Atomic usable activation.** Given an admitted activation story and an allowed tenant role, when its implementation PR is applied, then the active `documents` module owns exactly one `/files` nav destination labeled `Dokument` using `Documents.View`, `files` retains its existing table ownership, and the route serves the usable list in the same PR. No duplicate nav item, pending surface, placeholder destination or broader role entitlement appears. Direct navigation is gated by both Documents and Files capabilities.
 2. **Complete active-source enrollment.** Given the accepted base manifest, when the center lists document contexts, then enrollment is exactly CRM `customer`/`facility`/`contact`, calculations `calculation`, quotes `quote_version`/`quote_acceptance`, and jobs `job`. Generic command upload eligibility is a separate set: `quote_version` remains listable despite being non-creatable there. Given a future active owner without an implemented adapter, when coherence/registry checks run, then they fail loudly before release rather than silently omitting it. Pending/unknown owners produce no rows, labels, facets or counts.
@@ -122,10 +127,10 @@ These are the proposed build contract under review with owner-approved optionA f
 | `tests/unit/server/read-models/documents.test.ts`, `document-sources.test.ts` (new) | Exhaustive enrollment, authority, pagination, safe DTO and current-source decisions. |
 | `tests/integration/rls/documents.rls.test.ts`, `tests/integration/commands/documents-signed-access.int.test.ts` (new) | Real anon-key read/action/checked DB authority; chosenA selected-source denial and preserved baseline direct Storage expectations. |
 | `tests/unit/server/storage/document-signed-access-attestation.test.ts`, `tests/unit/server/commands/documents-signed-access.test.ts`, `tests/integration/commands/documents-signed-access-lock-races.int.test.ts` (new) | Exact canonical field tamper/domain/replay and command enrollment checks; two-connection nonkey source/role/archive/parent-reassignment race serialization and no-URL failure assertions. |
-| `supabase/migrations/` future CLI-allocated `story_20_1_documents_selected_link_access.sql` unit | Add only reviewed internal target/payload/key helpers and checked Documents prepare/finalize functions/ACLs; physical timestamp path allocated before claims, no historic migration or generic policy edit. |
+| `supabase/migrations/20261009091120_story_20_1_documents_selected_link_access.sql` | Reserved exact additive unit: reviewed internal target/payload/key helpers and checked Documents prepare/finalize functions/ACLs only. CLI-first empty/unapplied creation then verified local rename follows the readiness checkpoint; no historic migration or generic policy edit. |
 | `tests/e2e/files/documents.e2e.spec.ts` (new) | Actual nav/destination/open/error/expiry/mobile behavior. |
 
-The current nav path, quote-version producer purposes and generic checked-signing/envelope boundaries were inspected against the integrated base. OptionA is approved and concrete Documents command/RPC/HMAC/locking/migration-unit contracts are specified. Their independent review, actual migration/path claims, oracle disposition, full later-spec preparation and checkpoint closure remain unresolved, so this draft deliberately cannot meet the no-unresolved-gaps ready standard.
+The reviewed nav path, quote-version producer purposes and checked-signing/envelope boundaries remain the current integrated contracts. No sensitive authority/locking/HMAC change is made by this amendment. Historical High exact-pin acceptance plus the owner oracle disposition and exact migration reservation support preparation closure with targeted High acceptance/coordinator checkpoint closure; actual assignment, claims/resources and implementation checks remain future gates.
 
 ## Design Notes
 
@@ -141,7 +146,7 @@ At current base, metadata file/link SELECT and generic Storage access are tenant
 
 All tasks are deferred until admission; no box below certifies execution.
 
-- [ ]1. Coordinator confirms registered canonical key, carries forward optionA, completes/audits/pins all20.1–20.3 specs and closes oracle/High contract/checkpoint gates; allocate actual migration timestamp path before claims, pin LF SHA and reconcile current shared scope. Artifacts: this spec/contract/reconciliation, companion admission, coordinator sprint/plan record. AC1–10.
+- [ ]1. Coordinator carries forward all three approved/pinned canonical specs, optionA and the explicit2026-10-09 oracle disposition; record targeted High delta review/checkpoint closure and fresh exact reserved migration/path/resource/shared admission before dispatch. AC1–10; readiness-checkpoint companion supplies the distinction from implementation evidence.
 - [ ]2. Implement exhaustive server source registry and safe read in `src/server/read-models/document-sources.ts` and `documents.ts`; derive active-owner enrollment, use existing source RLS/capabilities/live-parent rules, enforce complete keyset traversal and safe facets/cursor. Add unit and real RLS tests. AC2–6.
 - [ ]3. Implement the contract's link-bound action/command/RPC bridge and new Documents HMAC helper in the exact listed files; add the fixed function-only migration unit with checked prepare/finalize/current-source helper, explicit ACLs and SHARE lock order/locked-graph reconciliation. Preserve generic/Sales signer boundaries. Negative proof/race/audit/forgery and enrollment tests must precede UI wiring. AC3,5,7,8.
 - [ ]4. Atomically update manifest/permission/nav and `/files` server route/layout, retaining private contextual upload and usable existing interactions via `src/components/files/`. Add exact link payload wiring and loading/empty/denial/retry/expiry states. AC1,4,9.
@@ -193,8 +198,10 @@ Preparation audit received from root: no new material authorization/design findi
 - 2026-10-08 owner-decision amendment: the owner replied “Follow your recommendation” to optionA. Record bounded Documents selected-source enforcement and explicit residual generic/direct Storage authority and issued-URL lifetime; remove the A/B intent-gap blocker while retaining canonical/oracle/checkpoint/design/shared-claim gates. Historical review entries above remain unchanged; targeted independent review of this amendment is root-owned.
 - 2026-10-08 selected-link contract preparation: refresh source base to integrated42f5 and record now-resolved canonical registration. Add exact new command/RPC/proof/ACL/current-source lock/locked-graph contract and test/migration unit; retain full20.1–20.3 specification preparation gate per authoritative checkpoint. No product implementation or readiness promotion; independent High review of the new contract remains required.
 
+2026-10-09: Record direct-human Documents-only oracle disposition, current primary guidance, complete historical High preparation acceptance and exact path reservation. No sensitive product contract change; targeted High readiness-delta acceptance and coordinator checkpoint closure recorded; final LF pin updated. Specification approval is separate from worker dispatch.
+
 ## Auto Run Result
 
-Status: blocked
-Blocking condition: live Documents oracle disposition unavailable; independent exact Documents selected-link contract review, complete audited/pinned20.1–20.3 specifications, checkpoint closure and current migration/path/shared-claim admission pending. Canonical registration and owner-approved optionA are resolved; neither authorizes implementation or global policy changes by itself.
-Outcome: reviewable preparation draft; not ready-for-dev and not admitted for implementation.
+Status: ready-for-dev
+Blocking condition: none for specification preparation; targeted independent High acceptance and coordinator checkpoint closure recorded2026-10-09. Worker dispatch still requires fresh integrated-base/path/shared/resource admission and the story-specific verified product dependencies. No implementation or runtime proof is claimed.
+Outcome: approved ready-for-dev specification; implementation_authorized:false, no worker assignment or product evidence.
