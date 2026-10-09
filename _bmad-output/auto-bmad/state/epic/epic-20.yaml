@@ -9,11 +9,11 @@ spec_folder: null
 story_id: null
 branch: codex/documents-resume-admission-2026-10-09
 status: in-progress
-updated_at: "2026-10-09T13:24:57Z"
+updated_at: "2026-10-09T13:38:47Z"
 started_at: "2026-10-09T13:24:56Z"
 completed_at: null
-active_seconds: 0
-timing_anchor: 1791552297
+active_seconds: 829
+timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
 git_mode: remote
@@ -34,7 +34,7 @@ tea_selected: []
 tea_rationale: null
 epic_story_count: 3
 stories_after_in_epic: null
-completed_phases: [0, 1]
+completed_phases: [0, 1, 2]
 spec_path: null
 spec_approved: false
 build:
@@ -91,4 +91,12 @@ parallel_run_id: documents-e20-readiness-2026-10-09
 epic_slug: documents-center
 stories_skipped: []
 stories_landed: []
-active_story: null
+active_story: 20-1-documents-activation-and-source-authorized-aggregation
+epic_test_design:
+  status: complete
+  path: "_bmad-output/test-artifacts/test-design-epic-20.md"
+  risks: 16
+  high_risks: 9
+  scenario_families: 56
+  acceptance_criteria: 25
+  runtime_tests_executed: false
