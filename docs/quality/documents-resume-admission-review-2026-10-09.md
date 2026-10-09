@@ -1,0 +1,46 @@
+# Documents resume admission review — 2026-10-09
+
+Reviewer: `/root/documents_audit`, `gpt-6.1-sol`, **High**. Independent targeted source-authority, compatibility, ownership and protocol-admission review. Author: `/root/documents_spec`, Sol 6.1 High; planner: `/root/readiness_planner`, Sol 6.1 Low. Current integrated base: `bbf7cef7515da7d3cd1d39a70cb73eab1856d3ad` (Kopplas rename PR94). Branch: `codex/documents-resume-admission-2026-10-09`. Current workflow: `3d2bae568329f6412ed2d00525625cdcf6ff2229d76abb16b92979a9a1bdc09d`.
+
+## Verdict and review boundary
+
+**Accepted for bounded coordinator handoff: Story20.1 is ready in the actual read-only admission result; no unresolved consequential source-contract or ownership defect remains.** This report does not initialize a protocol, grant a worker identity, claim files/resources or certify product implementation. Story20.2/20.3 remain blocked on verified predecessor product integration. The actual Coordinator must renew the temporary release and current-base/claims/resource evidence and obtain a valid generation-bound assignment before implementation.
+
+This is a targeted new-base/ownership follow-up, preserving the earlier broad review cap and approved requirements. No fourth broad review, unrelated rename review or implementation test run occurred. The reviewer writes only this report; no other artifact, spec, product, SQL, dependency, environment, Git, protocol, browser, resource or user-owned chat was mutated.
+
+## Exact reviewed LF SHA256 evidence
+
+| Artifact under `_bmad-output/auto-bmad/preparation/story-20-1/` | SHA256 |
+| --- | --- |
+| `resume-source-contracts-2026-10-09.md` | `009667d919d555ae2ab9ca0c6b5bd758b496fdaac56c5332347a147168f71599` |
+| `resume-parallel-plan-2026-10-09.json` | `7ffc10b8c61cf24c4202bce679300c6f10945c0b7dd47a4ff00f7bc5e2179c82` |
+| `resume-ownership-inventory-2026-10-09.json` | `1dcfb2cd13d6a489c07a3820d755ee1398cbbe592a52f5899fb78c7692e26394` |
+| `resume-planner-readiness-2026-10-09.md` | `8d21845a2303b34ac35c2d679cb9e49b8892910252edc9a54020ac4df44603f2` |
+
+Pins were independently recomputed with CRLF normalized to LF. Approved specs retain 20.1 `63b9e8c20cbb5f116da0a66d6e0ffe27cdc61a9e1f01b11d7f3720fd4e3bc7ea`, 20.2 `5b1ef70a7323f4a0878db8b26ca5ce428bd73de130d64d169c3207dc45e391e8` and 20.3 `55c997e11bd09d5f5b384b70d8bf4a65827993274ce347ae6711efbebbfe255b`. Existing exact-contract and readiness acceptance remain in their dated reports; this evidence does not redefine their historical scope.
+
+## Current source and Kopplas compatibility
+
+Independent bounded Git comparison from the approved package `26666ff514fe8702c22e76e78f38b339450454c0` to current PR94 base found no difference in generic file commands/DB wrappers, Storage signer/attestation, envelope, permission matrix, manifest, nav, file reads or migrations. The High author additionally records current source inspection and unchanged committed spec pins. No sensitive contract repin is needed merely to adopt the newer integrated base. The separately integrated quote-send setting aliases do not change Documents selected-source authority; their unrelated review is not reopened.
+
+ADR-B013 requires current branding Kopplas while preserving versioned `elpro.*.v1` HMAC/key-derivation/replay/review identifiers and `elpro_file_linked_at`. The already reviewed future Documents domains remain exact approved compatibility identifiers; no branding substitution or SQL mirror change is inferred. OptionA, generic Files.View/direct Storage residuals, issued-URL lifetime, exact selected-link binding, explicit definer authority, final audit validation, locked-parent graph reconciliation, durable quote provenance and all-link lifecycle/ordinary origin rules remain unchanged. No new role, pending owner, global policyB, public privilege, retention or PhaseC surface is admitted.
+
+The preserved specs' implementation_authorized:false records the earlier preparation package, not a new current worker assignment. The newer explicit conditional human continuation grant is recorded in current admission context. The helper still requires approved specs and their exact committed pins; the actual current claim supplies worker/generation/worktree ownership. This neither ignores a failed guard nor converts old copied anchors into a grant.
+
+## Epic15 ownership and identity
+
+The trusted coordinator explicitly reaffirmed retained Coordinator identity `01a1160d-b5b1-7623-a8e8-54ef3dc537ed`. The Documents preparation chat identity is distinct; this chat and its delegates may not impersonate that Coordinator, initialize its protocol or self-claim. Merely naming the Coordinator in a read-only plan is not impersonation.
+
+Epic15's temporary shared product/schema/permission/API/test-domain release is an explicit owner decision, reaffirmed despite its separate oracle disposition; it is not inferred from idle/heartbeat/oracle blockage. E15 remains in spec/test planning, reports no allocated migration or managed resources, and retains its exact own epic anchor/report, six spec paths and test-design paths. The final reservation also includes the newly observed `_bmad-output/implementation-artifacts/epic-15-context.md` and `docs/decisions/epic-15-scheduling-ux-disposition-2026-10-09.md`. Latest root-elevated HEAD `45a64853fa55af349bd7cc7ccb38e9886dd31d0b` and only those two untracked planning paths are distinguished from the preserved earlier `99e1274` snapshot. No Documents write path overlaps those reservations. A later E15 phase/scope change requires renewed shared-domain reconciliation before build; a merge or idle worker does not release every domain automatically.
+
+Inventory retains 27 worktree identities and unresolved anchors. One mislabeled count was corrected: there are 99 SQL migration files, independently confirmed in current dbe6, and 27 worktrees. Current maximum `20261007131222` and absent E20 reserved names remain consistent with the owner's no-E15-allocation evidence. Existing reserved Documents filenames `20261009091120_story_20_1_documents_selected_link_access.sql` and `20261009091121_story_20_2_documents_lifecycle_origin_and_restore.sql` remain prospective and serialized; no SQL was created. Recheck pending names, newer integration, ownership and ordering before assignment/creation.
+
+The inspected shared SQLite store is absent; no run or claims are asserted. This reviewer independently reconfirmed store absence, absent prospective worker directory `C:/Users/Rasmus/.codex/worktrees/documents-e20-20-1/Kopplas`, and absent proposed branch `codex/parallel-documents-e20-readiness-2026-10-09-20-1` (native branch existence exit1). They remain proposals, not owned/registered worker resources. Reported E15 resource nonallocation is distinguished from an uninspected global resource inventory; no resource may be adopted from this metadata.
+
+## Actual planner result and corrected future initialization
+
+The preserved actual planner argv invokes `parallel_run.py ... plan --plan .../resume-parallel-plan-2026-10-09.json`. Planner execution and the root's reported repeat returned native exit0/ok:true at exact integration HEAD `bbf7cef7515da7d3cd1d39a70cb73eab1856d3ad`. After the final E15 planning-path additions, the repeated result still lists only20.1 ready, no ready_pairs/legacy_conflicts;20.2 lacks verified20.1 integration, and20.3 lacks verified20.1/20.2 integrations. Max_workers1, exact paths, High risk routing, required contract edges and all existing mandatory product/combined/epic/CI gates are retained. No init/claim occurred.
+
+One consequential handoff guidance issue was corrected: publication advances HEAD, while init requires a completely clean integration HEAD exactly equal to plan.base_sha. The frozen tracked bbf7 snapshot cannot therefore be initialized unchanged after a preparation publication commit. The final planner report explicitly keeps that snapshot immutable and gives an unexecuted actual-Coordinator procedure to create a separate unique external operational plan. It verifies clean HEAD and snapshot ancestry, unchanged committed LF spec pins/current workflow, renewed release/store/resource evidence, and re-runs read-only admission before init/status with the confirmed identity and checked native exits/ok results. Only operational base_sha changes; changed product contracts, specification/workflow, ordering or ownership require reviewed reconciliation rather than blind base refresh. Actual product-source freshness remains a coordinator gate, especially if later changes are more than this reviewed preparation package.
+
+The external operational plan and its actual result must be retained as future coordinator evidence; they are not falsely presented as already created here. Successful init precedes coordinator setup and creation of the distinct worker checkout; a successful claim then returns the real assignment for the selected worker identity/generation. The present chat's handoff ends before these mutations. All actual sensitive build/review work remains Sol6.1 High, DB/RLS uses SUPABASE_TEST_REQUIRED=1 with positive executed/zero required skips, and production-server desktop/360×640 journeys plus guard-owned isolated resources remain mandatory. No historical preparation or rename CI run is product20.1 proof.

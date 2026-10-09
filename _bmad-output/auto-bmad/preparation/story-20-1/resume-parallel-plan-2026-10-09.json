@@ -1,0 +1,370 @@
+{
+  "schema_version": 1,
+  "story_source": "sprint",
+  "run_id": "documents-e20-readiness-2026-10-09",
+  "epic": "20",
+  "coordinator": "01a1160d-b5b1-7623-a8e8-54ef3dc537ed",
+  "integration_branch": "codex/documents-resume-admission-2026-10-09",
+  "integration_worktree": "C:/Users/Rasmus/.codex/worktrees/dbe6/ElproSaas",
+  "base_sha": "bbf7cef7515da7d3cd1d39a70cb73eab1856d3ad",
+  "workflow_version": "3d2bae568329f6412ed2d00525625cdcf6ff2229d76abb16b92979a9a1bdc09d",
+  "max_workers": 1,
+  "stories": [
+    {
+      "id": "20.1",
+      "approved": true,
+      "spec_path": "_bmad-output/implementation-artifacts/spec-20-1-documents-activation-and-source-authorized-aggregation.md",
+      "spec_revision": "63b9e8c20cbb5f116da0a66d6e0ffe27cdc61a9e1f01b11d7f3720fd4e3bc7ea",
+      "prerequisites": [
+        "phase-b-integrated-files-base"
+      ],
+      "write_paths": [
+        "_bmad-output/implementation-artifacts/spec-20-1-documents-activation-and-source-authorized-aggregation.md",
+        "src/scope/manifest.ts",
+        "src/server/authz/permission-matrix.ts",
+        "src/app/(app)/files/layout.tsx",
+        "src/app/(app)/files/page.tsx",
+        "src/features/files/read.ts",
+        "src/features/files/file-index.ts",
+        "src/server/read-models/documents.ts",
+        "src/server/read-models/document-sources.ts",
+        "src/features/documents/actions.ts",
+        "src/server/commands/documents/signed-access.ts",
+        "src/components/files/FileIndexList.tsx",
+        "src/components/files/FilePreviewRow.tsx",
+        "tests/unit/server/read-models/documents.test.ts",
+        "tests/unit/server/read-models/document-sources.test.ts",
+        "tests/integration/rls/documents.rls.test.ts",
+        "tests/integration/commands/documents-signed-access.int.test.ts",
+        "tests/e2e/files/documents.e2e.spec.ts",
+        "src/components/app-shell/nav-items.ts",
+        "src/server/commands/documents/db.ts",
+        "src/server/storage/document-signed-access-attestation.ts",
+        "src/server/commands/envelope.ts",
+        "tests/unit/server/storage/document-signed-access-attestation.test.ts",
+        "tests/unit/server/commands/documents-signed-access.test.ts",
+        "tests/integration/commands/documents-signed-access-lock-races.int.test.ts",
+        "supabase/migrations/20261009091120_story_20_1_documents_selected_link_access.sql",
+        "_bmad-output/auto-bmad/state/20-1-documents-activation-and-source-authorized-aggregation.yaml",
+        "_bmad-output/auto-bmad/reports/20-1-documents-activation-and-source-authorized-aggregation.md"
+      ],
+      "conflict_domains": [
+        "registry:scope-manifest",
+        "registry:navigation",
+        "auth:permission-matrix",
+        "auth:current-source-authority",
+        "storage:checked-signing-attestation",
+        "tests:shared-file-fixtures",
+        "schema:migrations",
+        "documents:shared-read-page-actions",
+        "auth:command-enrollment",
+        "tests:shared-fixtures-resources",
+        "documents:shared-read-page-contract"
+      ],
+      "contracts": [
+        "documents-selected-link-current-authority",
+        "documents-seven-source-safe-read-and-pagination",
+        "documents-activation-and-files-role-matrix"
+      ],
+      "requires_contracts": [
+        {
+          "story": "phase-b-integrated-files-base",
+          "contract": "phase-b-private-files-current-authority-baseline"
+        }
+      ],
+      "risk_domains": [
+        "permissions",
+        "authentication",
+        "authorization",
+        "security",
+        "rls",
+        "public-tokens",
+        "transactional-integrity"
+      ],
+      "required_checks": [
+        "documents-source-unit",
+        "documents-integration-rls",
+        "files-signed-access-integration",
+        "documents-browser",
+        "unit",
+        "typecheck",
+        "lint",
+        "production-build",
+        "service-role-containment",
+        "bundle-containment",
+        "lockfiles",
+        "documents-baseline-storage-boundary",
+        "documents-selected-link-unit",
+        "documents-selected-link-lock-races-integration"
+      ]
+    },
+    {
+      "id": "20.2",
+      "approved": true,
+      "spec_path": "_bmad-output/implementation-artifacts/spec-20-2-search-filters-preview-and-archive-restore.md",
+      "spec_revision": "5b1ef70a7323f4a0878db8b26ca5ce428bd73de130d64d169c3207dc45e391e8",
+      "prerequisites": [
+        "20.1"
+      ],
+      "write_paths": [
+        "_bmad-output/implementation-artifacts/spec-20-2-search-filters-preview-and-archive-restore.md",
+        "src/features/documents/filters.ts",
+        "src/features/documents/date-bounds.ts",
+        "src/features/documents/actions.ts",
+        "src/server/read-models/documents.ts",
+        "src/server/read-models/document-sources.ts",
+        "src/server/commands/documents/lifecycle.ts",
+        "src/server/commands/documents/lifecycle-db.ts",
+        "src/server/commands/envelope.ts",
+        "src/components/documents/DocumentFilters.tsx",
+        "src/components/documents/DocumentPreviewPane.tsx",
+        "src/components/documents/DocumentLifecycleActions.tsx",
+        "src/app/(app)/files/page.tsx",
+        "tests/unit/features/documents/filters.test.ts",
+        "tests/unit/features/documents/date-bounds.test.ts",
+        "tests/unit/features/documents/preview-state.test.ts",
+        "tests/unit/server/commands/documents-lifecycle.test.ts",
+        "tests/integration/commands/documents-lifecycle.int.test.ts",
+        "tests/integration/commands/documents-lifecycle-lock-races.int.test.ts",
+        "tests/integration/rls/documents-filter-archive.rls.test.ts",
+        "tests/e2e/files/documents-search-preview-lifecycle.e2e.spec.ts",
+        "supabase/migrations/20261009091121_story_20_2_documents_lifecycle_origin_and_restore.sql",
+        "_bmad-output/auto-bmad/state/20-2-search-filters-preview-and-archive-restore.yaml",
+        "_bmad-output/auto-bmad/reports/20-2-search-filters-preview-and-archive-restore.md"
+      ],
+      "conflict_domains": [
+        "schema:migrations",
+        "files:lifecycle-provenance",
+        "auth:command-enrollment",
+        "documents:shared-read-page-actions",
+        "quotes:source-revision-proof-shape",
+        "tests:shared-fixtures-resources",
+        "documents:shared-read-page-contract",
+        "auth:current-source-authority"
+      ],
+      "contracts": [
+        "documents-filter-url-state-and-archived-mode",
+        "documents-checked-lifecycle-and-preview-reset"
+      ],
+      "requires_contracts": [
+        {
+          "story": "20.1",
+          "contract": "documents-selected-link-current-authority"
+        },
+        {
+          "story": "20.1",
+          "contract": "documents-seven-source-safe-read-and-pagination"
+        },
+        {
+          "story": "20.1",
+          "contract": "documents-activation-and-files-role-matrix"
+        }
+      ],
+      "risk_domains": [
+        "permissions",
+        "authentication",
+        "authorization",
+        "security",
+        "rls",
+        "public-tokens",
+        "transactional-integrity"
+      ],
+      "required_checks": [
+        "documents20-2-filter-unit",
+        "documents20-2-lifecycle-integration",
+        "documents20-2-browser",
+        "unit",
+        "typecheck",
+        "lint",
+        "production-build",
+        "service-role-containment",
+        "bundle-containment",
+        "lockfiles",
+        "documents-selected-link-unit",
+        "documents-selected-link-lock-races-integration",
+        "files-signed-access-integration",
+        "documents-baseline-storage-boundary"
+      ]
+    },
+    {
+      "id": "20.3",
+      "approved": true,
+      "spec_path": "_bmad-output/implementation-artifacts/spec-20-3-entity-panel-links-and-contextual-navigation.md",
+      "spec_revision": "55c997e11bd09d5f5b384b70d8bf4a65827993274ce347ae6711efbebbfe255b",
+      "prerequisites": [
+        "20.1",
+        "20.2"
+      ],
+      "write_paths": [
+        "_bmad-output/implementation-artifacts/spec-20-3-entity-panel-links-and-contextual-navigation.md",
+        "src/features/documents/context-navigation.ts",
+        "src/server/read-models/document-context.ts",
+        "src/components/documents/EntityDocumentsLink.tsx",
+        "src/features/documents/filters.ts",
+        "src/server/read-models/documents.ts",
+        "src/components/documents/DocumentFilters.tsx",
+        "src/app/(app)/files/page.tsx",
+        "src/app/(app)/customers/[customerId]/page.tsx",
+        "src/app/(app)/calculations/[calculationId]/page.tsx",
+        "src/app/(app)/jobs/[jobId]/page.tsx",
+        "src/features/files/quote-files-panel.tsx",
+        "src/features/files/acceptance-panel.tsx",
+        "tests/unit/features/documents/context-navigation.test.ts",
+        "tests/unit/server/read-models/document-context.test.ts",
+        "tests/unit/components/documents/entity-documents-link.test.ts",
+        "tests/integration/rls/documents-context.rls.test.ts",
+        "tests/e2e/files/documents-context-navigation.e2e.spec.ts",
+        "_bmad-output/auto-bmad/state/20-3-entity-panel-links-and-contextual-navigation.yaml",
+        "_bmad-output/auto-bmad/reports/20-3-entity-panel-links-and-contextual-navigation.md"
+      ],
+      "conflict_domains": [
+        "documents:shared-read-page-filters",
+        "auth:source-context-navigation",
+        "entity-panels:crm-calculation-job-quotes",
+        "tests:shared-fixtures-resources",
+        "documents:shared-read-page-contract",
+        "auth:current-source-authority"
+      ],
+      "contracts": [
+        "documents-authorized-atomic-context-and-entity-links"
+      ],
+      "requires_contracts": [
+        {
+          "story": "20.1",
+          "contract": "documents-selected-link-current-authority"
+        },
+        {
+          "story": "20.1",
+          "contract": "documents-seven-source-safe-read-and-pagination"
+        },
+        {
+          "story": "20.1",
+          "contract": "documents-activation-and-files-role-matrix"
+        },
+        {
+          "story": "20.2",
+          "contract": "documents-filter-url-state-and-archived-mode"
+        },
+        {
+          "story": "20.2",
+          "contract": "documents-checked-lifecycle-and-preview-reset"
+        }
+      ],
+      "risk_domains": [
+        "permissions",
+        "authentication",
+        "authorization",
+        "security",
+        "rls",
+        "public-tokens",
+        "transactional-integrity"
+      ],
+      "required_checks": [
+        "documents20-3-context-unit",
+        "documents20-3-context-integration",
+        "documents20-3-browser",
+        "unit",
+        "typecheck",
+        "lint",
+        "production-build",
+        "service-role-containment",
+        "bundle-containment",
+        "lockfiles",
+        "documents-selected-link-unit",
+        "documents-selected-link-lock-races-integration",
+        "files-signed-access-integration",
+        "documents-baseline-storage-boundary",
+        "documents20-2-filter-unit",
+        "documents20-2-lifecycle-integration"
+      ]
+    }
+  ],
+  "integrated_prerequisites": [
+    {
+      "id": "phase-b-integrated-files-base",
+      "commit": "a9d5269e0e3762255e1cc992bb2465883508dc21",
+      "checks_passed": true,
+      "contracts": [
+        "phase-b-private-files-current-authority-baseline"
+      ]
+    }
+  ],
+  "legacy_reservations": [
+    {
+      "epic": "15",
+      "stories": [
+        "15-1-the-five-scheduling-views",
+        "15-2-recurring-bookings-series-materialized-occurrences-exceptions",
+        "15-3-conflict-resolver",
+        "15-4-time-reporting-filing-timesheet-review",
+        "15-5-personal-calendar-feed-adr-b004-surface-1",
+        "15-6-min-dag-the-field-landing"
+      ],
+      "reason": "Explicit owner temporary release of shared product/schema/permission/API/test resource scope while E15 performs specs and epic test planning; own planning artifacts remain reserved. Root-relayed authorization; not inferred from idle/oracle status.",
+      "worktree": "C:/Users/Rasmus/.codex/worktrees/epic-15-calendar/Kopplas",
+      "write_paths": [
+        "_bmad-output/auto-bmad/state/epic/epic-15.yaml",
+        "_bmad-output/auto-bmad/reports/epic-15.md",
+        "_bmad-output/test-artifacts/test-design-epic-15.md",
+        "_bmad-output/test-artifacts/test-design-progress-epic-15.md",
+        "_bmad-output/implementation-artifacts/spec-15-1-the-five-scheduling-views.md",
+        "_bmad-output/implementation-artifacts/spec-15-2-recurring-bookings-series-materialized-occurrences-exceptions.md",
+        "_bmad-output/implementation-artifacts/spec-15-3-conflict-resolver.md",
+        "_bmad-output/implementation-artifacts/spec-15-4-time-reporting-filing-timesheet-review.md",
+        "_bmad-output/implementation-artifacts/spec-15-5-personal-calendar-feed-adr-b004-surface-1.md",
+        "_bmad-output/implementation-artifacts/spec-15-6-min-dag-the-field-landing.md",
+        "_bmad-output/implementation-artifacts/epic-15-context.md",
+        "docs/decisions/epic-15-scheduling-ux-disposition-2026-10-09.md"
+      ],
+      "conflict_domains": [
+        "planning:epic15-specs-and-test-design"
+      ]
+    }
+  ],
+  "shared_paths": [
+    "_bmad-output/auto-bmad/preparation/story-20-1/",
+    "_bmad-output/auto-bmad/orchestration/phase-b-lanes-2026-10-08.md"
+  ],
+  "final_required_checks": [
+    "documents-source-unit",
+    "documents-integration-rls",
+    "files-signed-access-integration",
+    "documents-browser",
+    "unit",
+    "typecheck",
+    "lint",
+    "production-build",
+    "service-role-containment",
+    "bundle-containment",
+    "lockfiles",
+    "documents-baseline-storage-boundary",
+    "documents-selected-link-unit",
+    "documents-selected-link-lock-races-integration",
+    "documents20-2-filter-unit",
+    "documents20-2-lifecycle-integration",
+    "documents20-2-browser",
+    "documents20-3-context-unit",
+    "documents20-3-context-integration",
+    "documents20-3-browser",
+    "full-integration-rls",
+    "empty-migration-seed-reset",
+    "isolated-storage-recovery-integration",
+    "general-browser",
+    "dashboard-browser",
+    "epic11-pilot-performance",
+    "scope-manifest-coherence",
+    "epic20-trace-gate",
+    "epic20-nfr",
+    "epic20-test-review",
+    "epic20-deferred-reconciliation",
+    "epic20-deferred-archive",
+    "epic20-retrospective",
+    "epic20-completion-report",
+    "exact-head-required-ci",
+    "ci-verify",
+    "ci-db",
+    "ci-recovery-storage-loader",
+    "ci-e2e",
+    "ci-dashboard-e2e"
+  ]
+}

@@ -409,5 +409,100 @@
       "failed": 0,
       "skipped": 0
     }
+  },
+  "resume_admission_lane": {
+    "date": "2026-10-09",
+    "base_sha": "bbf7cef7515da7d3cd1d39a70cb73eab1856d3ad",
+    "branch": "codex/documents-resume-admission-2026-10-09",
+    "workflow_version": "3d2bae568329f6412ed2d00525625cdcf6ff2229d76abb16b92979a9a1bdc09d",
+    "coordinator": "01a1160d-b5b1-7623-a8e8-54ef3dc537ed",
+    "epic15_reservation": "C:/Users/Rasmus/.codex/worktrees/epic-15-calendar/Kopplas",
+    "implementation_authorized_by_owner": true,
+    "claims_allowed_before_conflict_release": false,
+    "routes": [
+      {
+        "task": "current source/authorization contract and overlap admission analysis",
+        "agent": "documents_spec",
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      {
+        "task": "independent targeted resume admission review",
+        "agent": "documents_audit",
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      },
+      {
+        "task": "read-only plan/ownership refresh",
+        "agent": "readiness_planner",
+        "model": "gpt-6.1-sol",
+        "effort": "low"
+      }
+    ],
+    "epic15_release_evidence": {
+      "source": "Coordinator relay of explicit Epic15 owner release",
+      "coordinator_thread": "01a1160d-b5b1-7623-a8e8-54ef3dc537ed",
+      "owner_thread": "01a120bb-ec6d-7611-9dde-ca64bc8e280f",
+      "worktree": "C:/Users/Rasmus/.codex/worktrees/epic-15-calendar/Kopplas",
+      "observed_head": "99e1274ece176cb2b665996de98d075ddc9f643b",
+      "actual_dirty_paths": [
+        "_bmad-output/auto-bmad/state/epic/epic-15.yaml",
+        "_bmad-output/test-artifacts/test-design-epic-15.md",
+        "_bmad-output/test-artifacts/test-design-progress-epic-15.md"
+      ],
+      "released_domains": [
+        "schema:migrations",
+        "registry:scope-manifest",
+        "registry:navigation",
+        "auth:permission-matrix",
+        "auth:command-enrollment",
+        "tests:shared-fixtures-resources",
+        "aggregate:sprint-status"
+      ],
+      "retained": "Epic15 specs, own anchor/reports/test-design; no simultaneous overlapping implementation",
+      "fresh_reconcile_before_epic15_build": true,
+      "release_basis": "Explicit ownership decision; not an inferred idle state or continuing oracle block",
+      "resources_declared_by_owner": "None",
+      "epic15_migration_declared_by_owner": "None",
+      "latest_read_only_git_observation": {
+        "head": "45a64853fa55af349bd7cc7ccb38e9886dd31d0b",
+        "dirty_paths": [
+          "_bmad-output/implementation-artifacts/epic-15-context.md",
+          "docs/decisions/epic-15-scheduling-ux-disposition-2026-10-09.md"
+        ],
+        "shared_product_dirty_paths": []
+      }
+    },
+    "read_only_plan": {
+      "native_exit_code": 0,
+      "ok": true,
+      "ready": [
+        "20.1"
+      ],
+      "legacy_conflicts": [],
+      "plan_path": "_bmad-output/auto-bmad/preparation/story-20-1/resume-parallel-plan-2026-10-09.json"
+    },
+    "implementation_claims_created": false,
+    "managed_resources_started": false,
+    "initialization_requires_coordinator_external_plan_repinned_to_clean_head": true,
+    "source_contract_report": {
+      "path": "_bmad-output/auto-bmad/preparation/story-20-1/resume-source-contracts-2026-10-09.md",
+      "sha256_lf": "009667d919d555ae2ab9ca0c6b5bd758b496fdaac56c5332347a147168f71599",
+      "result": "compatible; no consequential gap or approved-spec repin needed"
+    },
+    "shared_planning_allocation": {
+      "epic15_only": "UXB-A9 wording and dated disposition references in epics-phase-b.md and ux-design-specification-phase-b.md",
+      "documents_claims_on_either_file": false,
+      "documents_edits_on_either_file": false,
+      "whole_file_ownership_granted": false
+    },
+    "independent_review": {
+      "path": "docs/quality/documents-resume-admission-review-2026-10-09.md",
+      "sha256_lf": "8ce76dbb4390c8cc332cdf9136f14786dad6c5029f7b7c689c6d106e85ac2a0c",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "result": "accepted bounded coordinator handoff; no unresolved consequential defects",
+      "remaining_gate": "Actual Coordinator init/status/worker claim and external assignment; this actor does not self-initialize"
+    }
   }
 }
