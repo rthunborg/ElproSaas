@@ -2,7 +2,7 @@
 title: Entity-panel links and contextual navigation
 type: feature
 created: "2026-10-08"
-status: blocked
+status: ready-for-dev
 review_loop_iteration: 0
 followup_review_recommended: false
 warnings: [oversized]
@@ -10,9 +10,11 @@ deferred: []
 story_id: "20.3"
 canonical_story_key: "20-3-entity-panel-links-and-contextual-navigation"
 epic: E20
-baseline_revision: 8ba0150cc60ac17ac378edac5ad77405e907d3bf
-preparation_branch: codex/documents-later-story-preparation
+baseline_revision: a9d5269e0e3762255e1cc992bb2465883508dc21
+preparation_branch: codex/documents-oracle-disposition-readiness
 implementation_authorized: false
+readiness_review: accepted-targeted-high
+oracle_requirement: not-required-owner-decision-2026-10-09
 context:
   - AGENTS.md
   - docs/process/agent-model-routing.md
@@ -21,13 +23,16 @@ context:
   - _bmad-output/implementation-artifacts/spec-20-1-documents-activation-and-source-authorized-aggregation.md
   - _bmad-output/implementation-artifacts/spec-20-2-search-filters-preview-and-archive-restore.md
   - _bmad-output/auto-bmad/preparation/story-20-1/cross-story-handoffs.md
+  - _bmad-output/auto-bmad/preparation/story-20-1/owner-oracle-disposition-2026-10-09.md
+  - _bmad-output/auto-bmad/preparation/story-20-1/primary-guidance-2026-10-09.md
+  - _bmad-output/auto-bmad/preparation/story-20-1/readiness-checkpoint-2026-10-09.md
 ---
 
 # Story20.3: Entity-panel links and contextual navigation
 
 ## Preparation disposition
 
-Full canonical blocked specification draft on integrated preparation base`8ba0150cc60ac17ac378edac5ad77405e907d3bf`. Product build prerequisites are verified integrated20.1 and20.2, not merely merged preparation docs. All three specs require audit/pins and oracle/checkpoint closure before first E20 dispatch. This story neither activates Documents nor moves the nav swap from20.1. Author:`/root/documents_spec`, `gpt-6.1-sol` High, source/context authorization. No implementation, migration, new owner/table/capability, environment/dependency/service/run/claim/Git/merge/deploy action in preparation.
+Complete canonical20.3 specification on integrated preparation base`a9d5269e0e3762255e1cc992bb2465883508dc21`. Full20.1–20.3 preparation/contracts have independent High historical-pin acceptance; the oracle/readiness/path amendment received targeted independent High acceptance and coordinator-recorded checkpoint closure on2026-10-09. Exact Lovable comparison is NOT REQUIRED by the direct-human2026-10-09 decision, with zero oracle observations/no verified legacy parity. Specification-ready is distinct from implementation: this story waits verified integrated20.1 and20.2 product handoffs and fresh shared/path/resource admission. OptionA, PhaseB exclusions and every reviewed authority/lifecycle/navigation guard remain unchanged; no product/migration/claim/activation is performed.
 
 <intent-contract>
 
@@ -41,7 +46,7 @@ Full canonical blocked specification draft on integrated preparation base`8ba015
 
 **Always:** Current active membership, Documents.View, Files.View and source capability/RLS/live ancestry. URL/query parameters are navigation intent only, never authorization. Same selected-link signing and file-level lifecycle contracts apply after contextual navigation. Shipped owner-required entity uploads and the existing center owner picker remain intact.
 
-**Block If:** Product20.1/20.2 handoffs are unintegrated, a currently active owner has no compatible adapter or actual panel path, independent High context review/oracle/checkpoint/shared admission is unresolved. A future activated source must add its own compatible adapter/tests before release.
+**Block If:** Actual worker dispatch lacks current exact path/shared ownership/resource/base admission or verified prior product handoffs. Release additionally requires the specified runtime checks. The specification checkpoint is closed after independent High acceptance; no readiness label replaces those execution gates. Exact Lovable comparison is not required. OptionA cannot expand to generic/global policyB.
 
 **Never:** Add pending module panels/routes/owners, create public/customer-portal acceptance/login, introduce returnTo/open redirects or global upload, infer source access from a displayed name/route ID, turn unavailable context into an unfiltered list, widen quote_version generic upload eligibility or create a second nav destination.
 
@@ -79,7 +84,7 @@ Back/browser history restores entity route/center filters through normal local n
 
 Retain the shipped list owner picker and existing entity upload commands/forms. Only existing supported picker owners(customer/calculation/job) may be preselected after current-context validation; never substitute a facility/contact's customer as its upload owner. For source contexts not represented in the current picker, no automatic upload owner is chosen; the entity's existing owner-required upload remains reachable through the safe return route. quote_version remains non-creatable by generic commands. A manually chosen picker owner is shown explicitly and revalidated by existing upload authority; viewing one context never authorizes or silently redirects an upload to another. No new owners, bytes duplication, ownerless global upload or permission expansion.
 
-Proposed labels/empty/navigation behavior require the existing unresolved live Lovable terminology/interaction check. No oracle observation is claimed; no new browser probe or waiver belongs to this lane.
+The explicit2026-10-09 owner disposition permits the bounded approved-pattern labels/empty/navigation behavior with current official focus guidance; exact Lovable comparison is not required. Zero actual oracle observations and no verified legacy parity are claimed.
 
 ## Acceptance criteria
 
@@ -97,7 +102,7 @@ Proposed labels/empty/navigation behavior require the existing unresolved live L
 
 Exact future writes: `src/features/documents/context-navigation.ts`; `src/server/read-models/document-context.ts`; `src/components/documents/EntityDocumentsLink.tsx`; `src/app/(app)/files/page.tsx`;20.2 filters/serverread context integration; `src/app/(app)/customers/[customerId]/page.tsx`; `src/app/(app)/calculations/[calculationId]/page.tsx`; `src/app/(app)/jobs/[jobId]/page.tsx`; `src/features/files/quote-files-panel.tsx`; `src/features/files/acceptance-panel.tsx`. Prefer adjacent server wrapper links, so generic EntityFilePanel/CommitmentFilesPanel internals are read-only unless a verified prop change is explicitly claimed. No new migration, signing wrapper, capability matrix or manifest activation.
 
-- [ ]1. Verify integrated20.1/20.2 contracts and final adapter/panel inventory; root reconciles actual shared panel claims and oracle/checkpoint admission before implementation.
+- [ ]1. Verify integrated20.1/20.2 product contracts and final adapter/panel inventory at dispatch; coordinator records all-three-spec targeted High readiness/checkpoint approval and fresh actual shared panel/resource claims. Exact Lovable comparison is not required.
 - [ ]2. Implement pure context URL/validation contract and server current-authority read using exact paths; unit/real RLS proof for malformed, hidden and archived ancestors; AC1–3,6.
 - [ ]3. Render safe server anchor in the listed compatible source pages/wrappers; preserve lock/preview/upload contracts and role gates; no unapproved version panel creation; AC1,5.
 - [ ]4. Wire center context parser/query/facet/return state and stale selection reset into20.2 filters/read/page; normal history/local safe returns/mobile/focus tests; AC2–4.
@@ -116,7 +121,9 @@ Future required checks (none executed):
 
 2026-10-08: Full20.3 blocked preparation draft; explicit current-source tuple/URL/return/panel/upload adapters and exact checks. No new route/owner/portal/signing policy and no oracle/readiness claim.
 
+2026-10-09: Record direct-human Documents-only oracle disposition, current primary guidance, complete historical High preparation acceptance and exact path reservation. No sensitive product contract change; targeted High readiness-delta acceptance and coordinator checkpoint closure recorded; final LF pin updated. Specification approval is separate from worker dispatch.
+
 ## Auto Run Result
 
-Status: blocked
-Blocking condition: live Documents oracle disposition/full checkpoint closure unavailable; independent exact20.3 context/spec review and cross-story admission pending;20.1/20.2 product implementations not integrated. No ready-for-dev or implementation authorization claimed.
+Status: ready-for-dev
+Blocking condition: none for specification preparation; targeted independent High acceptance and coordinator checkpoint closure recorded2026-10-09. Worker dispatch still requires fresh integrated-base/path/shared/resource admission and the story-specific verified product dependencies. No implementation or runtime proof is claimed.

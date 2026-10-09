@@ -2,7 +2,7 @@
 title: Search, filters, preview and archive/restore
 type: feature
 created: "2026-10-08"
-status: blocked
+status: ready-for-dev
 review_loop_iteration: 0
 followup_review_recommended: false
 warnings: [oversized]
@@ -10,9 +10,11 @@ deferred: []
 story_id: "20.2"
 canonical_story_key: "20-2-search-filters-preview-and-archive-restore"
 epic: E20
-baseline_revision: 8ba0150cc60ac17ac378edac5ad77405e907d3bf
-preparation_branch: codex/documents-later-story-preparation
+baseline_revision: a9d5269e0e3762255e1cc992bb2465883508dc21
+preparation_branch: codex/documents-oracle-disposition-readiness
 implementation_authorized: false
+readiness_review: accepted-targeted-high
+oracle_requirement: not-required-owner-decision-2026-10-09
 context:
   - AGENTS.md
   - docs/process/agent-model-routing.md
@@ -23,13 +25,16 @@ context:
   - _bmad-output/implementation-artifacts/spec-20-1-documents-activation-and-source-authorized-aggregation.md
   - _bmad-output/auto-bmad/preparation/story-20-1/selected-link-contract-design.md
   - _bmad-output/auto-bmad/preparation/story-20-1/cross-story-handoffs.md
+  - _bmad-output/auto-bmad/preparation/story-20-1/owner-oracle-disposition-2026-10-09.md
+  - _bmad-output/auto-bmad/preparation/story-20-1/primary-guidance-2026-10-09.md
+  - _bmad-output/auto-bmad/preparation/story-20-1/readiness-checkpoint-2026-10-09.md
 ---
 
 # Story20.2: Search, filters, preview and archive/restore
 
 ## Preparation disposition
 
-Full canonical specification draft on integrated preparation base`8ba0150cc60ac17ac378edac5ad77405e907d3bf`(PR91 contract preparation integrated). This is future design, not implemented20.1 APIs or runtime proof. Build prerequisite:20.1 product implementation verified integrated with the handoff contracts below. All20.1–20.3 specs must be complete/audited/pinned before first E20 dispatch, and oracle/checkpoint admission remains open. Owner optionA is fixed: Documents selected-source access, unchanged baseline generic Files.View/direct Storage authority and issued-URL lifetime. No global policyB/retention/physical deletion/new storage store is authorized.
+Complete canonical20.2 specification on integrated preparation base`a9d5269e0e3762255e1cc992bb2465883508dc21`. Full20.1–20.3 preparation/contracts have independent High historical-pin acceptance; the oracle/readiness/path amendment received targeted independent High acceptance and coordinator-recorded checkpoint closure on2026-10-09. Exact Lovable comparison is NOT REQUIRED by the direct-human2026-10-09 decision, with zero oracle observations/no verified legacy parity. Specification-ready is distinct from implementation: this story waits verified integrated20.1 product handoffs and fresh shared/path/resource admission. OptionA, PhaseB exclusions and every reviewed authority/lifecycle/navigation guard remain unchanged; no product/migration/claim/activation is performed.
 
 Author:`/root/documents_spec`, `gpt-6.1-sol` High, sensitive source-authority/lifecycle design. Independent review/pins are root/reviewer-owned. No product, SQL, migration, environment/dependency, service, claim, aggregate planning, merge or deploy action occurred in preparation.
 
@@ -45,7 +50,7 @@ Author:`/root/documents_spec`, `gpt-6.1-sol` High, sensitive source-authority/li
 
 **Always:** Active membership, Documents.View, Files.View, source capability/RLS and current selected-link eligibility for reads/access. Mutations additionally require existing Files.Edit and all affected context authority; roles remain tenant_admin/projektledare from the existing matrix. Source mutability means permission for this sanctioned file operation, not permission to rewrite sent quote/acceptance content. Preserve20.1's exact selected-link signing contract, key domains, command mapping, locked-graph reconciliation and final-audit linearization.
 
-**Block If:**20.1 product contracts are not integrated, exact migration/path/shared claims or mandatory DB/browser checks are unavailable, independent High review is unresolved, oracle/checkpoint is unclosed, or historical restore origin is unknown/inconsistent. Unknown restoration eligibility disables that record's restore, not a fabricated safe default.
+**Block If:** Actual worker dispatch lacks current exact path/shared ownership/resource/base admission or verified prior product handoffs. Release additionally requires the specified runtime checks. The specification checkpoint is closed after independent High acceptance; no readiness label replaces those execution gates. Exact Lovable comparison is not required. OptionA cannot expand to generic/global policyB.
 
 **Never:** Restore a quote_pdf artifact, clear locks, change/recreate archived domain links, relink evidence, replace bytes/identity, restore deleted/unlinked reservations, introduce content search/folders/editor/AI/portal/retention or grant Montör/Säljare/Ekonomi new Files entitlements. No pending-owner facets or labels.
 
@@ -61,7 +66,7 @@ Date is file_link.created_at displayed as Swedish dates in Europe/Stockholm, con
 
 `DocumentPreviewPane` selection identity is linkId+fileId. Each open/refresh uses20.1 `createDocumentSignedAccessAction` and its new checked prepare/finalize/HMAC contract unchanged. Selection/filter/mode/tenant change immediately clears prior URL/content/error; delayed responses update only the matching latest selection/request. Archived context never signs, even if the same file has another active context. Render supported image/PDF formats using established preview components; otherwise show authorized download. Expired URL shows`Åtkomsten har gått ut` with explicit`Förnya åtkomst`; denial shows neutral unavailable text, transient failure`Försök igen`. No automatic success or stale previous-file preview. Switched/hidden panes release object/browser references without deleting stored files.
 
-Labels are proposed Swedish copy grounded in approved patterns:`Dokument`, `Sök dokument`, `Modul`, `Typ`, `Syfte`, `Från`, `Till`, `Aktiva`, `Arkiverade`, `Förhandsvisa`, `Ladda ned`, `Arkivera`, `Återställ`. Live oracle vocabulary/preview/archive interactions remain unobserved; these labels are not claimed legacy evidence. Desktop master/list-preview layout collapses to connected360×640 list/detail with reachable back, retained filters and keyboard focus. Loading, authorized-empty, filtered-empty, invalid filter, retry, unavailable selection and archive/restore pending/error/confirmed states are explicit. UI uses server-projected entitlements and confirms success only after persistence.
+Labels are proposed Swedish copy grounded in approved patterns:`Dokument`, `Sök dokument`, `Modul`, `Typ`, `Syfte`, `Från`, `Till`, `Aktiva`, `Arkiverade`, `Förhandsvisa`, `Ladda ned`, `Arkivera`, `Återställ`. The owner permits bounded recommended patterns; these approved-pattern labels remain unobserved legacy behavior and exact oracle comparison is not required. Logical keyboard focus follows the primary-guidance companion. Desktop master/list-preview layout collapses to connected360×640 list/detail with reachable back, retained filters and keyboard focus. Loading, authorized-empty, filtered-empty, invalid filter, retry, unavailable selection and archive/restore pending/error/confirmed states are explicit. UI uses server-projected entitlements and confirms success only after persistence.
 
 ## File-level mutation and authority contract
 
@@ -107,7 +112,7 @@ Restore clears file.archived_at and sets only the safe proven lifecycle; it does
 5. Given locked evidence or legacy unknown archival origin, when restore is attempted, then persistent lock history including archived links restores locked; proven ordinary linked origin restores linked; unknown/draft/deleted/unlinked origin fails closed without defaulting or reconstructing history.
 6. Given any quote_pdf artifact linked under ordinary-purpose or current/stale/reserved/locked quote context, when restore is attempted, then10.9 irreversible archival remains enforced and no restore, pointer/render/validity alteration or relink occurs. Generic/direct Storage residual remains unchanged; Documents signing remains source-selected and newly checked.
 7. Given concurrent link creation/source reassignment/role revocation/nonkey archive and repeated opposite lifecycle requests, when RPC transactions interleave, then all-link and locked-graph eligibility is serialized, post-revocation attempts deny, deadlocks/errors return no success, and no hidden link or prior-state race bypass occurs.
-8. Given desktop or connected360×640 user, when search/preview/archive/restore journeys run, then loading/empty/filtered/error/retry/expired/pending/confirmed states, keyboard/focus/back navigation and server-confirmed success work; contextual upload remains owner-required and shipped list owner picker is retained. Live oracle confirmation remains a release gate, not simulated evidence.
+8. Given desktop or connected360×640 user, when search/preview/archive/restore journeys run, then loading/empty/filtered/error/retry/expired/pending/confirmed states, keyboard/focus/back navigation and server-confirmed success work; contextual upload remains owner-required and shipped list owner picker is retained. The explicit owner disposition removes exact Lovable comparison; actual browser evidence still proves the implemented journeys, not legacy parity.
 
 </intent-contract>
 
@@ -115,11 +120,11 @@ Restore clears file.archived_at and sets only the safe proven lifecycle; it does
 
 `src/features/documents/filters.ts` and`date-bounds.ts`(new pure parsing/filter/DST contract); `src/server/read-models/documents.ts`/`document-sources.ts`(20.1 provided, extend authorized mode/facets/paging/all-source operation eligibility); `src/components/documents/DocumentFilters.tsx`, `DocumentPreviewPane.tsx`, `DocumentLifecycleActions.tsx`(new UI); `src/app/(app)/files/page.tsx`; `src/features/documents/actions.ts`(20.1 provided, lifecycle actions); `src/server/commands/documents/lifecycle.ts` and`lifecycle-db.ts`(new typed checked commands/RPC mapping); `src/server/commands/envelope.ts`(closed capability entries). Reuse existing FilePreviewRow/FileIndexUpload and20.1 HMAC/prepare/finalize unchanged; no blanket ownership of files commands, security matrix, AppShell or generic Storage.
 
-Future migration logical basename:`story_20_2_documents_lifecycle_origin_and_restore.sql` under`supabase/migrations/`, physical CLI-generated timestamp pinned before claims. Contents bounded files ordinary-origin column/DB-owned capture and checked Documents lifecycle helpers/RPCs/ACLs only; existing10.9 guard stays unchanged, no frozen migration edits/new table/bucket/policy/role. Exact schema/migration semantic domain and shared lifecycle trigger writers must be serialized. Current10.9 quote guards are read-only invariants, not permission to weaken them.
+Reserved future migration:`supabase/migrations/20261009091121_story_20_2_documents_lifecycle_origin_and_restore.sql`. CLI-first creation of an empty/unapplied file and verified local rename follow the readiness checkpoint; exact name is allocated before claims without creating SQL here. Contents remain bounded ordinary-origin column/DB-owned capture and checked Documents lifecycle helpers/RPCs/ACLs only. Existing10.9 guard stays unchanged; no frozen migration edits/new table/bucket/policy/role. Serialize schema:migrations and shared lifecycle writers.
 
 ## Tasks & Acceptance
 
-- [ ]1. Consume verified20.1 product handoff and complete independent High lifecycle/schema/UX review; root records oracle/full-spec/checkpoint/shared admission. No dispatch from this blocked draft.
+- [ ]1. Consume verified20.1 product handoff at actual dispatch; coordinator records all-three-spec targeted High readiness review/checkpoint and fresh shared/path/resource admission. Exact oracle comparison is not required. Preparation acceptance supplies no product test credit.
 - [ ]2. Implement pure query/date contract in the exact filter files and extend safe server read/facets/mode pagination; unit/RLS coverage for AC1.
 - [ ]3. Implement preview/filter components against unchanged20.1 signed-access action; selection token/URL lifecycle/focus/mobile tests for AC2,8.
 - [ ]4. Add bounded origin capture and checked all-link archive/restore migration/typed commands; preserve generic authority and10.9 trigger constraints; deterministic race/authority/origin/atomic-audit tests for AC3–7 before UI wiring.
@@ -139,7 +144,9 @@ Future required checks (none executed):
 
 2026-10-08: Full20.2 blocked preparation draft. Concrete filters/date/preview/current-authority/all-link lifecycle interfaces and safe ordinary origin/locked-history restore matrix; preserve every archived quotePDF prohibition and no domain relink. No runtime proof or owner waiver.
 
+2026-10-09: Record direct-human Documents-only oracle disposition, current primary guidance, complete historical High preparation acceptance and exact path reservation. No sensitive product contract change; targeted High readiness-delta acceptance and coordinator checkpoint closure recorded; final LF pin updated. Specification approval is separate from worker dispatch.
+
 ## Auto Run Result
 
-Status: blocked
-Blocking condition: live Documents oracle disposition and full checkpoint closure unavailable; independent exact20.2 lifecycle/schema/spec review and pinned cross-story admission pending;20.1 product implementation not integrated. No ready-for-dev or implementation authorization claimed.
+Status: ready-for-dev
+Blocking condition: none for specification preparation; targeted independent High acceptance and coordinator checkpoint closure recorded2026-10-09. Worker dispatch still requires fresh integrated-base/path/shared/resource admission and the story-specific verified product dependencies. No implementation or runtime proof is claimed.
