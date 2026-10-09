@@ -209,6 +209,45 @@
       "agent_identity": "/root/documents_audit",
       "escalation_reason": "Independent source-authority and cross-story contract review",
       "recorded_after_dispatch": false
+    },
+    {
+      "phase": "owner-oracle-disposition-checkpoint-readiness",
+      "role": "documents_spec",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_spec",
+      "escalation_reason": "Checkpoint approval, selected-source and transactional contract readiness",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "read-only-concrete-assignment-plan",
+      "role": "readiness_planner",
+      "profile": "standard",
+      "model": "gpt-6.1-sol",
+      "effort": "low",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/readiness_planner",
+      "escalation_reason": "",
+      "recorded_after_dispatch": false
+    },
+    {
+      "phase": "readiness-independent-targeted-review",
+      "role": "documents_audit",
+      "profile": "critical",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "host": "codex",
+      "tier": "subagents",
+      "route": "subagent",
+      "agent_identity": "/root/documents_audit",
+      "escalation_reason": "Targeted review of oracle disposition, spec readiness and authorization/assignment boundaries",
+      "recorded_after_dispatch": false
     }
   ],
   "reservations": [
@@ -315,5 +354,60 @@
       "Current integrated-base and resource/ownership revalidation, validated coordinator plan and successful assignments",
       "Implementation and combined-integration checks at exact product revisions"
     ]
+  },
+  "oracle_disposition_readiness_lane": {
+    "date": "2026-10-09",
+    "branch": "codex/documents-oracle-disposition-readiness",
+    "base_sha": "a9d5269e0e3762255e1cc992bb2465883508dc21",
+    "pr92_merge": "a9d5269e0e3762255e1cc992bb2465883508dc21",
+    "workflow_version": "304a3a4a3a4b43665257b4e934eb5c905666a339b97989630c9d7f290dd6c3c6",
+    "scope": "Owner Documents-only oracle disposition and bounded readiness/planner validation",
+    "implementation_claims_allowed": false,
+    "oracle_observations": 0,
+    "legacy_behavior_verified": false,
+    "merge_authority": "standing owner authorization; merge commit and retain branches after exact-head gates",
+    "specifications_ready": true,
+    "plan_base_sha": "26666ff514fe8702c22e76e78f38b339450454c0",
+    "read_only_plan": {
+      "ok": true,
+      "ready": [
+        "20.1"
+      ],
+      "later_stories_wait_for_verified_predecessors": true,
+      "legacy_conflicts": []
+    },
+    "helper_tests": {
+      "passed": 34,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": 192.92
+    }
+  },
+  "helper_literal_route_path_resolution": {
+    "date": "2026-10-09",
+    "authorization": "Owner: Follow your recommendation",
+    "author": "readiness_planner",
+    "author_model": "gpt-6.1-sol",
+    "author_effort": "low",
+    "reviewer": "documents_audit",
+    "review_model": "gpt-6.1-sol",
+    "review_effort": "high",
+    "scope": "Allow literal square brackets in exact ownership filenames; retain wildcard and traversal rejection; no directory ownership widening",
+    "prospective_run_id": "documents-e20-readiness-2026-10-09",
+    "coordinator": "01a1160d-b5b1-7623-a8e8-54ef3dc537ed",
+    "initialized": false,
+    "commit": "22856baa6df92ec5daf7fe54d0080f046fa43faa",
+    "workflow_version": "304a3a4a3a4b43665257b4e934eb5c905666a339b97989630c9d7f290dd6c3c6",
+    "independent_high_review": "clean",
+    "focused_tests": {
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    "cli_tests": {
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    }
   }
 }

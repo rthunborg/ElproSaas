@@ -1,0 +1,35 @@
+{
+  "command": [
+    "python",
+    "-X",
+    "utf8",
+    ".agents/skills/auto-bmad/scripts/parallel_run.py",
+    "--repo",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\dbe6\\ElproSaas",
+    "plan",
+    "--plan",
+    "C:\\Users\\Rasmus\\.codex\\worktrees\\dbe6\\ElproSaas\\_bmad-output\\auto-bmad\\preparation\\story-20-1\\parallel-plan-2026-10-09.json"
+  ],
+  "native_exit_code": 0,
+  "result": {
+    "blocked": {
+      "20.2": [
+        "prerequisite not verified integration ancestor: 20.1"
+      ],
+      "20.3": [
+        "prerequisite not verified integration ancestor: 20.1",
+        "prerequisite not verified integration ancestor: 20.2"
+      ]
+    },
+    "integration_head": "26666ff514fe8702c22e76e78f38b339450454c0",
+    "legacy_conflicts": [],
+    "ok": true,
+    "ready": [
+      "20.1"
+    ],
+    "ready_pairs": [],
+    "run_id": "documents-e20-readiness-2026-10-09",
+    "schema_version": 1
+  },
+  "stderr": ""
+}
