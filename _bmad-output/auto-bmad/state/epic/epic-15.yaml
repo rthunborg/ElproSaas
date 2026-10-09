@@ -9,10 +9,10 @@ spec_folder: null
 story_id: null
 branch: codex/epic-15-scheduling-time-calendar
 status: in-progress
-updated_at: "2026-10-09T13:17:04Z"
+updated_at: "2026-10-09T13:27:03Z"
 started_at: "2026-10-09T12:57:49Z"
 completed_at: null
-active_seconds: 1142
+active_seconds: 1693
 timing_anchor: null
 is_first_in_epic: false
 is_last_in_epic: false
@@ -131,3 +131,9 @@ uxb_a9_docs_allocation:
   scope: Narrow UXB-A9/disposition references in epics-phase-b.md and ux-design-specification-phase-b.md
   effort: gpt-6.1-sol Low
   store: "C:/DEV/Kopplas/.git/auto-bmad-parallel.sqlite3 absent; no initialized claims"
+ownership_wait:
+  phase: 5
+  prerequisite: Verified Documents20.1 integration and explicit shared product-domain release/revalidation
+  coordinator: 01a1160d-b5b1-7623-a8e8-54ef3dc537ed
+  implementation_started: false
+  ready_to_resume: true

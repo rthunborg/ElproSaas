@@ -1,0 +1,35 @@
+{
+  "storyId": "15.1",
+  "status": "scaffold-preparation-complete",
+  "tdd_phase": "RED",
+  "total_tests": 62,
+  "unit_tests": 18,
+  "integration_tests": 30,
+  "e2e_tests": 14,
+  "all_tests_skipped": true,
+  "product_behaviors_executed": 0,
+  "unit_discovery": {
+    "skipped": 18,
+    "passed": 0,
+    "failed": 0
+  },
+  "integration_execution": "not-run",
+  "browser_execution": "not-run",
+  "adapters": "explicitly-unbound",
+  "typecheck": "not-run-dependencies-absent",
+  "syntax_checks": "Node strip-types check success for INT/E2E/harness",
+  "fixtures_created": 0,
+  "shared_wiring": "deferred-to-authorized-owner",
+  "subagent_execution": "API Sol High + UI Sol Low, both awaited",
+  "acceptance_criteria_mapped": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "release_gate": "Contract D actual Schema/Resurser click AND drag plus keyboard/dialog still required"
+}

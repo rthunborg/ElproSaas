@@ -9,32 +9,33 @@ spec_folder: null
 story_id: null
 branch: codex/epic-15-scheduling-time-calendar
 status: in-progress
-updated_at: "2026-10-09T13:17:26Z"
+updated_at: "2026-10-09T13:27:03Z"
 started_at: "2026-10-09T13:06:12Z"
 completed_at: null
-active_seconds: 651
+active_seconds: 1201
 timing_anchor: null
 is_first_in_epic: true
 is_last_in_epic: false
 git_mode: remote
 base_branch: main
-selected_phase: build
-selected_role: build-delegate
+selected_phase: tea_per_story
+selected_role: tea-delegate
 selected_profile: standard
 selected_model: gpt-6.1-sol
 selected_effort: low
 selected_host: codex
 selected_tier: subagents
 selected_route: subagent
-escalation_reason: "Ordinary scheduling UX specification; sensitive authorization/integrity portions explicitly delegated High"
+escalation_reason: "Ordinary15.1 ATDD preparation; sensitive access assertions delegated High; shared fixture edits excluded"
 routing_ledger:
   - "{\"effort\":\"low\",\"escalation_reason\":\"Ordinary scheduling UX specification; sensitive authorization/integrity portions explicitly delegated High\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"build\",\"profile\":\"standard\",\"role\":\"build-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
+  - "{\"effort\":\"low\",\"escalation_reason\":\"Ordinary15.1 ATDD preparation; sensitive access assertions delegated High; shared fixture edits excluded\",\"host\":\"codex\",\"model\":\"gpt-6.1-sol\",\"phase\":\"tea_per_story\",\"profile\":\"standard\",\"role\":\"tea-delegate\",\"route\":\"subagent\",\"tier\":\"subagents\"}"
 tea_risk: high
 tea_selected: [atdd, automate, trace-advisory]
 tea_rationale: "Scheduling, synchronized projections, capacity and drag/keyboard/dialog behavior"
 epic_story_count: 6
 stories_after_in_epic: 5
-completed_phases: [0, 1, 2, 3]
+completed_phases: [0, 1, 2, 3, 4]
 spec_path: "C:/Users/Rasmus/.codex/worktrees/epic-15-calendar/Kopplas/_bmad-output/implementation-artifacts/spec-15-1-the-five-scheduling-views.md"
 spec_approved: true
 build:
@@ -54,7 +55,7 @@ legacy_review_loop_done: false
 legacy_external_review_iterations: null
 legacy_convergence_unverified: false
 legacy_artifact_path: null
-commits: [45a64853]
+commits: [45a64853, f9e12a81]
 phase8_steps:
   trace_gate: null
   nfr: null
@@ -93,3 +94,14 @@ spec_validation:
   blockers: []
   effort: high
   tasks: 9
+atdd:
+  skipped: 18
+  unit: 18
+  passed: 0
+  checklist: "_bmad-output/test-artifacts/atdd-checklist-spec-15-1-the-five-scheduling-views.md"
+  adapters: Unbound
+  browser: 14
+  integration: 30
+  product_behaviors_executed: 0
+  failed: 0
+  scaffolds: 62

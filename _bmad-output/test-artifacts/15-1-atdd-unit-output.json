@@ -1,0 +1,21 @@
+{
+  "storyId": "15.1",
+  "phase": "RED scaffold discovery",
+  "revision": "f9e12a81e7030133290f03f7de3750af03a601ba",
+  "command": "node --experimental-strip-types --import ./tests/support/register.mjs --test tests/unit/features/scheduling/views.atdd.test.ts tests/unit/features/scheduling/capacity-view.atdd.test.ts tests/unit/features/scheduling/preferences.atdd.test.ts",
+  "tests": 18,
+  "passed": 0,
+  "failed": 0,
+  "skipped": 18,
+  "productBehaviorsExecuted": 0,
+  "limitations": [
+    "Skipped scaffold bodies did not execute",
+    "Adapters are explicit unbound test ports until implementation wiring",
+    "No DB browser component or required gate execution"
+  ],
+  "generatedTestFiles": [
+    "views.atdd.test.ts",
+    "capacity-view.atdd.test.ts",
+    "preferences.atdd.test.ts"
+  ]
+}
