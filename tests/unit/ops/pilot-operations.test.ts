@@ -112,7 +112,7 @@ test('Storage pagination does not silently omit the page beyond the first thousa
 });
 
 test('Storage consistency inventory rejects object-set or metadata drift before backup encryption', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'elpro-storage-inventory-'));
+  const root = await mkdtemp(join(tmpdir(), 'kopplas-storage-inventory-'));
   const snapshot = join(root, 'pre-dump-inventory.json');
   const before = [{ bucket: 'tenant-files', path: 'tenant-a/invoice.pdf', bytes: 3, last_modified: '2026-09-14T00:00:00Z' }];
   await writeFile(snapshot, `${JSON.stringify({ objects: before })}\n`);
@@ -157,7 +157,7 @@ test('backup database URL validator rejects forbidden URL parameters through its
 });
 
 test('Storage restore verifies only checksummed manifest objects through a loopback recovery API', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'elpro-storage-restore-'));
+  const root = await mkdtemp(join(tmpdir(), 'kopplas-storage-restore-'));
   const object = join(root, 'storage', 'tenant-files', 'tenant-a', 'document.pdf');
   try {
     await mkdir(join(root, 'storage', 'tenant-files', 'tenant-a'), { recursive: true });
@@ -200,7 +200,7 @@ test('Storage restore refuses external or demo targets before reading backup con
 });
 
 test('Storage restore refuses a manifest object missing from SHA256SUMS before upload', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'elpro-storage-restore-'));
+  const root = await mkdtemp(join(tmpdir(), 'kopplas-storage-restore-'));
   try {
     await mkdir(join(root, 'storage', 'tenant-files'), { recursive: true });
     await writeFile(join(root, 'storage', 'tenant-files', 'document.pdf'), 'restored bytes');
@@ -270,9 +270,9 @@ test('recovery Compose sources leave per-drill values in ignored static private 
   assert.match(normalizedBase, /default:\n    internal: true/);
   assert.match(normalizedBase, /gateway:\n[\s\S]*?networks:\n      - default\n      - gateway-ingress/);
   assert.match(normalizedBase, /gateway-ingress:\n    internal: false/);
-  assert.match(dbOverride, /^name: elpro-isolated-recovery-/m);
+  assert.match(dbOverride, /^name: kopplas-isolated-recovery-/m);
   assert.match(dbOverride, /127\.0\.0\.1:55432:5432/);
-  assert.match(runtimeOverride, /^name: elpro-isolated-recovery-/m);
+  assert.match(runtimeOverride, /^name: kopplas-isolated-recovery-/m);
   assert.match(runtimeOverride, /127\.0\.0\.1:58000:8000/);
   assert.match(envExample, /^POSTGRES_PASSWORD=/m);
   assert.match(envExample, /^GOTRUE_DB_DATABASE_URL=postgres:\/\/supabase_auth_admin:/m);
@@ -282,7 +282,7 @@ test('recovery Compose sources leave per-drill values in ignored static private 
 });
 
 test('ephemeral recovery runtime configuration writes literal isolated values outside source files', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'elpro-recovery-runtime-config-'));
+  const root = await mkdtemp(join(tmpdir(), 'kopplas-recovery-runtime-config-'));
   try {
     await writeRecoveryRuntimeConfig(root, { instance: 'fixture', dbPort: 55433, apiPort: 58001 });
     const [env, dbOverride, runtimeOverride] = await Promise.all([
@@ -298,7 +298,7 @@ test('ephemeral recovery runtime configuration writes literal isolated values ou
     assert.match(env, /^GOTRUE_SITE_URL=http:\/\/127\.0\.0\.1:58001$/m);
     assert.match(env, /^API_EXTERNAL_URL=http:\/\/127\.0\.0\.1:58001\/auth\/v1$/m);
     assert.match(env, /^GOTRUE_JWT_SECRET=[A-Za-z0-9_-]{43}$/m);
-    assert.match(dbOverride, /^name: elpro-isolated-recovery-fixture$/m);
+    assert.match(dbOverride, /^name: kopplas-isolated-recovery-fixture$/m);
     assert.match(dbOverride, /127\.0\.0\.1:55433:5432/);
     assert.match(runtimeOverride, /127\.0\.0\.1:58001:8000/);
     await assert.rejects(writeRecoveryRuntimeConfig(root, { instance: 'fixture', dbPort: 55433, apiPort: 58001 }), /EEXIST/);
@@ -322,7 +322,7 @@ test('recovery workflows resolve the configured gateway port and wait for its St
 });
 
 test('Drive rehearsal download accepts only the newest Drive-owned marked file and writes ciphertext without redirects', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'elpro-drive-download-'));
+  const root = await mkdtemp(join(tmpdir(), 'kopplas-drive-download-'));
   const output = join(root, 'backup.gpg');
   try {
     const calls: Array<{ url: string; init: RequestInit }> = [];
@@ -349,7 +349,7 @@ test('Drive rehearsal download accepts only the newest Drive-owned marked file a
 });
 
 test('isolated recovery requires archive COPY totals to match restored database aggregates', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'elpro-recovery-facts-'));
+  const root = await mkdtemp(join(tmpdir(), 'kopplas-recovery-facts-'));
   try {
     const data = ['COPY public.tenants (id) FROM stdin;', 'a', '\\.', 'COPY public.tenant_memberships (id) FROM stdin;', 'a', 'b', '\\.', 'COPY auth.users (id) FROM stdin;', 'a', '\\.', 'COPY storage.objects (id) FROM stdin;', 'a', '\\.', 'COPY supabase_migrations.schema_migrations (version) FROM stdin;', 'a', '\\.'].join('\n');
     assert.equal(copyCounts(data).get('public.tenant_memberships'), 2);
@@ -373,7 +373,7 @@ test('isolated recovery requires nonempty matching Auth and Storage migration le
   assert.doesNotThrow(() => assertMatchingPlatformMigrationLedgers(source, structuredClone(source)));
   assert.throws(() => assertMatchingPlatformMigrationLedgers(source, { ...source, auth: { count: 86, digest: 'a'.repeat(32) } }), /migration-ledger verification failed/);
   assert.throws(() => assertMatchingPlatformMigrationLedgers(source, { ...source, storage: { count: 0, digest: 'b'.repeat(32) } }), /migration-ledger verification failed/);
-  const root = await mkdtemp(join(tmpdir(), 'elpro-recovery-ledgers-'));
+  const root = await mkdtemp(join(tmpdir(), 'kopplas-recovery-ledgers-'));
   try {
     const sourcePath = join(root, 'source.json');
     const targetPath = join(root, 'target.json');
@@ -406,7 +406,7 @@ test('isolated Auth verification uses a disposable user and requires empty tenan
 });
 
 test('Storage export refuses an object whose downloaded bytes changed after the no-transfer preflight', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'elpro-storage-export-'));
+  const root = await mkdtemp(join(tmpdir(), 'kopplas-storage-export-'));
   try {
     const storage = { from: () => ({ download: async () => ({ data: new Blob([Buffer.from('four')]), error: null }) }) };
     await assert.rejects(
@@ -419,7 +419,7 @@ test('Storage export refuses an object whose downloaded bytes changed after the 
 });
 
 test('Storage export failures do not disclose a customer-derived object path in public workflow logs', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'elpro-storage-export-'));
+  const root = await mkdtemp(join(tmpdir(), 'kopplas-storage-export-'));
   const customerPath = 'tenant-49/installation/secret-address-photo.jpg';
   try {
     await assert.rejects(
@@ -441,7 +441,7 @@ test('Storage export failures do not disclose a customer-derived object path in 
 });
 
 test('Drive resumes from a partially acknowledged streaming boundary and never prunes after an upload failure', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'elpro-drive-upload-'));
+  const root = await mkdtemp(join(tmpdir(), 'kopplas-drive-upload-'));
   const archive = join(root, 'backup.gpg');
   await writeFile(archive, Buffer.alloc(9 * 1024 * 1024, 7));
   try {
@@ -500,7 +500,7 @@ test('Drive pruning retains seven marked backups and refuses unrelated metadata 
 });
 
 test('workflow-format checksum generation produces relative members that the restore verifier accepts', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'elpro-checksum-'));
+  const root = await mkdtemp(join(tmpdir(), 'kopplas-checksum-'));
   const member = join(root, 'database.sql');
   try {
     await writeFile(member, 'expected');

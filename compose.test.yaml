@@ -1,4 +1,4 @@
-name: ${COMPOSE_PROJECT_NAME:-elpro-story14-test}
+name: ${COMPOSE_PROJECT_NAME:-kopplas-story14-test}
 
 # Disposable, guard-owned local Supabase runtime for integration and browser evidence.
 services:

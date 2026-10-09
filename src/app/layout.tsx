@@ -8,8 +8,8 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Elpro",
-  description: "Elpro internal platform",
+  title: "Kopplas",
+  description: "Kopplas internal platform",
 };
 
 export default function RootLayout({

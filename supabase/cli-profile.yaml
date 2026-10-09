@@ -1,10 +1,10 @@
-# Supabase CLI profile for ElproSaas (see docs/process/demo-environment.md).
+# Supabase CLI profile for Kopplas (see docs/process/demo-environment.md).
 #
 # Why: the CLI keeps ONE global default profile file at ~/.supabase/profile,
 # and the login token is stored in the OS credential store under the ACTIVE
 # profile's name. With every project on the default profile, any project's
 # `supabase login` (or profile switch) clobbers the others. Selecting this
-# file gives ElproSaas its own profile name — and therefore its own token
+# file gives Kopplas its own profile name — and therefore its own token
 # slot — so other projects on this machine can never break this one.
 #
 # Format: YAML (the CLI's TS implementation parses custom profiles with a YAML
@@ -18,13 +18,15 @@
 #   supabase --profile "<repo>/supabase/cli-profile.yaml" <command>
 # One-time login for this profile (browser flow, run by a human):
 #   supabase login --profile "<repo>/supabase/cli-profile.yaml"
+# Compatibility identity: retain the existing credential-store slot.
+# The product display name is Kopplas; see ADR-B013 and the rename runbook.
 name: elprosaas
 api_url: https://api.supabase.com
 # REQUIRED by Supabase CLI 2.109.1+ — without it every command using this profile aborts with
 # "invalid profile: Field validation for 'DashboardURL' failed on the 'required' tag", which blocked
 # `supabase start` / `db reset` locally (so DB-backed verification kept falling to CI). This is the
 # platform dashboard origin, NOT a project-specific URL — the project ref is supplied per command /
-# by the linked project (elprosaas-demo = wmqmzznmwpheswjjozhq). No secret.
+# by the linked project (Kopplas = wmqmzznmwpheswjjozhq). No secret.
 dashboard_url: https://supabase.com/dashboard
 project_host: supabase.co
 pooler_host: supabase.com

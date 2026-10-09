@@ -2,11 +2,15 @@
 
 Use this checklist before trusting the project `.codex` layer.
 
+The examples use the approved destination `C:\DEV\Kopplas`. Until the pending
+[local move](kopplas-rename-status.md#finish-the-local-directory-move) completes,
+run from the actual `C:\DEV\ElproSaas` checkout instead.
+
 ## 1. Verify Codex Reads `AGENTS.md`
 
 Manual check:
 
-1. Start Codex from the project root: `codex -C C:\ElproSaas`
+1. Start Codex from the project root: `codex -C C:\DEV\Kopplas`
 2. Ask: `What is the current project phase and what scope is deferred?`
 3. Expected answer: Phase B / Legacy Parity Release; scope is manifest-governed (`src/scope/manifest.ts`) — a module's surface may exist only when the module is `active`; the Phase C ledger (all AI flows, live supplier vendor APIs, customer portal / BankID online acceptance, bookkeeping beyond Fortnox, the public anonymous suggestion endpoint, the full-release legal/GDPR program, a native mobile app, self-serve tenant signup, or any net-new feature beyond parity + the two sanctioned additions) is deferred with no exceptions without a new owner decision.
 
@@ -17,7 +21,7 @@ Do not treat this as verified until the answer cites the repo instructions or ma
 Run:
 
 ```powershell
-codex --strict-config -C C:\ElproSaas --help
+codex --strict-config -C C:\DEV\Kopplas --help
 ```
 
 Expected:
@@ -29,7 +33,7 @@ Expected:
 
 Manual check:
 
-1. Start Codex from the project root: `codex -C C:\ElproSaas`
+1. Start Codex from the project root: `codex -C C:\DEV\Kopplas`
 2. Open the agent list if available, for example `/agents`.
 3. Confirm these agents appear:
    - `phase-scope-reviewer`
@@ -44,10 +48,10 @@ If Codex does not load `.codex/agents/*.toml`, treat the files as advisory promp
 
 ## 4. Verify Execpolicy Rules Parse And Decide Correctly
 
-Run from `C:\ElproSaas`:
+Run from `C:\DEV\Kopplas`:
 
 ```powershell
-Set-Location C:\ElproSaas
+Set-Location C:\DEV\Kopplas
 codex execpolicy check --pretty --rules .\.codex\rules\default.rules -- git status --short
 codex execpolicy check --pretty --rules .\.codex\rules\default.rules -- rg --files docs
 codex execpolicy check --pretty --rules .\.codex\rules\default.rules -- npm install
@@ -63,7 +67,7 @@ codex execpolicy check --pretty --rules .\.codex\rules\default.rules -- supabase
 codex execpolicy check --pretty --rules .\.codex\rules\default.rules -- __codex_rule_smoke_test__
 ```
 
-If not running from `C:\ElproSaas`, use an absolute rules path instead of `.\.codex\rules\default.rules`.
+If not running from `C:\DEV\Kopplas`, use an absolute rules path instead of `.\.codex\rules\default.rules`.
 
 The `--` separator before the tested command is required. Without it, command flags can be parsed as `codex execpolicy check` flags instead of command tokens.
 
@@ -114,7 +118,7 @@ Do not assume hooks are enforceable until `/hooks` shows them and dry-run prompt
 
 Manual check:
 
-1. Start Codex from `C:\ElproSaas`.
+1. Start Codex from `C:\DEV\Kopplas`.
 2. If Codex shows a project trust prompt, approve only after reviewing `.codex/config.toml`, `.codex/hooks.json`, `.codex/rules/default.rules`, and `.codex/agents/*.toml`.
 3. Do not use `--dangerously-bypass-hook-trust` for normal work.
 

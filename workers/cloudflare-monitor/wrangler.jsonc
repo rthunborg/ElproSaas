@@ -1,5 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
+  // Stable deployed identity preserves Durable Object history and pending alerts (ADR-B013).
   "name": "elpro-pilot-availability-monitor",
   "main": "src/index.ts",
   "compatibility_date": "2026-09-15",
@@ -9,6 +10,7 @@
     "head_sampling_rate": 1
   },
   "vars": {
+    // Verified current alias; future Kopplas domains require a coordinated cutover.
     "MONITOR_URL": "https://elpro-saas.vercel.app/login",
     "MONITOR_SENDER": "__REPLACE_WITH_APPROVED_SENDER__",
     "MONITOR_DESTINATION": "__REPLACE_WITH_OWNER_VERIFIED_RECIPIENT__"

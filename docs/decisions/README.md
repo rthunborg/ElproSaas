@@ -6,3 +6,5 @@
 - [ADR-B011 — Epic 13 email release and quote delivery](ADR-B011-epic-13-email-release-and-quote-delivery.md)
 
 Phase-B architecture decisions ADR-B001–B007 remain indexed in `_bmad-output/planning-artifacts/architecture-phase-b.md`.
+
+- [ADR-B013 — Kopplas product name and compatibility](ADR-B013-kopplas-product-name-and-compatibility.md)

@@ -247,7 +247,7 @@ jobs:
           supabase db dump --local --schema public,auth,storage,supabase_migrations,test_support --file recovery/source/schema.sql
           # CLI data dumps always exclude these managed ledgers, including when
           # their schemas are selected. Use the local database's native pg_dump.
-          source_db='supabase_db_ElproSaas'
+          source_db='supabase_db_kopplas'
           docker inspect "$source_db" > /dev/null
           docker exec --user postgres "$source_db" pg_dump -U postgres -d postgres --data-only --no-owner --no-privileges --table=auth.schema_migrations --table=storage.migrations > recovery/source/platform-migration-ledgers.sql
           ledger_query="select json_build_object('auth', (select json_build_object('count', count(*), 'digest', md5(coalesce(string_agg(to_jsonb(m)::text, E'\\n' order by to_jsonb(m)::text), ''))) from auth.schema_migrations m), 'storage', (select json_build_object('count', count(*), 'digest', md5(coalesce(string_agg(to_jsonb(m)::text, E'\\n' order by to_jsonb(m)::text), ''))) from storage.migrations m))::text;"

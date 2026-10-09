@@ -4,12 +4,23 @@ Provisioned 2026-07-03 after Epic 5 (owner decision). This is the **internal
 pilot / demo** deployment of the Phase A app — not production, and not a test
 target. It exists so the owner can demo the product and pilot users can try it.
 
+## Current naming — 2026-10-09
+
+The owner-approved product name is **Kopplas** (ADR-B013). Authenticated checks
+verified Supabase **Kopplas** at the existing ref and Vercel **kopplas** at the
+existing project ID. GitHub is now `rthunborg/Kopplas`. Vercel currently lists
+only `elpro-saas.vercel.app` as a verified project domain, so that remains the
+working origin pending a coordinated domain cutover. The future domains are
+`kopplas.se`, `kopplas.io`, and `kopplas.com`; none is asserted live here.
+Dated evidence below retains its original names, URLs, and configuration claims.
+See [rename status](kopplas-rename-status.md) for rollout and compatibility details.
+
 ## Topology
 
 | Piece | Value |
 | --- | --- |
-| Hosting | Vercel project [`elpro-saas`](https://vercel.com/enhancior/elpro-saas) (Enhancior team), auto-deploys from `main` on GitHub `rthunborg/ElproSaas`. |
-| Database | Supabase project **`elprosaas-demo`** — ref `wmqmzznmwpheswjjozhq`, region `eu-north-1` (Stockholm), **Enhancior** org (`oykbutypisxdgifmrxid`), free tier. [Dashboard](https://supabase.com/dashboard/project/wmqmzznmwpheswjjozhq). |
+| Hosting | Vercel project [`kopplas`](https://vercel.com/enhancior/kopplas) (Enhancior team), auto-deploys from `main` on GitHub `rthunborg/Kopplas`. |
+| Database | Supabase project **`Kopplas`** — ref `wmqmzznmwpheswjjozhq`, region `eu-north-1` (Stockholm), **Enhancior** org (`oykbutypisxdgifmrxid`), free tier. [Dashboard](https://supabase.com/dashboard/project/wmqmzznmwpheswjjozhq). |
 | App env vars (Vercel) | The 2026-09-10 Production inventory contains `NEXT_PUBLIC_SUPABASE_URL=https://wmqmzznmwpheswjjozhq.supabase.co`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, server-only `SUPABASE_SERVICE_ROLE_KEY`, `QUOTE_PDF_ATTESTATION_KEY_ID`, and `QUOTE_PDF_ATTESTATION_HMAC_SECRET`. On 2026-09-14, Production `NEXT_PUBLIC_APP_URL` was set to `https://elpro-saas.vercel.app`. Seller quote-PDF preview uses the service-role secret only in `src/server/storage/quote-pdf-signer.ts` after the checked database target binding; never expose or commit it. `ELPRO_QUOTE_SEND_TRACK=demo` is a documented explicit disposable-demo opt-in for sending, but was absent from this inventory and was not provisioned for the PDF setup. The application default remains fail-closed `real_customer`, blocking unresolved `TAX_SIGN_OFF_REQUIRED` before send. Story 12.1's separate provisioning-attestation key is not part of this dated inventory and must not be inferred as provisioned. |
 | Accounts | As of 2026-09-10, the Enhancior Supabase MCP connection and the default Supabase CLI independently reach the correct demo project. The committed named profile has not been rechecked; do not infer its current authentication state from this evidence. |
 

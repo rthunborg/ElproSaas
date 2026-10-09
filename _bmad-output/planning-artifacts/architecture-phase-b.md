@@ -3,7 +3,7 @@ stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 workflowType: architecture
 lastStep: 8
 status: complete
-project_name: ElproSaas
+project_name: Kopplas
 user_name: Rasmus
 date: 2026-07-18
 completedAt: 2026-07-18
@@ -26,7 +26,7 @@ inputDocuments:
   - docs/discovery/phase-b-accountant-answers-2026-07-26.md              # tax blocks A/B/C + hidden rows 2.2 (added 2026-07-26)
 ---
 
-# Phase B Architecture — ElproSaas Legacy Parity Release
+# Phase B Architecture — Kopplas Legacy Parity Release
 
 **Author:** Rasmus
 **Date:** 2026-07-18
@@ -1047,7 +1047,7 @@ Single-row mutations (role changes, follow-up scheduling/completion, notificatio
 7. the server performs at most one Auth provider call for that exact reservation and submits a separately signed sanitized outcome bound to the reservation/generation; replay and provider-free reconciliation never dispatch or rotate;
 8. every durable database/Auth handoff transition is audited, including the authenticated operator-derived approver, approval time, request ID, preview hash, baseline ID/version/content hash, absolute approval/dispatch generations, attempt number, sanitized outcome, reconciliation action, and approved token rotation. The attestation itself and raw token are never audited.
 
-**Tenant eligibility and canonical identity.** ElPro tenants are companies/legal entities, not individuals. V1 provisions Swedish non-personal legal entities only: `country_code = 'SE'` plus a normalized organisation number. Normalization removes spaces and hyphens, requires ten digits, validates the Swedish checksum, and rejects personnummer-shaped identities. Swedish sole proprietorships (`enskild firma`) are therefore unsupported because their organisation identity is the proprietor's personnummer. This restriction does not apply to a tenant's CRM end customers: they may be companies or private individuals, with no personnummer capture added here. Normalize optional VAT by trimming, uppercasing, and removing spaces; accept only `SE` + the normalized ten-digit organisation number + `01`, require an exact organisation match, and store the canonical form. VAT never substitutes for organisation identity.
+**Tenant eligibility and canonical identity.** Kopplas tenants are companies/legal entities, not individuals. V1 provisions Swedish non-personal legal entities only: `country_code = 'SE'` plus a normalized organisation number. Normalization removes spaces and hyphens, requires ten digits, validates the Swedish checksum, and rejects personnummer-shaped identities. Swedish sole proprietorships (`enskild firma`) are therefore unsupported because their organisation identity is the proprietor's personnummer. This restriction does not apply to a tenant's CRM end customers: they may be companies or private individuals, with no personnummer capture added here. Normalize optional VAT by trimming, uppercasing, and removing spaces; accept only `SE` + the normalized ten-digit organisation number + `01`, require an exact organisation match, and store the canonical form. VAT never substitutes for organisation identity.
 
 Canonical identity is `(country_code, normalized_organization_number)`; formatting and legal-name variations are equivalent. Inactive/archived tenants keep the reservation and must be reactivated instead of duplicated. The database enforces uniqueness across every tenant status. Request idempotency is separate: same request UUID/hash retains the original tenant/result identity, reconciles first, and returns current state/attempt/action without provider work; same UUID/different content returns `IDEMPOTENCY_CONFLICT`; different UUID/same canonical organisation returns `ALREADY_PROVISIONED` with existing identity/status. No replay path silently updates the tenant.
 
@@ -1338,3 +1338,7 @@ What each answer changed in this document and its siblings. `owner-signoff-quest
 **Handoff:** PM/Architect own PRD, UX, architecture, epics, brief, and Phase C ledger alignment; PO/Developer own Story 10.7 disposition plus sprint/Auto-BMAD coherence. Product code, migrations, dependencies, lockfiles, environment files, commits, PRs, and deployments are outside this change.
 
 — End of Phase B architecture. Downstream: Phase B epics & stories (Epic 10+), then `project-context.md` refresh, per the ratified document plan (session §7).
+
+## Product naming amendment — 2026-10-09
+
+The application is now **Kopplas**, under [ADR-B013](../../docs/decisions/ADR-B013-kopplas-product-name-and-compatibility.md). Task `KOPPLAS-RENAME-2026-10-09` applies the cross-cutting rename; requirements, epic/story identities, scope-manifest activation, and historical Phase A records retain their meaning. Stable protocol and persisted-data names remain compatibility identifiers.

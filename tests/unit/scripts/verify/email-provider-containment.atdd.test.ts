@@ -8,7 +8,7 @@ import { join } from "node:path";
 /** Provider SDKs, credentials, public paths, and client reachability remain forbidden before Story 13.4. */
 test("[P0][AC4][13.3-GUARD-001] rejects email-provider SDK imports and credential references in runtime source", async () => {
   const { scanEmailProviderContainment } = await loadContainmentChecker();
-  const root = mkdtempSync(join(tmpdir(), "elpro-email-provider-"));
+  const root = mkdtempSync(join(tmpdir(), "kopplas-email-provider-"));
   const server = join(root, "src", "server", "email");
   mkdirSync(server, { recursive: true });
   writeFileSync(join(server, "provider.ts"), "import { Resend } from 'resend'; const key = process.env.RESEND_API_KEY;");
@@ -18,7 +18,7 @@ test("[P0][AC4][13.3-GUARD-001] rejects email-provider SDK imports and credentia
 
 test("[P0][AC4][13.3-GUARD-002] rejects any alternate email API route or a client-reachable outbox/service import", async () => {
   const { scanEmailProviderContainment } = await loadContainmentChecker();
-  const root = mkdtempSync(join(tmpdir(), "elpro-email-route-"));
+  const root = mkdtempSync(join(tmpdir(), "kopplas-email-route-"));
   const route = join(root, "src", "app", "api", "email", "send");
   const client = join(root, "src", "components");
   mkdirSync(route, { recursive: true }); mkdirSync(client, { recursive: true });
@@ -29,7 +29,7 @@ test("[P0][AC4][13.3-GUARD-002] rejects any alternate email API route or a clien
 
 test("[P1][AC4][13.3-GUARD-003] allows the sole authenticated jobs route to import a server-only dark processor without a provider call path", async () => {
   const { scanEmailProviderContainment } = await loadContainmentChecker();
-  const root = mkdtempSync(join(tmpdir(), "elpro-email-jobs-"));
+  const root = mkdtempSync(join(tmpdir(), "kopplas-email-jobs-"));
   const route = join(root, "src", "app", "api", "jobs", "run");
   const outbox = join(root, "src", "server", "email");
   mkdirSync(route, { recursive: true }); mkdirSync(outbox, { recursive: true });

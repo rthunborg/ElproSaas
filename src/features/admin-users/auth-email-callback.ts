@@ -9,7 +9,7 @@ export function resolveAuthEmailCallbackDestination(input: {
 }): string {
   if (input.type === "recovery") return "/password/update";
 
-  const target = new URL("/invite/accept", "http://elpro.local");
+  const target = new URL("/invite/accept", "http://kopplas.local");
   if (input.membershipId) target.searchParams.set("membershipId", input.membershipId);
   if (input.attempt) target.searchParams.set("attempt", input.attempt);
   return `${target.pathname}${target.search}`;

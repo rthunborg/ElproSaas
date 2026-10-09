@@ -21,7 +21,7 @@ export async function writeRecoveryRuntimeConfig(directory, { instance = randomU
   const jwtSecret = randomBytes(32).toString('base64url');
   const anonKey = token(jwtSecret, 'anon');
   const serviceKey = token(jwtSecret, 'service_role');
-  const project = `elpro-isolated-recovery-${instance}`;
+  const project = `kopplas-isolated-recovery-${instance}`;
   const env = [
     `POSTGRES_PASSWORD=${password}`, `JWT_SECRET=${jwtSecret}`, `ANON_KEY=${anonKey}`, `SERVICE_ROLE_KEY=${serviceKey}`, `SERVICE_KEY=${serviceKey}`,
     `GOTRUE_DB_DATABASE_URL=postgres://supabase_auth_admin:${password}@db:5432/postgres`, `GOTRUE_SITE_URL=http://127.0.0.1:${apiPort}`, `GOTRUE_URI_ALLOW_LIST=http://127.0.0.1:${apiPort}`,

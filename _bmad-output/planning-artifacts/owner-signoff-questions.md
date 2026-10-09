@@ -1,6 +1,6 @@
 ---
 created: 2026-06-14
-project: ElproSaas
+project: Kopplas
 phase: Phase A - Internal Pilot MVP
 status: prio1-2-answered-working-session-pending
 last_updated: 2026-09-03

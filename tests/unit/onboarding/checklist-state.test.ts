@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { evaluateOnboardingChecklist, ONBOARDING_CHECKLIST_ITEMS, type OnboardingChecklistFacts } from "@/features/onboarding/checklist-state";
 
 const completeFacts: OnboardingChecklistFacts = {
-  companyName: "Elpro AB", companyOrganizationNumber: "556123-4567", tenantOrganizationNumber: "5561234567",
+  companyName: "Kopplas AB", companyOrganizationNumber: "556123-4567", tenantOrganizationNumber: "5561234567",
   vatDisplay: "company_togglable", vatRateBasisPoints: 2500, termsText: "Villkor", termsApprovedAt: null,
   activeWorkRoles: 1, additionalRoleBearingMembers: 1,
 };

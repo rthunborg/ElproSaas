@@ -20,7 +20,7 @@ function file({ id, createdTime, ownedByMe = true, parents = [folderId], marker 
 }
 
 test('recovery download selects the newest eligible backup across every Drive listing page', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'elpro-recovery-drive-'));
+  const root = await mkdtemp(join(tmpdir(), 'kopplas-recovery-drive-'));
   const output = join(root, 'backup.gpg');
   const calls: string[] = [];
   try {
@@ -59,7 +59,7 @@ test('recovery download selects the newest eligible backup across every Drive li
 });
 
 test('recovery download rejects stale, future, and ineligible backups before downloading media', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'elpro-recovery-drive-age-'));
+  const root = await mkdtemp(join(tmpdir(), 'kopplas-recovery-drive-age-'));
   try {
     for (const [label, candidate, pattern] of [
       ['stale', file({ id: 'stale', createdTime: '2026-09-14T11:59:59Z' }), /older than the 24-hour RPO/],
@@ -86,7 +86,7 @@ test('recovery download rejects stale, future, and ineligible backups before dow
 });
 
 test('recovery download accepts a backup exactly at the 24-hour RPO boundary', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'elpro-recovery-drive-boundary-'));
+  const root = await mkdtemp(join(tmpdir(), 'kopplas-recovery-drive-boundary-'));
   try {
     const result = await downloadRecoveryBackup({
       output: join(root, 'boundary.gpg'),

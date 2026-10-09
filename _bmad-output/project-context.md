@@ -1,9 +1,9 @@
 ---
-title: ElPro BMAD Project Context
+title: Kopplas BMAD Project Context
 status: active
 baseline_plan: docs/planning/saas-rebuild-phased-plan-2026-06-07.md
 phase: B - Legacy Parity Release (Phase A Internal Pilot MVP shipped)
-project_name: ElproSaas
+project_name: Kopplas
 user_name: Rasmus
 last_updated: 2026-09-08 (agent-context setup and workflow alignment)
 sections_completed:
@@ -12,6 +12,8 @@ optimized_for_llm: true
 ---
 
 # Project Context For BMAD Agents
+
+**2026-10-09 naming decision:** The product is Kopplas under [ADR-B013](../docs/decisions/ADR-B013-kopplas-product-name-and-compatibility.md). Historical Elpro/ElproSaas records and stable protocol identifiers remain valid. Current hosted names are Vercel `enhancior/kopplas` and Supabase `Kopplas`; the project ref is unchanged. See the [rename status](../docs/process/kopplas-rename-status.md) for current addresses and compatibility exceptions.
 
 _Critical rules and patterns AI agents must follow when planning, implementing, or reviewing code in this project. Focuses on unobvious details agents might otherwise miss. Read this before writing any code; when in doubt prefer the more restrictive option._
 
@@ -258,7 +260,7 @@ These are AUTOMATED, fail-closed gates that protect every later tenant-owned tab
 - **Authorization:** Implementation requires an approved story or ADR-backed task. Within authorized scope, code, migrations, dependencies, and necessary network actions do not require repeated approval. Docs/process-only work excludes product code, migrations, dependencies, and `.env`. Preserve current secret, destructive-action, merge, and Phase C owner-decision gates. In an orchestrated workflow, the orchestrator owns git/PR operations; delegates commit only when their workflow contract requires it.
 - **CI quality gates:** read `.github/workflows/ci.yml` for the authoritative jobs, commands, and ordering. Do not weaken or bypass required checks. CI and tests target the local stack only; docs/config-only PRs must state which product gates were skipped.
 - **PR requirements:** scope statement + phase, link to approved story/ADR/process task, changed-files list, tests/checks run, security/RLS impact statement, data-migration impact statement, deferred-scope confirmation. Accepted RLS design deferrals (e.g. Phase A co-member own-tenant audit/membership read) are DISCLOSED in the PR Security/RLS impact statement, not buried in a code comment.
-- **Demo environment (live since 2026-07-03, post-Epic-5):** the app is deployed at the Vercel project `enhancior/elpro-saas` (auto-deploys `main`) against the Supabase demo project `elprosaas-demo` (ref `wmqmzznmwpheswjjozhq`, eu-north-1, Enhancior org) — the full contract is `docs/process/demo-environment.md`. Rules that affect epic work: migrations flow repo→demo via `supabase db push` AFTER the epic PR merges (the repo is already `supabase link`ed; sanctioned by the 2026-07-03 guardrail decision); CI and tests stay LOCAL-stack only and must never target the demo project; demo data is disposable and obviously fake; the two `tenant_admin` demo users are listed in that doc (no signup flow exists — users are provisioned manually).
+- **Demo environment (live since 2026-07-03, post-Epic-5):** the app is deployed at the Vercel project `enhancior/kopplas` (auto-deploys `main`) against the Supabase demo project `Kopplas` (ref `wmqmzznmwpheswjjozhq`, eu-north-1, Enhancior org) — the full contract is `docs/process/demo-environment.md`. Rules that affect epic work: migrations flow repo→demo via `supabase db push` AFTER the epic PR merges (the repo is already `supabase link`ed; sanctioned by the 2026-07-03 guardrail decision); CI and tests stay LOCAL-stack only and must never target the demo project; demo data is disposable and obviously fake; the two `tenant_admin` demo users are listed in that doc (no signup flow exists — users are provisioned manually).
 - Deeper governance: `AGENTS.md` (shared source of truth), `CLAUDE.md`, and `docs/process`, `docs/quality`, `docs/security`, `docs/decisions`. Local dev setup: `docs/process/local-setup.md`.
 
 ### Critical Don't-Miss Rules

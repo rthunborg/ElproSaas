@@ -60,7 +60,7 @@ test("time-budget runner terminates a command tree, including a package-manager-
   // CI runs the real descendant test on Linux; this Windows branch still pins
   // the portable taskkill /T contract above without leaking a test process.
   if (process.platform === "win32") return;
-  const directory = await mkdtemp(join(tmpdir(), "elpro-time-budget-"));
+  const directory = await mkdtemp(join(tmpdir(), "kopplas-time-budget-"));
   const pidFile = join(directory, "grandchild.pid");
   try {
     const parentProgram = [

@@ -113,7 +113,7 @@ describe("updateCompanySettings — upsert, VAT bp validation, audit (Story 3.3 
     const result = await runCommand(updateCompanySettings, {
       client: a as never,
       input: {
-        company_name: "Elpro Pilot AB",
+        company_name: "Kopplas Pilot AB",
         org_nr: orgNr,
         address_line1: "Storgatan 1",
         postal_code: "11122",
@@ -143,7 +143,7 @@ describe("updateCompanySettings — upsert, VAT bp validation, audit (Story 3.3 
     const serialized = JSON.stringify(audits[0].metadata ?? {});
     expect(serialized.includes(orgNr)).toBe(false);
     expect(serialized.includes("Storgatan 1")).toBe(false);
-    expect(serialized.includes("Elpro Pilot AB")).toBe(false);
+    expect(serialized.includes("Kopplas Pilot AB")).toBe(false);
   });
 
   it("[P0] a SECOND call UPDATES the same row (unique(tenant_id)) — never a duplicate", async (testCtx) => {

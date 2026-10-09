@@ -1,4 +1,4 @@
-# ElproSaas LOCAL Supabase config (Story 2.2). This file configures the LOCAL CLI
+# Kopplas LOCAL Supabase config (Story 2.2). This file configures the LOCAL CLI
 # stack ONLY — it is NEVER pointed at a shared dev/staging/prod project
 # (architecture §18). The CLI namespaces its Docker containers by `project_id`
 # (no fixed container_name), uses named volumes for Postgres data (no Windows-path
@@ -14,7 +14,7 @@
 # https://supabase.com/docs/guides/local-development/cli/config
 # A string used to distinguish different Supabase projects on the same host. Defaults to the
 # working directory name when running `supabase init`.
-project_id = "ElproSaas"
+project_id = "kopplas"
 
 [api]
 enabled = true
@@ -272,11 +272,11 @@ otp_expiry = 3600
 
 # Uncomment to customize email template
 [auth.email.template.invite]
-subject = "Du har bjudits in till Elpro"
+subject = "Du har bjudits in till Kopplas"
 content_path = "./supabase/templates/invite.html"
 
 [auth.email.template.magic_link]
-subject = "Fortsätt till Elpro"
+subject = "Fortsätt till Kopplas"
 content_path = "./supabase/templates/magic-link.html"
 
 # Uncomment to customize notification email template

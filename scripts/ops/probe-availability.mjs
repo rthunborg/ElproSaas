@@ -4,12 +4,27 @@ import { pathToFileURL } from 'node:url';
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 
-function required(name) {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} is required`);
+function environmentAlias(env, currentName, legacyName) {
+  // GitHub supplies an empty string for an unset repository variable. Preserve
+  // both raw aliases until here so workflow coalescing cannot hide a conflict.
+  const current = env[currentName] === '' ? undefined : env[currentName];
+  const legacy = env[legacyName] === '' ? undefined : env[legacyName];
+  if (current !== undefined && legacy !== undefined && current !== legacy) {
+    throw new Error(`${currentName} conflicts with ${legacyName}`);
   }
-  return value;
+  return current ?? legacy;
+}
+
+/** @param {Record<string, string | undefined>} env */
+export function availabilityConfigFromEnv(env = process.env) {
+  const targetUrl = environmentAlias(env, 'KOPPLAS_MONITOR_URL', 'ELPRO_MONITOR_URL');
+  if (targetUrl === undefined) throw new Error('KOPPLAS_MONITOR_URL is required');
+  validateTarget(targetUrl);
+  const status = environmentAlias(env, 'KOPPLAS_MONITOR_EXPECTED_STATUS', 'ELPRO_MONITOR_EXPECTED_STATUS') ?? '200';
+  if (!/^[1-5][0-9]{2}$/.test(status)) {
+    throw new Error('KOPPLAS_MONITOR_EXPECTED_STATUS must be an HTTP status code');
+  }
+  return { targetUrl, expectedStatus: Number(status) };
 }
 
 function parseArgs(args) {
@@ -23,7 +38,7 @@ function parseArgs(args) {
 function validateTarget(value) {
   const target = new URL(value);
   if (target.protocol !== 'https:' || !target.hostname) {
-    throw new Error('ELPRO_MONITOR_URL must be an absolute HTTPS URL');
+    throw new Error('KOPPLAS_MONITOR_URL must be an absolute HTTPS URL');
   }
   return target;
 }
@@ -35,7 +50,7 @@ async function writeResult(output, result) {
 
 export async function probeAvailability({ targetUrl, expectedStatus = 200, fetchImpl = fetch, now = () => new Date(), clock = () => performance.now() }) {
   if (!Number.isInteger(expectedStatus) || expectedStatus < 100 || expectedStatus > 599) {
-    throw new Error('ELPRO_MONITOR_EXPECTED_STATUS must be an HTTP status code');
+    throw new Error('KOPPLAS_MONITOR_EXPECTED_STATUS must be an HTTP status code');
   }
 
   const target = validateTarget(targetUrl);
@@ -45,7 +60,7 @@ export async function probeAvailability({ targetUrl, expectedStatus = 200, fetch
 
   try {
     const response = await fetchImpl(target, {
-      headers: { 'user-agent': 'elpro-pilot-availability-monitor/1.0' },
+      headers: { 'user-agent': 'kopplas-pilot-availability-monitor/1.0' },
       redirect: 'manual',
       signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
     });
@@ -73,10 +88,7 @@ export async function probeAvailability({ targetUrl, expectedStatus = 200, fetch
 
 async function main() {
   const { output } = parseArgs(process.argv.slice(2));
-  const result = await probeAvailability({
-    targetUrl: required('ELPRO_MONITOR_URL'),
-    expectedStatus: Number.parseInt(process.env.ELPRO_MONITOR_EXPECTED_STATUS ?? '200', 10),
-  });
+  const result = await probeAvailability(availabilityConfigFromEnv());
   await writeResult(output, result);
   console.log(JSON.stringify(result));
   if (result.status !== 'ok') {

@@ -1,6 +1,6 @@
 # Local Setup And Environment Contract
 
-This is the canonical guide for running Elpro locally and the contract for
+This is the canonical guide for running Kopplas locally and the contract for
 environment configuration. The [README](../../README.md) is the quickstart; this
 document holds the detail. Where another doc owns a rule (CI gates, the Lovable
 oracle policy), this doc **links** rather than restating it, so there is one
@@ -125,6 +125,14 @@ Rules (see [`docs/security/security-guardrails.md`](../security/security-guardra
   compatible signer; apply the enforcement/removal migration only afterward.
 
 ## Local Supabase (wired)
+
+**2026-10-09 rename:** Fresh local stacks use `project_id = "kopplas"`; CI expects
+`supabase_db_kopplas`. Existing `ElproSaas` resources and their volumes are
+retained. A namespace change does not migrate data or transfer guard ownership.
+Use validated reuse with the original configuration or a deliberately isolated
+new Kopplas stack with nonconflicting ports; never rename/delete live resources.
+The historical authorization below identifies the existing loopback database,
+not permission to adopt another stack. See [rename status](kopplas-rename-status.md).
 
 ### Booking conflict attestation
 

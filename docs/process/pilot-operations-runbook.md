@@ -1,6 +1,6 @@
 # Pilot Operations Runbook
 
-Status: tooling prepared for the `elpro-saas` internal pilot. It becomes an
+Status: tooling prepared for the `kopplas` internal pilot. It becomes an
 operational control only after the owner completes the repository-secret and
 notification setup below, runs a successful backup, proves notification
 delivery, and records a successful isolated restore rehearsal.
@@ -59,7 +59,7 @@ Enhancior Workspace backup folder, so it must not be used for pilot data.
    output, workflow logs, artifacts, commits, and issue text.
 
    - `SUPABASE_BACKUP_DB_URL`: a TLS database connection string with the
-     documented backup/restore privileges for `elprosaas-demo`. It must use the
+     documented backup/restore privileges for `Kopplas`. It must use the
      either the exact direct host `db.wmqmzznmwpheswjjozhq.supabase.co` with
      user `postgres`, or a Supabase shared session-pooler host on
      `*.pooler.supabase.com` with user `postgres.wmqmzznmwpheswjjozhq`; both
@@ -207,7 +207,7 @@ before treating an isolated restore as a usable application recovery.
 
 ## Monthly isolated restore rehearsal
 
-Never restore into `elprosaas-demo`, run `supabase db reset --linked`, or
+Never restore into `Kopplas`, run `supabase db reset --linked`, or
 replace the current demo project. A restore is destructive to its target and
 the target must be a dedicated, empty recovery project or an isolated local
 database with no connection to the demo database.
@@ -235,7 +235,7 @@ database with no connection to the demo database.
    ```json
    {
      "operation": "ComposeUp",
-     "workingDirectory": "C:\\path\\to\\elpro-recovery-worktree",
+     "workingDirectory": "C:\\path\\to\\kopplas-recovery-worktree",
      "composeFiles": [
       "ops/recovery/compose.db-bootstrap.yaml",
       "ops/recovery/.private.db-bootstrap.compose.yaml"
@@ -267,7 +267,7 @@ database with no connection to the demo database.
    ```json
    {
      "operation": "ComposeUp",
-     "workingDirectory": "C:\\path\\to\\elpro-recovery-worktree",
+     "workingDirectory": "C:\\path\\to\\kopplas-recovery-worktree",
      "composeFiles": [
        "ops/recovery/compose.yaml",
        "ops/recovery/.private.runtime.compose.yaml"

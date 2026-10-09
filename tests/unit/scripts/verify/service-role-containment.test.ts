@@ -21,7 +21,7 @@ import { join } from "node:path";
 import { scanForServiceRoleLeak } from "../../../../scripts/verify/check-service-role-containment.mjs";
 
 function withTempRoot(run: (root: string) => void): void {
-  const root = mkdtempSync(join(tmpdir(), "elpro-svc-guard-"));
+  const root = mkdtempSync(join(tmpdir(), "kopplas-svc-guard-"));
   try {
     run(root);
   } finally {

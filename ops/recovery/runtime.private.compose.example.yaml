@@ -1,7 +1,7 @@
 # Copy this file to `ops/recovery/.private.runtime.compose.yaml` in the dedicated
 # recovery worktree. Reuse the exact same unique project name as the DB bootstrap.
 # Pick unused high loopback ports.
-name: elpro-isolated-recovery-replace-with-a-fresh-drill-id
+name: kopplas-isolated-recovery-replace-with-a-fresh-drill-id
 
 services:
   db:

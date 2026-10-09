@@ -24,7 +24,7 @@ Mandatory rules:
 - Phase B module stories DO create database migrations, add dependencies, and modify app code — under manifest governance (an activation story flips the module `active` in the same PR as its schema/nav change). Process-only / docs-only tasks still do NOT create migrations, add dependencies, edit `.env`, or modify app code.
 - No service-role access from client paths. No unauthenticated privileged functions. Unauthenticated surfaces are limited to the ADR-B004 closed set of three (calendar feed, asset QR, email unsubscribe), each carrying no privileged capability.
 - Use the deeper docs in `docs/process`, `docs/quality`, `docs/security`, and `_bmad-output/project-context.md`.
-- A live demo deployment exists (Vercel `enhancior/elpro-saas` + Supabase `elprosaas-demo`): see [docs/process/demo-environment.md](docs/process/demo-environment.md). Migrations flow repo→demo via `supabase db push` after merge; CI and tests never target the demo project.
+- A live demo deployment exists (Vercel `enhancior/kopplas` + Supabase `Kopplas`): see [docs/process/demo-environment.md](docs/process/demo-environment.md). Migrations flow repo→demo via `supabase db push` after merge; CI and tests never target the demo project.
 
 ## Agent Model and Effort
 
@@ -75,9 +75,15 @@ Do not hot-upgrade a running loop or use heartbeat age alone to take its work.
 <!-- bmad:context -->
 <!-- Verified 2026-09-23 against f92e47c9f9e1ca82568c2bb3af1a8d0160a2e826. Managed by bmad-project-context; edits inside this block are replaced on refresh. Keep anything you want preserved outside the markers. -->
 
-## ElproSaas
+## Kopplas
 
-ElPro is a multi-tenant application for electrical contractors, built with Next.js, TypeScript, and Supabase. Planning lives under `_bmad-output/planning-artifacts/`; shared governance lives in this file and `docs/`.
+The product was renamed from ElproSaas on 2026-10-09. Follow
+[ADR-B013](docs/decisions/ADR-B013-kopplas-product-name-and-compatibility.md):
+use Kopplas for current branding, preserve historical records and versioned
+compatibility identifiers, and consult the [rename status](docs/process/kopplas-rename-status.md)
+for current deployment addresses.
+
+Kopplas is a multi-tenant application for electrical contractors, built with Next.js, TypeScript, and Supabase. Planning lives under `_bmad-output/planning-artifacts/`; shared governance lives in this file and `docs/`.
 
 ## Where things are
 

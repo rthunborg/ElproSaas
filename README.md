@@ -1,4 +1,8 @@
-# Elpro
+# Kopplas
+
+Formerly ElproSaas. Current naming, future domains, and compatibility exceptions
+are recorded in [ADR-B013](docs/decisions/ADR-B013-kopplas-product-name-and-compatibility.md)
+and the [rename status](docs/process/kopplas-rename-status.md).
 
 Internal pilot platform for an electrical-contracting business — a tenant-admin
 operations app (CRM, settings/pricing, calculations, quote versions/PDF/

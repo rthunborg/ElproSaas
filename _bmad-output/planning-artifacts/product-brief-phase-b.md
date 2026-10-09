@@ -1,5 +1,5 @@
 ---
-title: "Product Brief: ElproSaas — Phase B (Legacy Parity Release)"
+title: "Product Brief: Kopplas — Phase B (Legacy Parity Release)"
 status: "complete"
 created: "2026-07-18"
 updated: "2026-09-03"
@@ -20,11 +20,11 @@ inputs:
 notes: "First product brief in the project (the Phase A PRD records productBriefs: 0). Phase A planning artifacts are frozen as the pilot record; Phase B siblings use the -phase-b filename suffix established by this file."
 ---
 
-# Product Brief: ElproSaas — Phase B (Legacy Parity Release)
+# Product Brief: Kopplas — Phase B (Legacy Parity Release)
 
 ## Executive Summary
 
-ElproSaas is the multi-tenant SaaS rebuild of a Swedish electrical contractor's legacy Lovable-built operations app. Phase A (Internal Pilot MVP, epics 1-9, complete 2026-07-08) proved the foundation on a deliberately narrow slice — CRM, pricing, calculations, immutable quote versions/PDF/acceptance, basic jobs, files, and a golden-master migration harness — delivered with tenant isolation + RLS, integer-öre money, immutable snapshots, server-side audited commands, and a 1378-test green gate. Stakeholders accepted the pilot and green-lit the next phase.
+Kopplas is the multi-tenant SaaS rebuild of a Swedish electrical contractor's legacy Lovable-built operations app. Phase A (Internal Pilot MVP, epics 1-9, complete 2026-07-08) proved the foundation on a deliberately narrow slice — CRM, pricing, calculations, immutable quote versions/PDF/acceptance, basic jobs, files, and a golden-master migration harness — delivered with tenant isolation + RLS, integer-öre money, immutable snapshots, server-side audited commands, and a 1378-test green gate. Stakeholders accepted the pilot and green-lit the next phase.
 
 Phase B is the parity release: **everything the legacy app did, but better, on the Phase A architecture** (owner direction, 2026-07-08). The headline capabilities are **Jobs & Projects depth** and **Time planning & scheduling for employees and teams**, with all modules built **inter-connected** — jobs ↔ scheduling ↔ people ↔ materials ↔ economy ↔ documents — not as siloed pages. Phase B also productizes what the legacy app never had safely: real multi-company delivery (tenant provisioning/onboarding, full RBAC with non-admin roles) and money-out (billing basis, then **Fortnox**). When Phase B is done, the pilot company runs its whole operation in the new system, the legacy app can be retired (the owner's stated cutover criterion is "at least all functionality the Lovable app has"), and the product can be offered to independent electrical companies.
 
@@ -163,3 +163,7 @@ Phase B ends with one connected, responsive product two kinds of customers can t
 6. **Success criteria are authored here** (the session defined direction and structure but no phase-level acceptance statement); they are derived strictly from the owner direction, PB decisions, and the Phase A quality bar, and should be hardened into measurable acceptance criteria by the PRD.
 7. **Sizing and horizon are restated, not re-estimated** — 21-25 epics / ~2.5× Phase A / 11-13 pipeline-weeks with the session's two caveats; the PRD/epics stage owns any re-estimate at wave boundaries.
 8. **Legacy pain framing** cites the 2026-06-01 audit as-of-then facts (P0 cron auth, float money, mutable quotes, 1426 lint issues); they describe the system being replaced, not its current operators.
+
+## Product naming amendment — 2026-10-09
+
+The application is now **Kopplas**, under [ADR-B013](../../docs/decisions/ADR-B013-kopplas-product-name-and-compatibility.md). Task `KOPPLAS-RENAME-2026-10-09` applies the cross-cutting rename; requirements, epic/story identities, scope-manifest activation, and historical Phase A records retain their meaning. Stable protocol and persisted-data names remain compatibility identifiers.

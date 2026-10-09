@@ -18,7 +18,7 @@ import { join } from "node:path";
 import { checkLockfiles } from "../../../../scripts/verify/check-lockfiles.mjs";
 
 function withTempRoot(run: (root: string) => void): void {
-  const root = mkdtempSync(join(tmpdir(), "elpro-lockfile-guard-"));
+  const root = mkdtempSync(join(tmpdir(), "kopplas-lockfile-guard-"));
   try {
     run(root);
   } finally {

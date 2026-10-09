@@ -160,7 +160,7 @@ async function seedSnapshottedVersion(tenantId: string): Promise<string> {
     calculation_id: calcId,
     quote_number: 1001,
     customer_display_name: "Kund Kundsson",
-    company_name: "Elpro Demo AB",
+    company_name: "Kopplas Demo AB",
   });
   const sectionId = await adminInsertSection({
     tenant_id: tenantId,

@@ -35,13 +35,13 @@ function buildFixtureSnapshot() {
     {
       calculationId: "calc-6-5-payload",
       company: {
-        company_name: "Elpro Test AB",
+        company_name: "Kopplas Test AB",
         org_nr: "556000-0000",
         address_line1: "Testvägen 1",
         address_line2: null,
         postal_code: "12345",
         city: "Teststad",
-        email: "billing@elpro.test",
+        email: "billing@kopplas.test",
         phone: "+46000000000",
         logo_url: null,
       },
@@ -120,7 +120,7 @@ test("6.5-INT-01 (unit): snapshotToPayload emits the full frozen header/totals/t
 
 test("6.5-INT-01 (unit): snapshotToPayload copies literal V1 values without inventing V2 tax scalars", () => {
   const payload = snapshotToPayload(buildFixtureSnapshot());
-  assert.equal(payload.companyName, "Elpro Test AB");
+  assert.equal(payload.companyName, "Kopplas Test AB");
   assert.equal(payload.baseTotalOre, 120000);
   assert.equal(payload.vatTotalOre, 30000);
   assert.equal(payload.acceptedPriceOre, 150000);

@@ -14,7 +14,7 @@ import {
 } from './model';
 
 const REQUEST_TIMEOUT_MS = 10_000;
-const USER_AGENT = 'elpro-pilot-availability-monitor/2.0';
+const USER_AGENT = 'kopplas-pilot-availability-monitor/2.0';
 const MONITOR_OBJECT_NAME = 'production';
 
 interface Env {
@@ -233,7 +233,7 @@ export class AvailabilityMonitor implements DurableObject {
   private outageMessage(alert: PendingAlertRow, currentState: 'recovered' | 'unknown after a scheduler gap' | 'still failing'): EmailMessage {
     const sender = validateAlertSender(this.env.MONITOR_SENDER);
     const destination = validateAlertDestination(this.env.MONITOR_DESTINATION);
-    const subject = 'Elpro pilot monitor: three failed probes';
+    const subject = 'Kopplas pilot monitor: three failed probes';
     const body = [
       'The synthetic availability monitor recorded three consecutive failed probes.',
       `Incident observed at: ${new Date(alert.opened_at).toISOString()}.`,

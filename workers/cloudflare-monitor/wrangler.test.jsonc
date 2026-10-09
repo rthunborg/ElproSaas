@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "elpro-pilot-availability-monitor-local-test",
+  "name": "kopplas-pilot-availability-monitor-local-test",
   "main": "src/index.ts",
   "compatibility_date": "2026-09-15",
   "workers_dev": false,

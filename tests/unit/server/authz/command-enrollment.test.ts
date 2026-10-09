@@ -32,7 +32,7 @@ test("[P0] source enrollment verification rejects an omitted registry row even w
 });
 
 test("[P0] production discovery traverses declarations outside the commands folder", () => {
-  const projectRoot = mkdtempSync(join(tmpdir(), "elpro-command-enrollment-"));
+  const projectRoot = mkdtempSync(join(tmpdir(), "kopplas-command-enrollment-"));
   try {
     const featureDirectory = join(projectRoot, "src", "features");
     mkdirSync(featureDirectory, { recursive: true });

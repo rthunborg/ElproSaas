@@ -1,4 +1,4 @@
-# Codex execpolicy rules for ElPro Phase A.
+# Codex execpolicy rules for Kopplas Phase A.
 # Verified locally with: codex execpolicy check --rules .codex/rules/default.rules <command>
 #
 # Decisions used by Codex 0.137.0 on this machine:

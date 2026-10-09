@@ -6,7 +6,7 @@
 
 ---
 
-You are picking up the ElproSaas project at `C:\ElproSaas` (Windows, PowerShell + Git Bash, pnpm). Read this whole brief before acting — you have no context from the previous session.
+You are picking up the Kopplas project from its actual checkout root (see `docs/process/kopplas-rename-status.md` for the pending folder move) (Windows, PowerShell + Git Bash, pnpm). Read this whole brief before acting — you have no context from the previous session.
 
 ## Where the project stands
 
@@ -73,7 +73,7 @@ When Steps 1–2 are done (branch → PR → CI green → merge, per the repo wo
 - **10.7** — Phase B connected-field posture and Phase C PWA/offline deferral (documentation/governance alignment only; no functionality delivered).
 
 **Environment gotchas**
-- Local Supabase needs **Docker Desktop running**; then `npx supabase start` and `npx supabase db reset`. Cloud CLI commands need `SUPABASE_PROFILE=supabase/cli-profile.yaml`. The demo project is `elprosaas-demo` (ref `wmqmzznmwpheswjjozhq`, Enhancior org). Migrations flow repo→demo via `supabase db push --linked` **after merge**; CI never touches demo.
+- Local Supabase needs **Docker Desktop running**; then `npx supabase start` and `npx supabase db reset`. Cloud CLI commands need `SUPABASE_PROFILE=supabase/cli-profile.yaml`. The demo project is `Kopplas` (ref `wmqmzznmwpheswjjozhq`, Enhancior org). Migrations flow repo→demo via `supabase db push --linked` **after merge**; CI never touches demo.
 - There is a known **Windows-only** unit failure: `tests/unit/fixtures/golden/lovable/lovable-loader-roundtrip.test.ts` byte-compares a golden fixture that `core.autocrlf` rewrites to CRLF locally. It is green on CI (Linux). **1 failure of exactly this test is expected; anything else is real.**
 - CI's `supabase db reset` step intermittently 502s during "Restarting containers"; a bounded 3-attempt retry is already in `.github/workflows/ci.yml`.
 - Scope is **manifest-governed**: `src/scope/manifest.ts` is the single source for what surface may exist. A module's live surface requires `status: active`; `deferredFileToken` is deliberately pending-only metadata. Adding a tenant table means enrolling it in the manifest **in the same PR**, and the coherence validator plus the H4 inventory gate will fail loudly otherwise.

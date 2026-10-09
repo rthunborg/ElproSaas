@@ -16,7 +16,7 @@ async function runPython(args: readonly string[]) {
 test('versioned file-backend restore preserves the DB-owned identity and refuses overwrite', {
   skip: process.platform === 'win32' ? 'Linux xattrs are required; this runs on Ubuntu CI in the same Python/Alpine compatibility family as the recovery loader' : false,
 }, async () => {
-  const root = await mkdtemp(join(tmpdir(), 'elpro-storage-backend-'));
+  const root = await mkdtemp(join(tmpdir(), 'kopplas-storage-backend-'));
   const workspace = join(root, 'backup-workspace');
   const backend = join(root, 'backend');
   const source = join(workspace, 'storage', 'tenant-files', 'tenant-a', 'document.pdf');
